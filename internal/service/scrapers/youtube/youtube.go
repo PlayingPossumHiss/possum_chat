@@ -63,16 +63,15 @@ func (s *Service) watchChat() {
 
 		continuation, cfg, err := yt_chat.ParseInitialData(fmt.Sprintf("https://www.youtube.com/watch?v=%s", s.streamKey))
 		if err != nil {
-			log.Panicln(err)
+			log.Println(err)
 			continue
 		}
 
 		err = s.scrap(continuation, cfg)
 		if err != nil {
-			log.Panicln(err)
+			log.Println(err)
 		}
 	}
-
 }
 
 func (s *Service) scrap(
