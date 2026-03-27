@@ -4,20 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"net/url"
 	"slices"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
-	"github.com/gorilla/websocket"
 )
 
 type Service struct {
-	streamKey string
-	ctx       context.Context
-	cooldown  time.Duration
+	streamKey     string
+	ctx           context.Context
+	cooldown      time.Duration
+	vkPlayLiveApi VkPlayLiveApi
+	vkPlayLiveWs  VkPlayLiveWs
 
 	messages  []entity.Message
 	messageMx *sync.Mutex
@@ -27,17 +27,25 @@ func New(
 	ctx context.Context,
 	streamKey string,
 	cooldown time.Duration,
-) *Service {
+	vkPlayLiveApi VkPlayLiveApi,
+	vkPlayLiveWs VkPlayLiveWs,
+) (*Service, error) {
+	userID, err := vkPlayLiveApi.GetUserID(ctx, streamKey)
+	if err != nil {
+		return nil, err
+	}
 	scraper := &Service{
-		streamKey: streamKey,
-		cooldown:  cooldown,
-		ctx:       ctx,
-		messageMx: &sync.Mutex{},
+		streamKey:     strconv.Itoa(userID),
+		cooldown:      cooldown,
+		ctx:           ctx,
+		vkPlayLiveApi: vkPlayLiveApi,
+		vkPlayLiveWs:  vkPlayLiveWs,
+		messageMx:     &sync.Mutex{},
 	}
 
 	go scraper.watchChat()
 
-	return scraper
+	return scraper, nil
 }
 
 func (s *Service) GetMessages() []entity.Message {
@@ -62,30 +70,35 @@ func (s *Service) scrap() error {
 	case <-s.ctx.Done():
 		return s.ctx.Err()
 	default:
-		chatUrl := url.URL{
-			Scheme: "ws",
-			Host:   "pubsub.live.vkvideo.ru",
-			Path:   "/connection/websocket?cf_protocol_version=v2",
-		}
-
-		client, _, err := websocket.DefaultDialer.Dial(
-			chatUrl.String(),
-			nil,
-		)
-
+		token, err := s.vkPlayLiveApi.GetWsToken(s.ctx)
 		if err != nil {
 			return err
 		}
-		defer client.Close()
+
+		err = s.vkPlayLiveWs.Init(s.ctx, token, s.streamKey)
+		if err != nil {
+			return err
+		}
+
+		defer func() {
+			s.vkPlayLiveWs.Close()
+		}()
 
 		for {
 			select {
 			case <-s.ctx.Done():
 				return s.ctx.Err()
 			default:
-				_, rawMsg, err := client.ReadMessage()
+				rawMsg, err := s.vkPlayLiveWs.ReadMessage()
 				if err != nil {
 					return err
+				}
+				if slices.Equal(rawMsg, []byte("{}")) {
+					err = s.vkPlayLiveWs.WriteMessage(rawMsg)
+					if err != nil {
+						return err
+					}
+					continue
 				}
 				chatMessage, err := getMessageFromBytes(rawMsg)
 				if err != nil {
@@ -112,9 +125,10 @@ func getMessageFromBytes(rawMsg []byte) (entity.Message, error) {
 		return entity.Message{}, nil
 	}
 	chatMessage := entity.Message{
-		ID:     strconv.Itoa(msg.Push.Pub.Data.Data.ID),
-		Source: entity.SourceVkPlayLive,
-		User:   msg.Push.Pub.Data.Data.Author.Name,
+		ID:        strconv.Itoa(msg.Push.Pub.Data.Data.ID),
+		Source:    entity.SourceVkPlayLive,
+		User:      msg.Push.Pub.Data.Data.Author.Name,
+		CreatedAt: time.Now(),
 	}
 	for _, textPart := range msg.Push.Pub.Data.Data.Data {
 		if textPart.Type != "text" {
@@ -123,7 +137,7 @@ func getMessageFromBytes(rawMsg []byte) (entity.Message, error) {
 		testPartContent := []any{}
 		err = json.Unmarshal([]byte(textPart.Content), &testPartContent)
 		if err != nil {
-			return entity.Message{}, err
+			continue
 		}
 		if len(testPartContent) > 0 {
 			subText, ok := testPartContent[0].(string)
