@@ -38,7 +38,13 @@ func New(
 func (s *Service) PushMessages(messages []entity.Message) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	s.messages = append(s.messages, messages...)
+	slices.SortFunc(messages, func(a entity.Message, b entity.Message) int {
+		return a.CreatedAt.Compare(b.CreatedAt)
+	})
+	for _, message := range messages {
+		message.CreatedAt = time.Now()
+		s.messages = append(s.messages, message)
+	}
 }
 
 func (s *Service) ListMessages() []entity.Message {

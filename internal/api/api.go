@@ -18,7 +18,12 @@ func New(
 	getStyleUC GetStyleUC,
 	listMessagesUC ListMessagesUC,
 ) *Api {
-	service := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
+	service := gin.New()
+	service.Use(
+		gin.LoggerWithWriter(gin.DefaultWriter, "/api/v1/messages"),
+		gin.Recovery(),
+	)
 	api := &Api{
 		service:        service,
 		getStyleUC:     getStyleUC,
@@ -31,6 +36,7 @@ func New(
 	service.StaticFile("js/messages.js", "./static/js/messages.js")
 	service.StaticFile("css/messages.css", "./static/css/messages.css")
 	service.StaticFile("messages.html", "./static/messages.html")
+	service.Static("/img", "./static/img")
 
 	return api
 }
