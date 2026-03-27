@@ -2,7 +2,6 @@ package youtube_scraper
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"slices"
 	"sync"
@@ -52,7 +51,7 @@ func (s *Service) watchChat() {
 	for {
 		err := s.youtubeClient.Init(s.streamKey)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			continue
 		}
 
