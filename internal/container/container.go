@@ -6,10 +6,12 @@ import (
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/twitch_irc_client"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_ws"
 	youtube_client "github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/youtube"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/twitch"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/vk_play_live"
 	youtube_scraper "github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/youtube"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/settings"
@@ -203,6 +205,8 @@ func (c *Container) getScrapers() ([]run_watch_scrapers.Scraper, error) {
 				return nil, err
 			}
 			result = append(result, scraper)
+		case entity.SourceTwitch:
+			result = append(result, c.getTwitchScraper(connection))
 		}
 	}
 
@@ -233,6 +237,15 @@ func (c *Container) getVkPlayLiveScraper(
 	)
 }
 
+func (c *Container) getTwitchScraper(
+	configConnection entity.ConfigConnection,
+) *twitch.Service {
+	return twitch.New(
+		c.getTwitchClient(),
+		configConnection.Key,
+	)
+}
+
 func (c *Container) getVkPalyLiveApi() *vk_play_live_api.Client {
 	if c.vkPlayLiveApi != nil {
 		return c.vkPlayLiveApi
@@ -250,4 +263,9 @@ func (c *Container) getVkPalyLiveWs() *vk_play_live_ws.Client {
 func (c *Container) getYoutubeClient() *youtube_client.Client {
 	// тут отдельный коннект на каждое соединение
 	return youtube_client.New()
+}
+
+func (c *Container) getTwitchClient() *twitch_irc_client.Client {
+	// тут отдельный коннект на каждое соединение
+	return twitch_irc_client.New()
 }
