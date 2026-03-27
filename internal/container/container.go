@@ -6,7 +6,11 @@ import (
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_api"
+	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_ws"
+	youtube_client "github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/youtube"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/vk_play_live"
 	youtube_scraper "github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/youtube"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/settings"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/get_style"
@@ -30,6 +34,9 @@ type Container struct {
 
 	// апишка (своя)
 	selfApi *api.Api
+
+	// инфра
+	vkPlayLiveApi *vk_play_live_api.Client
 }
 
 func New(ctx context.Context) *Container {
@@ -190,6 +197,12 @@ func (c *Container) getScrapers() ([]run_watch_scrapers.Scraper, error) {
 		switch connection.Source {
 		case entity.SourceYoutube:
 			result = append(result, c.getYoutubeScraper(connection))
+		case entity.SourceVkPlayLive:
+			scraper, err := c.getVkPlayLiveScraper(connection)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, scraper)
 		}
 	}
 
@@ -204,5 +217,37 @@ func (c *Container) getYoutubeScraper(
 		c.ctx,
 		configConnection.Key,
 		configConnection.RefreshTime,
+		c.getYoutubeClient(),
 	)
+}
+
+func (c *Container) getVkPlayLiveScraper(
+	configConnection entity.ConfigConnection,
+) (*vk_play_live.Service, error) {
+	return vk_play_live.New(
+		c.ctx,
+		configConnection.Key,
+		configConnection.RefreshTime,
+		c.getVkPalyLiveApi(),
+		c.getVkPalyLiveWs(),
+	)
+}
+
+func (c *Container) getVkPalyLiveApi() *vk_play_live_api.Client {
+	if c.vkPlayLiveApi != nil {
+		return c.vkPlayLiveApi
+	}
+
+	c.vkPlayLiveApi = vk_play_live_api.New()
+	return c.vkPlayLiveApi
+}
+
+func (c *Container) getVkPalyLiveWs() *vk_play_live_ws.Client {
+	// тут отдельный коннект на каждое соединение
+	return vk_play_live_ws.New()
+}
+
+func (c *Container) getYoutubeClient() *youtube_client.Client {
+	// тут отдельный коннект на каждое соединение
+	return youtube_client.New()
 }
