@@ -16,3 +16,7 @@
     right: 0;
     left: 0;
 }
+
+img.message-icon {
+    height: 1em;
+}

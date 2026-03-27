@@ -59,7 +59,7 @@ func (c *Container) Run() error {
 	go func() {
 		for {
 			messageWatcher.Run(c.ctx)
-			time.Sleep(time.Millisecond * 150)
+			time.Sleep(time.Millisecond * 30)
 		}
 	}()
 

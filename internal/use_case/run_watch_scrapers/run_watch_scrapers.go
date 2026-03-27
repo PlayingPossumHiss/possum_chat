@@ -21,7 +21,8 @@ func New(
 
 func (uc *UseCase) Run(ctx context.Context) error {
 	for _, scraper := range uc.scrapers {
-		uc.messageQueueService.PushMessages(scraper.GetMessages())
+		messages := scraper.GetMessages()
+		uc.messageQueueService.PushMessages(messages)
 	}
 
 	return nil
