@@ -2,7 +2,7 @@ package vk_play_live
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"log"
 	"slices"
 	"strconv"
@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	app_errors "github.com/PlayingPossumHiss/possum_chat/internal/errors"
 )
 
 type Service struct {
 	streamKey     string
-	ctx           context.Context
 	cooldown      time.Duration
 	vkPlayLiveApi VkPlayLiveApi
 	vkPlayLiveWs  VkPlayLiveWs
@@ -37,13 +37,12 @@ func New(
 	scraper := &Service{
 		streamKey:     strconv.Itoa(userID),
 		cooldown:      cooldown,
-		ctx:           ctx,
 		vkPlayLiveApi: vkPlayLiveApi,
 		vkPlayLiveWs:  vkPlayLiveWs,
 		messageMx:     &sync.Mutex{},
 	}
 
-	go scraper.watchChat()
+	go scraper.watchChat(ctx)
 
 	return scraper, nil
 }
@@ -53,29 +52,30 @@ func (s *Service) GetMessages() []entity.Message {
 	defer s.messageMx.Unlock()
 	result := slices.Clone(s.messages)
 	s.messages = nil
+
 	return result
 }
 
-func (s *Service) watchChat() {
+func (s *Service) watchChat(ctx context.Context) {
 	for {
-		err := s.scrap()
+		err := s.scrap(ctx)
 		if err != nil {
 			log.Println(err)
 		}
 	}
 }
 
-func (s *Service) scrap() error {
+func (s *Service) scrap(ctx context.Context) error {
 	select {
-	case <-s.ctx.Done():
-		return s.ctx.Err()
+	case <-ctx.Done():
+		return ctx.Err()
 	default:
-		token, err := s.vkPlayLiveApi.GetWsToken(s.ctx)
+		token, err := s.vkPlayLiveApi.GetWsToken(ctx)
 		if err != nil {
 			return err
 		}
 
-		err = s.vkPlayLiveWs.Init(s.ctx, token, s.streamKey)
+		err = s.vkPlayLiveWs.Init(ctx, token, s.streamKey)
 		if err != nil {
 			return err
 		}
@@ -84,93 +84,33 @@ func (s *Service) scrap() error {
 			s.vkPlayLiveWs.Close()
 		}()
 
-		for {
-			select {
-			case <-s.ctx.Done():
-				return s.ctx.Err()
-			default:
-				rawMsg, err := s.vkPlayLiveWs.ReadMessage()
-				if err != nil {
-					return err
-				}
-				if slices.Equal(rawMsg, []byte("{}")) {
-					err = s.vkPlayLiveWs.WriteMessage(rawMsg)
-					if err != nil {
-						return err
-					}
-					continue
-				}
-				chatMessage, err := getMessageFromBytes(rawMsg)
-				if err != nil {
-					return err
-				}
-				if chatMessage == (entity.Message{}) {
-					continue
-				}
-				s.messageMx.Lock()
-				s.messages = append(s.messages, chatMessage)
-				s.messageMx.Unlock()
-			}
-		}
+		return s.doScrapCycle(ctx)
 	}
 }
 
-func getMessageFromBytes(rawMsg []byte) (entity.Message, error) {
-	msg := message{}
-	err := json.Unmarshal(rawMsg, &msg)
-	if err != nil {
-		return entity.Message{}, err
-	}
-	if msg.Push.Pub.Data.Type != "message" {
-		return entity.Message{}, nil
-	}
-	chatMessage := entity.Message{
-		ID:        strconv.Itoa(msg.Push.Pub.Data.Data.ID),
-		Source:    entity.SourceVkPlayLive,
-		User:      msg.Push.Pub.Data.Data.Author.Name,
-		CreatedAt: time.Now(),
-	}
-	for _, textPart := range msg.Push.Pub.Data.Data.Data {
-		if textPart.Type != "text" {
-			continue
-		}
-		testPartContent := []any{}
-		err = json.Unmarshal([]byte(textPart.Content), &testPartContent)
-		if err != nil {
-			continue
-		}
-		if len(testPartContent) > 0 {
-			subText, ok := testPartContent[0].(string)
-			if !ok {
+func (s *Service) doScrapCycle(ctx context.Context) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			chatMessage, err := s.vkPlayLiveWs.ReadMessage()
+			if errors.Is(err, app_errors.ErrIsPing) {
+				err = s.vkPlayLiveWs.WritePong()
+				if err != nil {
+					return err
+				}
+
+				continue
+			} else if err != nil {
+				return err
+			}
+			if chatMessage == (entity.Message{}) {
 				continue
 			}
-			chatMessage.Text += subText
+			s.messageMx.Lock()
+			s.messages = append(s.messages, chatMessage)
+			s.messageMx.Unlock()
 		}
 	}
-	if chatMessage.Text == "" {
-		return entity.Message{}, nil
-	}
-
-	return chatMessage, nil
-}
-
-type message struct {
-	Push struct {
-		Pub struct {
-			Data struct {
-				Type string `json:"type"` // message
-				Data struct {
-					ID        int   `json:"id"`
-					CreatedAt int64 `json:"createdAt"`
-					Author    struct {
-						Name string `json:"displayName"`
-					} `json:"author"`
-					Data []struct {
-						Content string `json:"content"`
-						Type    string `json:"type"` // text
-					} `json:"data"`
-				} `json:"data"`
-			} `json:"data"`
-		} `json:"pub"`
-	} `json:"push"`
 }

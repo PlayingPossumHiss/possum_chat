@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/api"
@@ -22,7 +23,7 @@ import (
 )
 
 type Container struct {
-	ctx context.Context
+	ctx context.Context //nolint
 
 	// сервисы
 	configService       *settings.Service
@@ -41,6 +42,11 @@ type Container struct {
 	vkPlayLiveApi *vk_play_live_api.Client
 }
 
+const (
+	messageWatcherRunSeconds                   = 30
+	messageQueueServiceCleanOldMessagesSeconds = 30
+)
+
 func New(ctx context.Context) *Container {
 	container := &Container{
 		ctx: ctx,
@@ -58,8 +64,11 @@ func (c *Container) Run() error {
 	// TODO: норм воркеры сделать
 	go func() {
 		for {
-			messageWatcher.Run(c.ctx)
-			time.Sleep(time.Millisecond * 30)
+			wErr := messageWatcher.Run(c.ctx)
+			if wErr != nil {
+				log.Println(wErr)
+			}
+			time.Sleep(time.Millisecond * messageWatcherRunSeconds)
 		}
 	}()
 
@@ -112,6 +121,7 @@ func (c *Container) getStyleGetter() (*get_style.UseCase, error) {
 	}
 
 	c.styleGetter = get_style.New(configService)
+
 	return c.styleGetter, nil
 }
 
@@ -162,10 +172,20 @@ func (c *Container) getMessageQueueService() (*message_queue.Service, error) {
 	}
 
 	c.messageQueueService = message_queue.New(
-		c.ctx,
 		configService,
 		&utils_time.DefaultClock{},
 	)
+
+	// TODO: норм воркеры сделать
+	go func() {
+		for {
+			wErr := c.messageQueueService.CleanOldMessages(c.ctx)
+			if wErr != nil {
+				log.Println(wErr)
+			}
+			time.Sleep(time.Millisecond * messageQueueServiceCleanOldMessagesSeconds)
+		}
+	}()
 
 	return c.messageQueueService, nil
 }
@@ -181,6 +201,7 @@ func (c *Container) getConfig() (*settings.Service, error) {
 	}
 
 	c.configService = configService
+
 	return c.configService, nil
 }
 
@@ -211,6 +232,7 @@ func (c *Container) getScrapers() ([]run_watch_scrapers.Scraper, error) {
 	}
 
 	c.scrapers = result
+
 	return c.scrapers, nil
 }
 
@@ -252,6 +274,7 @@ func (c *Container) getVkPalyLiveApi() *vk_play_live_api.Client {
 	}
 
 	c.vkPlayLiveApi = vk_play_live_api.New()
+
 	return c.vkPlayLiveApi
 }
 

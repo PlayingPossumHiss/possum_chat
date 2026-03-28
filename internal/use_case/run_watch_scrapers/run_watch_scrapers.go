@@ -4,6 +4,7 @@ import (
 	"context"
 )
 
+// UseCase обходит все скрейперы комментов и собрав с каждого его отдает это в хранилище
 type UseCase struct {
 	scrapers            []Scraper
 	messageQueueService MessageQueueService

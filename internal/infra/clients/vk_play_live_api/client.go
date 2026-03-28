@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -65,6 +66,7 @@ func (c *Client) GetUserID(ctx context.Context, userName string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	return userResponse.Data.Channel.Owner.ID, nil
 }
 
@@ -83,10 +85,16 @@ func (c *Client) do(ctx context.Context, method string, url string, body io.Read
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
+	defer func() {
+		dErr := response.Body.Close()
+		if dErr != nil {
+			log.Println(dErr)
+		}
+	}()
 	bodyBytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
 	}
+
 	return bodyBytes, nil
 }

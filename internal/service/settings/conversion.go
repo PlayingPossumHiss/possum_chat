@@ -32,6 +32,7 @@ func connectionsFromJson(src []configConnection) ([]entity.ConfigConnection, err
 		}
 		result = append(result, connection)
 	}
+
 	return result, nil
 }
 

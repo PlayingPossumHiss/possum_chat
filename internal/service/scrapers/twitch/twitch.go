@@ -38,5 +38,6 @@ func (s *Service) GetMessages() []entity.Message {
 	defer s.messageMx.Unlock()
 	result := slices.Clone(s.messages)
 	s.messages = nil
+
 	return result
 }

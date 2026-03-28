@@ -1,9 +1,9 @@
 package twitch_irc_client
 
 import (
-	"time"
-
+	"fmt"
 	"log"
+	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 	"github.com/gempir/go-twitch-irc/v4"
@@ -15,6 +15,7 @@ type Client struct {
 
 func New() *Client {
 	wsConnect := twitch.NewAnonymousClient()
+
 	return &Client{
 		wsConnect: wsConnect,
 	}
@@ -26,7 +27,7 @@ func (c *Client) Listen(
 ) {
 	c.wsConnect.OnPrivateMessage(func(message twitch.PrivateMessage) {
 		callback(entity.Message{
-			ID:        message.ID,
+			ID:        fmt.Sprintf("twitch_%s", message.ID),
 			Source:    entity.SourceTwitch,
 			User:      message.User.DisplayName,
 			Text:      message.Message,
@@ -40,6 +41,7 @@ func (c *Client) Listen(
 		err := c.wsConnect.Connect()
 		if err != nil {
 			log.Println(err)
+
 			return
 		}
 	}()

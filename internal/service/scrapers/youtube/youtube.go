@@ -12,7 +12,6 @@ import (
 
 type Service struct {
 	streamKey     string
-	ctx           context.Context
 	cooldown      time.Duration
 	youtubeClient YoutubeClient
 
@@ -29,12 +28,11 @@ func New(
 	scraper := &Service{
 		streamKey:     streamKey,
 		cooldown:      cooldown,
-		ctx:           ctx,
 		youtubeClient: youtubeClient,
 		messageMx:     &sync.Mutex{},
 	}
 
-	go scraper.watchChat()
+	go scraper.watchChat(ctx)
 
 	return scraper
 }
@@ -44,29 +42,36 @@ func (s *Service) GetMessages() []entity.Message {
 	defer s.messageMx.Unlock()
 	result := slices.Clone(s.messages)
 	s.messages = nil
+
 	return result
 }
 
-func (s *Service) watchChat() {
+func (s *Service) watchChat(ctx context.Context) {
 	for {
-		err := s.youtubeClient.Init(s.streamKey)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			err := s.youtubeClient.Init(s.streamKey)
+			if err != nil {
+				log.Println(err)
 
-		err = s.scrap()
-		if err != nil {
-			log.Println(err)
+				continue
+			}
+
+			err = s.scrap(ctx)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 	}
 }
 
-func (s *Service) scrap() error {
+func (s *Service) scrap(ctx context.Context) error {
 	for {
 		select {
-		case <-s.ctx.Done():
-			return s.ctx.Err()
+		case <-ctx.Done():
+			return ctx.Err()
 		default:
 			for {
 				comments, err := s.youtubeClient.GetMessages()

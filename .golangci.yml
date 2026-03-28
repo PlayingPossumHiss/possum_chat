@@ -1,0 +1,92 @@
+version: "2"
+run:
+  tests: false
+linters:
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - cyclop
+    - decorder
+#    - depguard
+    - dogsled
+    - dupl
+    - durationcheck
+    - err113
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+    - forbidigo
+    - forcetypeassert
+    - funlen
+    - gochecknoinits
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+#    - godot
+#    - godox
+    - goheader
+    - gomoddirectives
+    - gomodguard
+    - goprintffuncname
+    - gosec
+    - grouper
+    - importas
+    - ireturn
+    - lll
+    - maintidx
+    - makezero
+    - misspell
+    - mnd
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - nlreturn
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - paralleltest
+    - prealloc
+    - predeclared
+    - promlinter
+#    - revive
+    - staticcheck
+#    - tagliatelle
+    - testpackage
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - varnamelen
+    - whitespace
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
