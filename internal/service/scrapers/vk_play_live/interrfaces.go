@@ -1,6 +1,10 @@
 package vk_play_live
 
-import "context"
+import (
+	"context"
+
+	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+)
 
 type VkPlayLiveApi interface {
 	GetWsToken(ctx context.Context) (string, error)
@@ -13,7 +17,7 @@ type VkPlayLiveWs interface {
 		token string,
 		userID string,
 	) error
-	ReadMessage() ([]byte, error)
-	WriteMessage(rawMsg []byte) error
+	ReadMessage() (entity.Message, error)
+	WritePong() error
 	Close()
 }

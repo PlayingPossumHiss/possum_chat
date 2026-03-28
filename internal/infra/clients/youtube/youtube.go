@@ -1,6 +1,7 @@
 package youtube_client
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -20,13 +21,18 @@ func New() *Client {
 }
 
 func (c *Client) Init(streamKey string) error {
+	const maxAge = 300
 	customCookies := []*http.Cookie{
-		{Name: "PREF",
+		{
+			Name:   "PREF",
 			Value:  "tz=Europe.Rome",
-			MaxAge: 300},
-		{Name: "CONSENT",
-			Value:  fmt.Sprintf("YES+yt.432048971.it+FX+%d", 100+rand.Intn(999-100+1)),
-			MaxAge: 300},
+			MaxAge: maxAge,
+		},
+		{
+			Name:   "CONSENT",
+			Value:  fmt.Sprintf("YES+yt.432048971.it+FX+%d", 100+rand.Intn(999-100+1)), //nolint
+			MaxAge: maxAge,
+		},
 	}
 	yt_chat.AddCookies(customCookies)
 
@@ -43,7 +49,7 @@ func (c *Client) Init(streamKey string) error {
 
 func (c *Client) GetMessages() ([]entity.Message, error) {
 	chat, newContinuation, err := yt_chat.FetchContinuationChat(c.continuation, c.cfg)
-	if err == yt_chat.ErrLiveStreamOver {
+	if errors.Is(err, yt_chat.ErrLiveStreamOver) {
 		return nil, err
 	}
 
@@ -52,7 +58,7 @@ func (c *Client) GetMessages() ([]entity.Message, error) {
 
 	comments := make([]entity.Message, 0, len(chat))
 	for _, msg := range chat {
-		id, err := uuid.NewV7()
+		newMsgId, err := uuid.NewV7()
 		if err != nil {
 			return nil, err
 		}
@@ -61,7 +67,7 @@ func (c *Client) GetMessages() ([]entity.Message, error) {
 			Source:    entity.SourceYoutube,
 			User:      msg.AuthorName,
 			CreatedAt: msg.Timestamp.UTC(),
-			ID:        id.String(),
+			ID:        fmt.Sprintf("youtube_%s", newMsgId.String()),
 		})
 	}
 

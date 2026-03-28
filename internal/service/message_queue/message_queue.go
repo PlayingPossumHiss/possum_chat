@@ -4,7 +4,6 @@ import (
 	"context"
 	"slices"
 	"sync"
-	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 	utils_time "github.com/PlayingPossumHiss/possum_chat/internal/utils/time"
@@ -20,7 +19,6 @@ type Service struct {
 
 // New конструктор
 func New(
-	ctx context.Context,
 	configStorage ConfigStorage,
 	clock utils_time.Clock,
 ) *Service {
@@ -30,45 +28,33 @@ func New(
 		clock:         clock,
 	}
 
-	go service.startBackgroundTasks(ctx)
-
 	return service
 }
 
 func (s *Service) PushMessages(messages []entity.Message) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	slices.SortFunc(messages, func(a entity.Message, b entity.Message) int {
-		return a.CreatedAt.Compare(b.CreatedAt)
-	})
 	for _, message := range messages {
-		message.CreatedAt = time.Now()
+		// При помещении апдейтим время, чтобы сообщения не
+		// появлялись в середине списка, что возможно при
+		// нескольких скрейперах. В целом возможно потом будет
+		// мысл разделить время создания и добавления в очередь
+		message.CreatedAt = s.clock.Now()
 		s.messages = append(s.messages, message)
 	}
 }
 
 func (s *Service) ListMessages() []entity.Message {
 	messages := slices.Clone(s.messages)
+
 	return messages
 }
 
-func (s *Service) startBackgroundTasks(ctx context.Context) {
-	clock := time.NewTicker(50 * time.Millisecond)
-	for {
-		select {
-		case <-ctx.Done():
-			clock.Stop()
-			return
-		case <-clock.C:
-			s.cleanOldMessages()
-		}
-	}
-}
-
-func (s *Service) cleanOldMessages() {
+// CleanOldMessages удаляет сообщения, что старше, чем указанный в конфиге делайн
+func (s *Service) CleanOldMessages(_ context.Context) error {
 	config := s.configStorage.Config()
 	if config.View.TimeToHideMessage == 0 {
-		return
+		return nil
 	}
 
 	s.mutex.Lock()
@@ -78,4 +64,6 @@ func (s *Service) cleanOldMessages() {
 	s.messages = slices.DeleteFunc(s.messages, func(message entity.Message) bool {
 		return message.CreatedAt.Before(dateLimit)
 	})
+
+	return nil
 }

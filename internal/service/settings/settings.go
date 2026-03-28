@@ -3,6 +3,7 @@ package settings
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"os"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
@@ -32,7 +33,12 @@ func getSettingsFromFile() (entity.Config, error) {
 	if err != nil {
 		return entity.Config{}, err
 	}
-	defer jsonFile.Close()
+	defer func() {
+		dErr := jsonFile.Close()
+		if dErr != nil {
+			log.Println(dErr)
+		}
+	}()
 
 	bytes, err := io.ReadAll(jsonFile)
 	if err != nil {
