@@ -20,6 +20,8 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/list_messages"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/run_watch_scrapers"
 	utils_time "github.com/PlayingPossumHiss/possum_chat/internal/utils/time"
+	"github.com/go-co-op/gocron/v2"
+	"github.com/google/uuid"
 )
 
 type Container struct {
@@ -40,11 +42,14 @@ type Container struct {
 
 	// инфра
 	vkPlayLiveApi *vk_play_live_api.Client
+
+	// шедулер
+	scheduler gocron.Scheduler
 }
 
 const (
-	messageWatcherRunSeconds                   = 30
-	messageQueueServiceCleanOldMessagesSeconds = 30
+	messageWatcherRunMs                   = 30
+	messageQueueServiceCleanOldMessagesMs = 30
 )
 
 func New(ctx context.Context) *Container {
@@ -56,28 +61,54 @@ func New(ctx context.Context) *Container {
 }
 
 func (c *Container) Run() error {
+	scheduler, err := gocron.NewScheduler()
+	if err != nil {
+		return err
+	}
+	c.scheduler = scheduler
+
 	messageWatcher, err := c.getWatchSubscribersRunner()
 	if err != nil {
 		return err
 	}
 
-	// TODO: норм воркеры сделать
-	go func() {
-		for {
-			wErr := messageWatcher.Run(c.ctx)
-			if wErr != nil {
-				log.Println(wErr)
-			}
-			time.Sleep(time.Millisecond * messageWatcherRunSeconds)
-		}
-	}()
+	err = c.addJobToScheduler(
+		messageWatcher.Run,
+		"ask_watchers_for_messages",
+		time.Millisecond*messageWatcherRunMs,
+	)
+	if err != nil {
+		return err
+	}
 
 	api, err := c.getSelfApi()
 	if err != nil {
 		return err
 	}
 
+	c.scheduler.Start()
+
 	return api.Run()
+}
+
+func (c *Container) addJobToScheduler(
+	job func(ctx context.Context) error,
+	jobName string,
+	interval time.Duration,
+) error {
+	_, err := c.scheduler.NewJob(
+		gocron.DurationJob(interval),
+		gocron.NewTask(job),
+		gocron.WithContext(c.ctx),
+		gocron.WithName(jobName),
+		gocron.WithEventListeners(
+			gocron.AfterJobRunsWithError(func(jobID uuid.UUID, jobName string, jobErr error) {
+				log.Printf("job %s fails %s\n", jobName, jobErr.Error())
+			}),
+		),
+	)
+
+	return err
 }
 
 func (c *Container) getSelfApi() (*api.Api, error) {
@@ -177,15 +208,14 @@ func (c *Container) getMessageQueueService() (*message_queue.Service, error) {
 	)
 
 	// TODO: норм воркеры сделать
-	go func() {
-		for {
-			wErr := c.messageQueueService.CleanOldMessages(c.ctx)
-			if wErr != nil {
-				log.Println(wErr)
-			}
-			time.Sleep(time.Millisecond * messageQueueServiceCleanOldMessagesSeconds)
-		}
-	}()
+	err = c.addJobToScheduler(
+		c.messageQueueService.CleanOldMessages,
+		"clean_old_messages",
+		time.Millisecond*messageQueueServiceCleanOldMessagesMs,
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	return c.messageQueueService, nil
 }
@@ -253,7 +283,6 @@ func (c *Container) getVkPlayLiveScraper(
 	return vk_play_live.New(
 		c.ctx,
 		configConnection.Key,
-		configConnection.RefreshTime,
 		c.getVkPalyLiveApi(),
 		c.getVkPalyLiveWs(),
 	)

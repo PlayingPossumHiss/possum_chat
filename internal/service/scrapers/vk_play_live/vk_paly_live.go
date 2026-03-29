@@ -7,7 +7,6 @@ import (
 	"slices"
 	"strconv"
 	"sync"
-	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 	app_errors "github.com/PlayingPossumHiss/possum_chat/internal/errors"
@@ -15,7 +14,6 @@ import (
 
 type Service struct {
 	streamKey     string
-	cooldown      time.Duration
 	vkPlayLiveApi VkPlayLiveApi
 	vkPlayLiveWs  VkPlayLiveWs
 
@@ -26,7 +24,6 @@ type Service struct {
 func New(
 	ctx context.Context,
 	streamKey string,
-	cooldown time.Duration,
 	vkPlayLiveApi VkPlayLiveApi,
 	vkPlayLiveWs VkPlayLiveWs,
 ) (*Service, error) {
@@ -36,7 +33,6 @@ func New(
 	}
 	scraper := &Service{
 		streamKey:     strconv.Itoa(userID),
-		cooldown:      cooldown,
 		vkPlayLiveApi: vkPlayLiveApi,
 		vkPlayLiveWs:  vkPlayLiveWs,
 		messageMx:     &sync.Mutex{},
