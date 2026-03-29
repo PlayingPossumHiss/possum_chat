@@ -4,7 +4,7 @@ go 1.26.1
 
 require (
 	github.com/gin-gonic/gin v1.12.0
-	github.com/go-playground/assert/v2 v2.2.0
+	github.com/go-co-op/gocron/v2 v2.19.1
 	github.com/gojuno/minimock/v3 v3.4.7
 	github.com/gorilla/websocket v1.5.3
 	github.com/stretchr/testify v1.11.1
@@ -12,7 +12,9 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
