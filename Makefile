@@ -18,5 +18,7 @@ test:
 	go test ./...
 
 lint:
-	golangci-lint run
+	golangci-lint run --fix
 
+build_app:
+	go build -o ./build/possum_chat ./cmd/main.go

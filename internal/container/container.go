@@ -207,7 +207,6 @@ func (c *Container) getMessageQueueService() (*message_queue.Service, error) {
 		&utils_time.DefaultClock{},
 	)
 
-	// TODO: норм воркеры сделать
 	err = c.addJobToScheduler(
 		c.messageQueueService.CleanOldMessages,
 		"clean_old_messages",

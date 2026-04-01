@@ -23,9 +23,10 @@ func TestUseCase_ListMessages(t *testing.T) {
 			mc := minimock.NewController(t)
 
 			configStorage := m_message_queue.NewConfigStorageMock(mc)
-			configStorage.ConfigMock.Expect().Times(3).Return(entity.Config{
+			configStorage.ConfigMock.Expect().Times(6).Return(entity.Config{
 				View: entity.ConfigView{
-					TimeToHideMessage: 120 * time.Second,
+					TimeToHideMessage:   120 * time.Second,
+					TimeToDeleteMessage: 120 * time.Second,
 				},
 			})
 			clock := m_clock.NewClockMock(mc)
@@ -40,8 +41,13 @@ func TestUseCase_ListMessages(t *testing.T) {
 				nows := []time.Time{
 					time.Date(2026, 03, 28, 13, 8, 0, 0, time.UTC),
 					time.Date(2026, 03, 28, 13, 8, 0, 0, time.UTC),
+					time.Date(2026, 03, 28, 13, 8, 0, 0, time.UTC),
 					time.Date(2026, 03, 28, 13, 9, 0, 0, time.UTC),
 					time.Date(2026, 03, 28, 13, 9, 0, 0, time.UTC),
+					time.Date(2026, 03, 28, 13, 9, 0, 0, time.UTC),
+					time.Date(2026, 03, 28, 13, 9, 0, 0, time.UTC),
+					time.Date(2026, 03, 28, 13, 10, 30, 0, time.UTC),
+					time.Date(2026, 03, 28, 13, 10, 30, 0, time.UTC),
 					time.Date(2026, 03, 28, 13, 10, 30, 0, time.UTC),
 				}
 				now := nows[clockCalledTimes]
@@ -61,7 +67,7 @@ func TestUseCase_ListMessages(t *testing.T) {
 			err := queueService.CleanOldMessages(context.Background())
 			assert.NoError(t, err)
 			// Прочитали то же сообщение
-			messages := useCase.ListMessages()
+			messages := useCase.ListMessages(nil)
 			assert.Equal(
 				t,
 				[]entity.Message{
@@ -89,7 +95,7 @@ func TestUseCase_ListMessages(t *testing.T) {
 			err = queueService.CleanOldMessages(context.Background())
 			assert.NoError(t, err)
 			// прочитали что теперь в сообщениях
-			messages = useCase.ListMessages()
+			messages = useCase.ListMessages(nil)
 			assert.Equal(
 				t,
 				[]entity.Message{
@@ -114,7 +120,7 @@ func TestUseCase_ListMessages(t *testing.T) {
 			err = queueService.CleanOldMessages(context.Background())
 			assert.NoError(t, err)
 			// прочитали что теперь в сообщениях
-			messages = useCase.ListMessages()
+			messages = useCase.ListMessages(nil)
 			assert.Equal(
 				t,
 				[]entity.Message{

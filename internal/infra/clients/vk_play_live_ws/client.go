@@ -14,8 +14,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// TODO: с т.з. арзитектуры не байты мы тут должны возвращать
-
 type Client struct {
 	client *websocket.Conn
 	token  string
