@@ -8,8 +8,15 @@ document.addEventListener("DOMContentLoaded", function() {
 let messages = [];
 
 function refreshMessages(callback) {
+    let queryString = window.location.search;
+    let urlParams = new URLSearchParams(queryString);
+    let for_last = urlParams.get('for_last')
     let xhr = new XMLHttpRequest();
-    xhr.open('GET', '/api/v1/messages');
+    let url = '/api/v1/messages'
+    if (for_last != null) {
+        url += '?for_last=' + for_last
+    }
+    xhr.open('GET', url);
     xhr.responseType = 'json';
     xhr.send();
 

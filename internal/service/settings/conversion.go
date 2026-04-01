@@ -68,8 +68,14 @@ func viewFromJson(src configView) (entity.ConfigView, error) {
 		return entity.ConfigView{}, err
 	}
 
+	timeToDeleteMessage, err := time.ParseDuration(src.TimeToDeleteMessage)
+	if err != nil {
+		return entity.ConfigView{}, err
+	}
+
 	return entity.ConfigView{
-		CssStyle:          src.CssStyle,
-		TimeToHideMessage: timeToHideMessage,
+		CssStyle:            src.CssStyle,
+		TimeToHideMessage:   timeToHideMessage,
+		TimeToDeleteMessage: timeToDeleteMessage,
 	}, nil
 }

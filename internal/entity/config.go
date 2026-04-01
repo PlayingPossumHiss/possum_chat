@@ -18,6 +18,7 @@ type ConfigConnection struct {
 
 // ConfigView настройки отображения виджета OBS
 type ConfigView struct {
-	CssStyle          string
-	TimeToHideMessage time.Duration
+	CssStyle            string
+	TimeToHideMessage   time.Duration
+	TimeToDeleteMessage time.Duration
 }

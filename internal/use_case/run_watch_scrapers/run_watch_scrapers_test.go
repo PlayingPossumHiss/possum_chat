@@ -25,6 +25,12 @@ func TestUseCase_Run(t *testing.T) {
 			mc := minimock.NewController(t)
 
 			configStorage := m_message_queue.NewConfigStorageMock(mc)
+			configStorage.ConfigMock.Expect().Return(entity.Config{
+				View: entity.ConfigView{
+					TimeToHideMessage:   time.Hour,
+					TimeToDeleteMessage: time.Hour,
+				},
+			})
 			clock := m_clock.NewClockMock(mc)
 			clock.NowMock.Expect().Return(time.Date(2026, 03, 28, 15, 33, 0, 0, time.UTC))
 			queueService := message_queue.New(
@@ -64,7 +70,7 @@ func TestUseCase_Run(t *testing.T) {
 			err := uc.Run(context.Background())
 			assert.NoError(t, err)
 			time.Sleep(10 * time.Millisecond)
-			messages := queueService.ListMessages()
+			messages := queueService.ListMessages(new(time.Hour))
 			assert.Equal(
 				t,
 				[]entity.Message{

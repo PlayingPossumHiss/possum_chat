@@ -1,7 +1,11 @@
 package list_messages
 
-import "github.com/PlayingPossumHiss/possum_chat/internal/entity"
+import (
+	"time"
+
+	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+)
 
 type MessageQueueService interface {
-	ListMessages() []entity.Message
+	ListMessages(forLast *time.Duration) []entity.Message
 }

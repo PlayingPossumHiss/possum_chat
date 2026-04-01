@@ -2,6 +2,7 @@ package list_messages
 
 import (
 	"slices"
+	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 )
@@ -19,8 +20,8 @@ func New(
 	}
 }
 
-func (uc *UseCase) ListMessages() []entity.Message {
-	messages := uc.messageQueueService.ListMessages()
+func (uc *UseCase) ListMessages(forLast *time.Duration) []entity.Message {
+	messages := uc.messageQueueService.ListMessages(forLast)
 	slices.SortFunc(messages, func(a entity.Message, b entity.Message) int {
 		return int(a.CreatedAt.Sub(b.CreatedAt).Microseconds())
 	})
