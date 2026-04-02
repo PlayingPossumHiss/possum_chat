@@ -37,15 +37,16 @@ func connectionsFromJson(src []configConnection) ([]entity.ConfigConnection, err
 }
 
 func connectionFromJson(src configConnection) (entity.ConfigConnection, error) {
+	source := sourceFromJson(src.Source)
 	refreshTime, err := time.ParseDuration(src.RefreshTime)
-	if err != nil {
+	if err != nil && source == entity.SourceYoutube {
 		return entity.ConfigConnection{}, err
 	}
 
 	return entity.ConfigConnection{
 		Key:         src.Key,
 		RefreshTime: refreshTime,
-		Source:      sourceFromJson(src.Source),
+		Source:      source,
 	}, nil
 }
 

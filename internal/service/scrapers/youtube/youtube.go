@@ -11,7 +11,7 @@ import (
 )
 
 type Service struct {
-	streamKey     string
+	userName      string
 	cooldown      time.Duration
 	youtubeClient YoutubeClient
 
@@ -21,12 +21,12 @@ type Service struct {
 
 func New(
 	ctx context.Context,
-	streamKey string,
+	userName string,
 	cooldown time.Duration,
 	youtubeClient YoutubeClient,
 ) *Service {
 	scraper := &Service{
-		streamKey:     streamKey,
+		userName:      userName,
 		cooldown:      cooldown,
 		youtubeClient: youtubeClient,
 		messageMx:     &sync.Mutex{},
@@ -52,7 +52,14 @@ func (s *Service) watchChat(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
-			err := s.youtubeClient.Init(s.streamKey)
+			streamKey, err := s.youtubeClient.GetLastTranslationID(ctx, s.userName)
+			if err != nil {
+				log.Println(err)
+
+				continue
+			}
+
+			err = s.youtubeClient.Init(streamKey)
 			if err != nil {
 				log.Println(err)
 
@@ -64,6 +71,9 @@ func (s *Service) watchChat(ctx context.Context) {
 				log.Println(err)
 			}
 		}
+
+		// Чтобы не забанили
+		time.Sleep(time.Second)
 	}
 }
 

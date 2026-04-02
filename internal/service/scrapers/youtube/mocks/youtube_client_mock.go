@@ -3,6 +3,7 @@
 package mocks
 
 import (
+	"context"
 	"sync"
 	mm_atomic "sync/atomic"
 	mm_time "time"
@@ -15,6 +16,13 @@ import (
 type YoutubeClientMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
+
+	funcGetLastTranslationID          func(ctx context.Context, userName string) (s1 string, err error)
+	funcGetLastTranslationIDOrigin    string
+	inspectFuncGetLastTranslationID   func(ctx context.Context, userName string)
+	afterGetLastTranslationIDCounter  uint64
+	beforeGetLastTranslationIDCounter uint64
+	GetLastTranslationIDMock          mYoutubeClientMockGetLastTranslationID
 
 	funcGetMessages          func() (ma1 []entity.Message, err error)
 	funcGetMessagesOrigin    string
@@ -39,6 +47,9 @@ func NewYoutubeClientMock(t minimock.Tester) *YoutubeClientMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.GetLastTranslationIDMock = mYoutubeClientMockGetLastTranslationID{mock: m}
+	m.GetLastTranslationIDMock.callArgs = []*YoutubeClientMockGetLastTranslationIDParams{}
+
 	m.GetMessagesMock = mYoutubeClientMockGetMessages{mock: m}
 
 	m.InitMock = mYoutubeClientMockInit{mock: m}
@@ -47,6 +58,349 @@ func NewYoutubeClientMock(t minimock.Tester) *YoutubeClientMock {
 	t.Cleanup(m.MinimockFinish)
 
 	return m
+}
+
+type mYoutubeClientMockGetLastTranslationID struct {
+	optional           bool
+	mock               *YoutubeClientMock
+	defaultExpectation *YoutubeClientMockGetLastTranslationIDExpectation
+	expectations       []*YoutubeClientMockGetLastTranslationIDExpectation
+
+	callArgs []*YoutubeClientMockGetLastTranslationIDParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// YoutubeClientMockGetLastTranslationIDExpectation specifies expectation struct of the YoutubeClient.GetLastTranslationID
+type YoutubeClientMockGetLastTranslationIDExpectation struct {
+	mock               *YoutubeClientMock
+	params             *YoutubeClientMockGetLastTranslationIDParams
+	paramPtrs          *YoutubeClientMockGetLastTranslationIDParamPtrs
+	expectationOrigins YoutubeClientMockGetLastTranslationIDExpectationOrigins
+	results            *YoutubeClientMockGetLastTranslationIDResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// YoutubeClientMockGetLastTranslationIDParams contains parameters of the YoutubeClient.GetLastTranslationID
+type YoutubeClientMockGetLastTranslationIDParams struct {
+	ctx      context.Context
+	userName string
+}
+
+// YoutubeClientMockGetLastTranslationIDParamPtrs contains pointers to parameters of the YoutubeClient.GetLastTranslationID
+type YoutubeClientMockGetLastTranslationIDParamPtrs struct {
+	ctx      *context.Context
+	userName *string
+}
+
+// YoutubeClientMockGetLastTranslationIDResults contains results of the YoutubeClient.GetLastTranslationID
+type YoutubeClientMockGetLastTranslationIDResults struct {
+	s1  string
+	err error
+}
+
+// YoutubeClientMockGetLastTranslationIDOrigins contains origins of expectations of the YoutubeClient.GetLastTranslationID
+type YoutubeClientMockGetLastTranslationIDExpectationOrigins struct {
+	origin         string
+	originCtx      string
+	originUserName string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmGetLastTranslationID *mYoutubeClientMockGetLastTranslationID) Optional() *mYoutubeClientMockGetLastTranslationID {
+	mmGetLastTranslationID.optional = true
+	return mmGetLastTranslationID
+}
+
+// Expect sets up expected params for YoutubeClient.GetLastTranslationID
+func (mmGetLastTranslationID *mYoutubeClientMockGetLastTranslationID) Expect(ctx context.Context, userName string) *mYoutubeClientMockGetLastTranslationID {
+	if mmGetLastTranslationID.mock.funcGetLastTranslationID != nil {
+		mmGetLastTranslationID.mock.t.Fatalf("YoutubeClientMock.GetLastTranslationID mock is already set by Set")
+	}
+
+	if mmGetLastTranslationID.defaultExpectation == nil {
+		mmGetLastTranslationID.defaultExpectation = &YoutubeClientMockGetLastTranslationIDExpectation{}
+	}
+
+	if mmGetLastTranslationID.defaultExpectation.paramPtrs != nil {
+		mmGetLastTranslationID.mock.t.Fatalf("YoutubeClientMock.GetLastTranslationID mock is already set by ExpectParams functions")
+	}
+
+	mmGetLastTranslationID.defaultExpectation.params = &YoutubeClientMockGetLastTranslationIDParams{ctx, userName}
+	mmGetLastTranslationID.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmGetLastTranslationID.expectations {
+		if minimock.Equal(e.params, mmGetLastTranslationID.defaultExpectation.params) {
+			mmGetLastTranslationID.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetLastTranslationID.defaultExpectation.params)
+		}
+	}
+
+	return mmGetLastTranslationID
+}
+
+// ExpectCtxParam1 sets up expected param ctx for YoutubeClient.GetLastTranslationID
+func (mmGetLastTranslationID *mYoutubeClientMockGetLastTranslationID) ExpectCtxParam1(ctx context.Context) *mYoutubeClientMockGetLastTranslationID {
+	if mmGetLastTranslationID.mock.funcGetLastTranslationID != nil {
+		mmGetLastTranslationID.mock.t.Fatalf("YoutubeClientMock.GetLastTranslationID mock is already set by Set")
+	}
+
+	if mmGetLastTranslationID.defaultExpectation == nil {
+		mmGetLastTranslationID.defaultExpectation = &YoutubeClientMockGetLastTranslationIDExpectation{}
+	}
+
+	if mmGetLastTranslationID.defaultExpectation.params != nil {
+		mmGetLastTranslationID.mock.t.Fatalf("YoutubeClientMock.GetLastTranslationID mock is already set by Expect")
+	}
+
+	if mmGetLastTranslationID.defaultExpectation.paramPtrs == nil {
+		mmGetLastTranslationID.defaultExpectation.paramPtrs = &YoutubeClientMockGetLastTranslationIDParamPtrs{}
+	}
+	mmGetLastTranslationID.defaultExpectation.paramPtrs.ctx = &ctx
+	mmGetLastTranslationID.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmGetLastTranslationID
+}
+
+// ExpectUserNameParam2 sets up expected param userName for YoutubeClient.GetLastTranslationID
+func (mmGetLastTranslationID *mYoutubeClientMockGetLastTranslationID) ExpectUserNameParam2(userName string) *mYoutubeClientMockGetLastTranslationID {
+	if mmGetLastTranslationID.mock.funcGetLastTranslationID != nil {
+		mmGetLastTranslationID.mock.t.Fatalf("YoutubeClientMock.GetLastTranslationID mock is already set by Set")
+	}
+
+	if mmGetLastTranslationID.defaultExpectation == nil {
+		mmGetLastTranslationID.defaultExpectation = &YoutubeClientMockGetLastTranslationIDExpectation{}
+	}
+
+	if mmGetLastTranslationID.defaultExpectation.params != nil {
+		mmGetLastTranslationID.mock.t.Fatalf("YoutubeClientMock.GetLastTranslationID mock is already set by Expect")
+	}
+
+	if mmGetLastTranslationID.defaultExpectation.paramPtrs == nil {
+		mmGetLastTranslationID.defaultExpectation.paramPtrs = &YoutubeClientMockGetLastTranslationIDParamPtrs{}
+	}
+	mmGetLastTranslationID.defaultExpectation.paramPtrs.userName = &userName
+	mmGetLastTranslationID.defaultExpectation.expectationOrigins.originUserName = minimock.CallerInfo(1)
+
+	return mmGetLastTranslationID
+}
+
+// Inspect accepts an inspector function that has same arguments as the YoutubeClient.GetLastTranslationID
+func (mmGetLastTranslationID *mYoutubeClientMockGetLastTranslationID) Inspect(f func(ctx context.Context, userName string)) *mYoutubeClientMockGetLastTranslationID {
+	if mmGetLastTranslationID.mock.inspectFuncGetLastTranslationID != nil {
+		mmGetLastTranslationID.mock.t.Fatalf("Inspect function is already set for YoutubeClientMock.GetLastTranslationID")
+	}
+
+	mmGetLastTranslationID.mock.inspectFuncGetLastTranslationID = f
+
+	return mmGetLastTranslationID
+}
+
+// Return sets up results that will be returned by YoutubeClient.GetLastTranslationID
+func (mmGetLastTranslationID *mYoutubeClientMockGetLastTranslationID) Return(s1 string, err error) *YoutubeClientMock {
+	if mmGetLastTranslationID.mock.funcGetLastTranslationID != nil {
+		mmGetLastTranslationID.mock.t.Fatalf("YoutubeClientMock.GetLastTranslationID mock is already set by Set")
+	}
+
+	if mmGetLastTranslationID.defaultExpectation == nil {
+		mmGetLastTranslationID.defaultExpectation = &YoutubeClientMockGetLastTranslationIDExpectation{mock: mmGetLastTranslationID.mock}
+	}
+	mmGetLastTranslationID.defaultExpectation.results = &YoutubeClientMockGetLastTranslationIDResults{s1, err}
+	mmGetLastTranslationID.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmGetLastTranslationID.mock
+}
+
+// Set uses given function f to mock the YoutubeClient.GetLastTranslationID method
+func (mmGetLastTranslationID *mYoutubeClientMockGetLastTranslationID) Set(f func(ctx context.Context, userName string) (s1 string, err error)) *YoutubeClientMock {
+	if mmGetLastTranslationID.defaultExpectation != nil {
+		mmGetLastTranslationID.mock.t.Fatalf("Default expectation is already set for the YoutubeClient.GetLastTranslationID method")
+	}
+
+	if len(mmGetLastTranslationID.expectations) > 0 {
+		mmGetLastTranslationID.mock.t.Fatalf("Some expectations are already set for the YoutubeClient.GetLastTranslationID method")
+	}
+
+	mmGetLastTranslationID.mock.funcGetLastTranslationID = f
+	mmGetLastTranslationID.mock.funcGetLastTranslationIDOrigin = minimock.CallerInfo(1)
+	return mmGetLastTranslationID.mock
+}
+
+// When sets expectation for the YoutubeClient.GetLastTranslationID which will trigger the result defined by the following
+// Then helper
+func (mmGetLastTranslationID *mYoutubeClientMockGetLastTranslationID) When(ctx context.Context, userName string) *YoutubeClientMockGetLastTranslationIDExpectation {
+	if mmGetLastTranslationID.mock.funcGetLastTranslationID != nil {
+		mmGetLastTranslationID.mock.t.Fatalf("YoutubeClientMock.GetLastTranslationID mock is already set by Set")
+	}
+
+	expectation := &YoutubeClientMockGetLastTranslationIDExpectation{
+		mock:               mmGetLastTranslationID.mock,
+		params:             &YoutubeClientMockGetLastTranslationIDParams{ctx, userName},
+		expectationOrigins: YoutubeClientMockGetLastTranslationIDExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmGetLastTranslationID.expectations = append(mmGetLastTranslationID.expectations, expectation)
+	return expectation
+}
+
+// Then sets up YoutubeClient.GetLastTranslationID return parameters for the expectation previously defined by the When method
+func (e *YoutubeClientMockGetLastTranslationIDExpectation) Then(s1 string, err error) *YoutubeClientMock {
+	e.results = &YoutubeClientMockGetLastTranslationIDResults{s1, err}
+	return e.mock
+}
+
+// Times sets number of times YoutubeClient.GetLastTranslationID should be invoked
+func (mmGetLastTranslationID *mYoutubeClientMockGetLastTranslationID) Times(n uint64) *mYoutubeClientMockGetLastTranslationID {
+	if n == 0 {
+		mmGetLastTranslationID.mock.t.Fatalf("Times of YoutubeClientMock.GetLastTranslationID mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmGetLastTranslationID.expectedInvocations, n)
+	mmGetLastTranslationID.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmGetLastTranslationID
+}
+
+func (mmGetLastTranslationID *mYoutubeClientMockGetLastTranslationID) invocationsDone() bool {
+	if len(mmGetLastTranslationID.expectations) == 0 && mmGetLastTranslationID.defaultExpectation == nil && mmGetLastTranslationID.mock.funcGetLastTranslationID == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmGetLastTranslationID.mock.afterGetLastTranslationIDCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmGetLastTranslationID.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// GetLastTranslationID implements mm_youtube_scraper.YoutubeClient
+func (mmGetLastTranslationID *YoutubeClientMock) GetLastTranslationID(ctx context.Context, userName string) (s1 string, err error) {
+	mm_atomic.AddUint64(&mmGetLastTranslationID.beforeGetLastTranslationIDCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetLastTranslationID.afterGetLastTranslationIDCounter, 1)
+
+	mmGetLastTranslationID.t.Helper()
+
+	if mmGetLastTranslationID.inspectFuncGetLastTranslationID != nil {
+		mmGetLastTranslationID.inspectFuncGetLastTranslationID(ctx, userName)
+	}
+
+	mm_params := YoutubeClientMockGetLastTranslationIDParams{ctx, userName}
+
+	// Record call args
+	mmGetLastTranslationID.GetLastTranslationIDMock.mutex.Lock()
+	mmGetLastTranslationID.GetLastTranslationIDMock.callArgs = append(mmGetLastTranslationID.GetLastTranslationIDMock.callArgs, &mm_params)
+	mmGetLastTranslationID.GetLastTranslationIDMock.mutex.Unlock()
+
+	for _, e := range mmGetLastTranslationID.GetLastTranslationIDMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.s1, e.results.err
+		}
+	}
+
+	if mmGetLastTranslationID.GetLastTranslationIDMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetLastTranslationID.GetLastTranslationIDMock.defaultExpectation.Counter, 1)
+		mm_want := mmGetLastTranslationID.GetLastTranslationIDMock.defaultExpectation.params
+		mm_want_ptrs := mmGetLastTranslationID.GetLastTranslationIDMock.defaultExpectation.paramPtrs
+
+		mm_got := YoutubeClientMockGetLastTranslationIDParams{ctx, userName}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmGetLastTranslationID.t.Errorf("YoutubeClientMock.GetLastTranslationID got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmGetLastTranslationID.GetLastTranslationIDMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.userName != nil && !minimock.Equal(*mm_want_ptrs.userName, mm_got.userName) {
+				mmGetLastTranslationID.t.Errorf("YoutubeClientMock.GetLastTranslationID got unexpected parameter userName, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmGetLastTranslationID.GetLastTranslationIDMock.defaultExpectation.expectationOrigins.originUserName, *mm_want_ptrs.userName, mm_got.userName, minimock.Diff(*mm_want_ptrs.userName, mm_got.userName))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmGetLastTranslationID.t.Errorf("YoutubeClientMock.GetLastTranslationID got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmGetLastTranslationID.GetLastTranslationIDMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmGetLastTranslationID.GetLastTranslationIDMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetLastTranslationID.t.Fatal("No results are set for the YoutubeClientMock.GetLastTranslationID")
+		}
+		return (*mm_results).s1, (*mm_results).err
+	}
+	if mmGetLastTranslationID.funcGetLastTranslationID != nil {
+		return mmGetLastTranslationID.funcGetLastTranslationID(ctx, userName)
+	}
+	mmGetLastTranslationID.t.Fatalf("Unexpected call to YoutubeClientMock.GetLastTranslationID. %v %v", ctx, userName)
+	return
+}
+
+// GetLastTranslationIDAfterCounter returns a count of finished YoutubeClientMock.GetLastTranslationID invocations
+func (mmGetLastTranslationID *YoutubeClientMock) GetLastTranslationIDAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetLastTranslationID.afterGetLastTranslationIDCounter)
+}
+
+// GetLastTranslationIDBeforeCounter returns a count of YoutubeClientMock.GetLastTranslationID invocations
+func (mmGetLastTranslationID *YoutubeClientMock) GetLastTranslationIDBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetLastTranslationID.beforeGetLastTranslationIDCounter)
+}
+
+// Calls returns a list of arguments used in each call to YoutubeClientMock.GetLastTranslationID.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmGetLastTranslationID *mYoutubeClientMockGetLastTranslationID) Calls() []*YoutubeClientMockGetLastTranslationIDParams {
+	mmGetLastTranslationID.mutex.RLock()
+
+	argCopy := make([]*YoutubeClientMockGetLastTranslationIDParams, len(mmGetLastTranslationID.callArgs))
+	copy(argCopy, mmGetLastTranslationID.callArgs)
+
+	mmGetLastTranslationID.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockGetLastTranslationIDDone returns true if the count of the GetLastTranslationID invocations corresponds
+// the number of defined expectations
+func (m *YoutubeClientMock) MinimockGetLastTranslationIDDone() bool {
+	if m.GetLastTranslationIDMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.GetLastTranslationIDMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.GetLastTranslationIDMock.invocationsDone()
+}
+
+// MinimockGetLastTranslationIDInspect logs each unmet expectation
+func (m *YoutubeClientMock) MinimockGetLastTranslationIDInspect() {
+	for _, e := range m.GetLastTranslationIDMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to YoutubeClientMock.GetLastTranslationID at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterGetLastTranslationIDCounter := mm_atomic.LoadUint64(&m.afterGetLastTranslationIDCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetLastTranslationIDMock.defaultExpectation != nil && afterGetLastTranslationIDCounter < 1 {
+		if m.GetLastTranslationIDMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to YoutubeClientMock.GetLastTranslationID at\n%s", m.GetLastTranslationIDMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to YoutubeClientMock.GetLastTranslationID at\n%s with params: %#v", m.GetLastTranslationIDMock.defaultExpectation.expectationOrigins.origin, *m.GetLastTranslationIDMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetLastTranslationID != nil && afterGetLastTranslationIDCounter < 1 {
+		m.t.Errorf("Expected call to YoutubeClientMock.GetLastTranslationID at\n%s", m.funcGetLastTranslationIDOrigin)
+	}
+
+	if !m.GetLastTranslationIDMock.invocationsDone() && afterGetLastTranslationIDCounter > 0 {
+		m.t.Errorf("Expected %d calls to YoutubeClientMock.GetLastTranslationID at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.GetLastTranslationIDMock.expectedInvocations), m.GetLastTranslationIDMock.expectedInvocationsOrigin, afterGetLastTranslationIDCounter)
+	}
 }
 
 type mYoutubeClientMockGetMessages struct {
@@ -551,6 +905,8 @@ func (m *YoutubeClientMock) MinimockInitInspect() {
 func (m *YoutubeClientMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
 		if !m.minimockDone() {
+			m.MinimockGetLastTranslationIDInspect()
+
 			m.MinimockGetMessagesInspect()
 
 			m.MinimockInitInspect()
@@ -577,6 +933,7 @@ func (m *YoutubeClientMock) MinimockWait(timeout mm_time.Duration) {
 func (m *YoutubeClientMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockGetLastTranslationIDDone() &&
 		m.MinimockGetMessagesDone() &&
 		m.MinimockInitDone()
 }

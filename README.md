@@ -9,14 +9,27 @@
     "port": 8081,
     "view": {
         "css_style": "",
-        "time_to_hide_message": "60s",
+        "time_to_hide_message": "180s",
         "time_to_delete_message": "1h"
+    },
+    "loging": {
+        "log_path": "./log.log"
     },
     "connections": [
         {
-            "source": "youtube",
-            "key": "bMQejy5RoHM",
+            "source": "twitch",
+            "key": "playingpossumhiss",
             "refresh_time": "50ms"
+        },
+        {
+            "source": "vk_play_live",
+            "key": "playingpossum",
+            "refresh_time": "50ms"
+        },
+        {
+            "source": "youtube",
+            "key": "PlayingPossumHiss",
+            "refresh_time": "15ms"
         }
     ]
 }
@@ -28,8 +41,8 @@
     - time_to_hide_message - через сколько скрывать сообщения, если 0, то сообщения будут скрываться сразу, определяется параметром for_last виджета
     - time_to_delete_message - через сколько удалять сообщения, если 0, то сообщения живут вечно
 - connections - к чему подключаемся
-    - source - источник
-    - key - ключ (для ютуба это идентификатор трансляции, а для вк и твича - имя канала)
+    - source - источник (один из: youtube, vk_play_live, twitch)
+    - key - имя канала
     - refresh_time - как часто опрашивать (пока актуально только для ютуба, остальные на ws сидят)
 
 ## Виджет
