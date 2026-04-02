@@ -41,6 +41,7 @@ func TestUseCase_Run(t *testing.T) {
 			messageSent := false
 			scrapers := []run_watch_scrapers.Scraper{}
 			youtubeClient := m_youtube.NewYoutubeClientMock(mc)
+			youtubeClient.GetLastTranslationIDMock.Expect(context.Background(), "my_channel_name").Return("qqqwwwwee", nil)
 			youtubeClient.InitMock.Expect("qqqwwwwee").Return(nil)
 			youtubeClient.GetMessagesMock.Set(func() (ma1 []entity.Message, err error) {
 				if messageSent {
@@ -60,7 +61,7 @@ func TestUseCase_Run(t *testing.T) {
 
 			scrapers = append(scrapers, youtube_scraper.New(
 				context.Background(),
-				"qqqwwwwee",
+				"my_channel_name",
 				time.Millisecond*10,
 				youtubeClient,
 			))

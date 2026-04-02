@@ -1,10 +1,14 @@
 package youtube_client
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"math/rand"
 	"net/http"
+	"regexp"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 	yt_chat "github.com/epjane/youtube-live-chat-downloader/v2"
@@ -45,6 +49,40 @@ func (c *Client) Init(streamKey string) error {
 	c.cfg = cfg
 
 	return nil
+}
+
+func (c *Client) GetLastTranslationID(ctx context.Context, userName string) (string, error) {
+	request, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		fmt.Sprintf("https://www.youtube.com/@%s/streams", userName),
+		nil,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		dErr := response.Body.Close()
+		if dErr != nil {
+			log.Println(dErr)
+		}
+	}()
+	bodyBytes, err := io.ReadAll(response.Body)
+	if err != nil {
+		return "", err
+	}
+	// Вырезать нужный кусок резуляркой - костыль
+	// но я хочу поскорее это докатить и вообще
+	// работает - не трож
+	matcher := regexp.MustCompile(`"videoId":"[^"]+"`)
+	possibleKey := matcher.Find(bodyBytes)
+
+	return string(possibleKey[11 : len(possibleKey)-1]), nil
 }
 
 func (c *Client) GetMessages() ([]entity.Message, error) {
