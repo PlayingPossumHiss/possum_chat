@@ -18,18 +18,15 @@
     "connections": [
         {
             "source": "twitch",
-            "key": "playingpossumhiss",
-            "refresh_time": "50ms"
+            "key": "playingpossumhiss"
         },
         {
             "source": "vk_play_live",
-            "key": "playingpossum",
-            "refresh_time": "50ms"
+            "key": "playingpossum"
         },
         {
             "source": "youtube",
-            "key": "PlayingPossumHiss",
-            "refresh_time": "15ms"
+            "key": "PlayingPossumHiss"
         }
     ]
 }
@@ -43,7 +40,6 @@
 - connections - к чему подключаемся
     - source - источник (один из: youtube, vk_play_live, twitch)
     - key - имя канала
-    - refresh_time - как часто опрашивать (пока актуально только для ютуба, остальные на ws сидят)
 
 ## Виджет
 

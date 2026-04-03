@@ -11,9 +11,8 @@ type Config struct {
 
 // ConfigConnection настройки подключений
 type ConfigConnection struct {
-	Source      Source
-	Key         string
-	RefreshTime time.Duration
+	Source Source
+	Key    string
 }
 
 // ConfigView настройки отображения виджета OBS
