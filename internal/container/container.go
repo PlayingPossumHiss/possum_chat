@@ -271,7 +271,6 @@ func (c *Container) getYoutubeScraper(
 	return youtube_scraper.New(
 		c.ctx,
 		configConnection.Key,
-		configConnection.RefreshTime,
 		c.getYoutubeClient(),
 	)
 }

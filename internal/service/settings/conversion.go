@@ -26,28 +26,17 @@ func configFromJson(src config) (entity.Config, error) {
 func connectionsFromJson(src []configConnection) ([]entity.ConfigConnection, error) {
 	result := make([]entity.ConfigConnection, 0, len(src))
 	for _, connectionJson := range src {
-		connection, err := connectionFromJson(connectionJson)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, connection)
+		result = append(result, connectionFromJson(connectionJson))
 	}
 
 	return result, nil
 }
 
-func connectionFromJson(src configConnection) (entity.ConfigConnection, error) {
-	source := sourceFromJson(src.Source)
-	refreshTime, err := time.ParseDuration(src.RefreshTime)
-	if err != nil && source == entity.SourceYoutube {
-		return entity.ConfigConnection{}, err
-	}
-
+func connectionFromJson(src configConnection) entity.ConfigConnection {
 	return entity.ConfigConnection{
-		Key:         src.Key,
-		RefreshTime: refreshTime,
-		Source:      source,
-	}, nil
+		Key:    src.Key,
+		Source: sourceFromJson(src.Source),
+	}
 }
 
 func sourceFromJson(src source) entity.Source {
