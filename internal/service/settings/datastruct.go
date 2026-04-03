@@ -10,9 +10,8 @@ type config struct {
 }
 
 type configConnection struct {
-	Source      source `json:"source"`
-	Key         string `json:"key"`
-	RefreshTime string `json:"refresh_time"`
+	Source source `json:"source"`
+	Key    string `json:"key"`
 }
 
 type configView struct {

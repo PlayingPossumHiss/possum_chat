@@ -12,7 +12,6 @@ import (
 
 type Service struct {
 	userName      string
-	cooldown      time.Duration
 	youtubeClient YoutubeClient
 
 	messages  []entity.Message
@@ -22,12 +21,10 @@ type Service struct {
 func New(
 	ctx context.Context,
 	userName string,
-	cooldown time.Duration,
 	youtubeClient YoutubeClient,
 ) *Service {
 	scraper := &Service{
 		userName:      userName,
-		cooldown:      cooldown,
 		youtubeClient: youtubeClient,
 		messageMx:     &sync.Mutex{},
 	}
@@ -92,8 +89,6 @@ func (s *Service) scrap(ctx context.Context) error {
 				s.messageMx.Lock()
 				s.messages = append(s.messages, comments...)
 				s.messageMx.Unlock()
-
-				time.Sleep(s.cooldown)
 			}
 		}
 	}

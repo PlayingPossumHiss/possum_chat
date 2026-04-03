@@ -62,7 +62,6 @@ func TestUseCase_Run(t *testing.T) {
 			scrapers = append(scrapers, youtube_scraper.New(
 				context.Background(),
 				"my_channel_name",
-				time.Millisecond*10,
 				youtubeClient,
 			))
 			uc := run_watch_scrapers.New(scrapers, queueService)
