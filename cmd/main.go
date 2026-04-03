@@ -9,8 +9,11 @@ import (
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
-	app := container.New(ctx)
-	err := app.Run()
+	app, err := container.New(ctx)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	err = app.Run()
 	if err != nil {
 		cancel()
 		log.Fatalln(err)

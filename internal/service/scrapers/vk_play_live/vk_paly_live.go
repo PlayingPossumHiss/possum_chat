@@ -3,13 +3,13 @@ package vk_play_live
 import (
 	"context"
 	"errors"
-	"log"
 	"slices"
 	"strconv"
 	"sync"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 	app_errors "github.com/PlayingPossumHiss/possum_chat/internal/errors"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
 
 type Service struct {
@@ -56,7 +56,7 @@ func (s *Service) watchChat(ctx context.Context) {
 	for {
 		err := s.scrap(ctx)
 		if err != nil {
-			log.Println(err)
+			logger.Error(err.Error())
 		}
 	}
 }

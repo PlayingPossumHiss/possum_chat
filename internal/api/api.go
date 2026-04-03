@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	"github.com/gin-gonic/gin"
 )
 
@@ -42,5 +43,6 @@ func New(
 }
 
 func (a *Api) Run() error {
+	logger.Warn("starting self api")
 	return a.service.Run(fmt.Sprintf(":%d", a.port))
 }

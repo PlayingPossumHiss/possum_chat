@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"slices"
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 	app_errors "github.com/PlayingPossumHiss/possum_chat/internal/errors"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	"github.com/gorilla/websocket"
 )
 
@@ -58,7 +58,7 @@ func (c *Client) Init(
 func (c *Client) Close() {
 	err := c.client.Close()
 	if err != nil {
-		log.Println(err)
+		logger.Error(err.Error())
 	}
 	c.client = nil
 }

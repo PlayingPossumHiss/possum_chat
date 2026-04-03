@@ -2,10 +2,10 @@ package twitch_irc_client
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	"github.com/gempir/go-twitch-irc/v4"
 )
 
@@ -40,7 +40,7 @@ func (c *Client) Listen(
 	go func() {
 		err := c.wsConnect.Connect()
 		if err != nil {
-			log.Println(err)
+			logger.Error(err.Error())
 
 			return
 		}

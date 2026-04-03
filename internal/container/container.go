@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_ws"
 	youtube_client "github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/youtube"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/twitch"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/vk_play_live"
@@ -52,12 +54,18 @@ const (
 	messageQueueServiceCleanOldMessagesMs = 30
 )
 
-func New(ctx context.Context) *Container {
+func New(ctx context.Context) (*Container, error) {
 	container := &Container{
 		ctx: ctx,
 	}
 
-	return container
+	config, err := container.getConfig()
+	if err != nil {
+		return nil, err
+	}
+	logger.Init(config)
+
+	return container, nil
 }
 
 func (c *Container) Run() error {
@@ -96,6 +104,8 @@ func (c *Container) addJobToScheduler(
 	jobName string,
 	interval time.Duration,
 ) error {
+	logger.Warn(fmt.Sprintf("starting bg task %s", jobName))
+
 	_, err := c.scheduler.NewJob(
 		gocron.DurationJob(interval),
 		gocron.NewTask(job),
@@ -248,14 +258,17 @@ func (c *Container) getScrapers() ([]run_watch_scrapers.Scraper, error) {
 	for _, connection := range configService.Config().Connections {
 		switch connection.Source {
 		case entity.SourceYoutube:
+			logger.Warn("init youtube scraper")
 			result = append(result, c.getYoutubeScraper(connection))
 		case entity.SourceVkPlayLive:
+			logger.Warn("init vk play live scraper")
 			scraper, err := c.getVkPlayLiveScraper(connection)
 			if err != nil {
 				return nil, err
 			}
 			result = append(result, scraper)
 		case entity.SourceTwitch:
+			logger.Warn("init twitch scraper")
 			result = append(result, c.getTwitchScraper(connection))
 		}
 	}

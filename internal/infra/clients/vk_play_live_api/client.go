@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
+
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
 
 const host = "https://api.live.vkvideo.ru"
@@ -88,7 +89,7 @@ func (c *Client) do(ctx context.Context, method string, url string, body io.Read
 	defer func() {
 		dErr := response.Body.Close()
 		if dErr != nil {
-			log.Println(dErr)
+			logger.Error(dErr.Error())
 		}
 	}()
 	bodyBytes, err := io.ReadAll(response.Body)

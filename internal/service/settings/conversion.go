@@ -1,9 +1,11 @@
 package settings
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	app_errors "github.com/PlayingPossumHiss/possum_chat/internal/errors"
 )
 
 func configFromJson(src config) (entity.Config, error) {
@@ -16,11 +18,44 @@ func configFromJson(src config) (entity.Config, error) {
 		return entity.Config{}, err
 	}
 
+	logging, err := loggingFromJson(src.Logging)
+	if err != nil {
+		return entity.Config{}, err
+	}
+
 	return entity.Config{
 		Connections: connections,
+		Logging:     logging,
 		View:        view,
 		Port:        src.Port,
 	}, nil
+}
+
+func loggingFromJson(src ConfigLogging) (entity.ConfigLogging, error) {
+	logLevel, err := logLevelFromJson(src.LogLevel)
+	if err != nil {
+		return entity.ConfigLogging{}, err
+	}
+
+	return entity.ConfigLogging{
+		LogPath:  src.LogPath,
+		LogLevel: logLevel,
+	}, nil
+}
+
+func logLevelFromJson(src ConfigLogLevel) (entity.ConfigLogLevel, error) {
+	switch src {
+	case ConfigLogLevelDebug:
+		return entity.ConfigLogLevelDebug, nil
+	case ConfigLogLevelError:
+		return entity.ConfigLogLevelError, nil
+	case ConfigLogLevelInfo:
+		return entity.ConfigLogLevelInfo, nil
+	case ConfigLogLevelWarn:
+		return entity.ConfigLogLevelWarn, nil
+	}
+
+	return 0, fmt.Errorf("%w: ", app_errors.ErrInvalidConfig)
 }
 
 func connectionsFromJson(src []configConnection) ([]entity.ConfigConnection, error) {

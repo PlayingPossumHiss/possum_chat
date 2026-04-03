@@ -2,12 +2,12 @@ package youtube_scraper
 
 import (
 	"context"
-	"log"
 	"slices"
 	"sync"
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
 
 type Service struct {
@@ -54,21 +54,21 @@ func (s *Service) watchChat(ctx context.Context) {
 		default:
 			streamKey, err := s.youtubeClient.GetLastTranslationID(ctx, s.userName)
 			if err != nil {
-				log.Println(err)
+				logger.Error(err.Error())
 
 				continue
 			}
 
 			err = s.youtubeClient.Init(streamKey)
 			if err != nil {
-				log.Println(err)
+				logger.Error(err.Error())
 
 				continue
 			}
 
 			err = s.scrap(ctx)
 			if err != nil {
-				log.Println(err)
+				logger.Error(err.Error())
 			}
 		}
 

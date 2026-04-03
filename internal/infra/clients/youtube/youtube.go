@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"net/http"
 	"regexp"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 	app_errors "github.com/PlayingPossumHiss/possum_chat/internal/errors"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	yt_chat "github.com/epjane/youtube-live-chat-downloader/v2"
 	"github.com/google/uuid"
 )
@@ -70,7 +70,7 @@ func (c *Client) GetLastTranslationID(ctx context.Context, userName string) (str
 	defer func() {
 		dErr := response.Body.Close()
 		if dErr != nil {
-			log.Println(dErr)
+			logger.Error(dErr.Error())
 		}
 	}()
 	bodyBytes, err := io.ReadAll(response.Body)
