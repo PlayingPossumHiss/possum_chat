@@ -63,6 +63,8 @@ func (s *Service) watchChat(ctx context.Context) {
 				continue
 			}
 
+			// TODO: надо отсюда выходить, если трансляция закончилась
+			// https://github.com/PlayingPossumHiss/possum_chat/issues/25
 			err = s.scrap(ctx)
 			if err != nil {
 				logger.Error(err.Error())

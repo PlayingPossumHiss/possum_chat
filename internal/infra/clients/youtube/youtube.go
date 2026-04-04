@@ -43,6 +43,7 @@ func (c *Client) Init(streamKey string) error {
 
 	continuation, cfg, err := yt_chat.ParseInitialData(fmt.Sprintf("https://www.youtube.com/watch?v=%s", streamKey))
 	if err != nil {
+		err = fmt.Errorf("failed init chat for youtube: %w", err)
 		return err
 	}
 
@@ -60,11 +61,13 @@ func (c *Client) GetLastTranslationID(ctx context.Context, userName string) (str
 		nil,
 	)
 	if err != nil {
+		err = fmt.Errorf("failed to create request for get last live id for youtube: %w", err)
 		return "", err
 	}
 
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
+		err = fmt.Errorf("failed to do request for get last live id for youtube: %w", err)
 		return "", err
 	}
 	defer func() {
@@ -75,6 +78,7 @@ func (c *Client) GetLastTranslationID(ctx context.Context, userName string) (str
 	}()
 	bodyBytes, err := io.ReadAll(response.Body)
 	if err != nil {
+		err = fmt.Errorf("failed to read response of get last live id for youtube: %w", err)
 		return "", err
 	}
 	// Вырезать нужный кусок резуляркой - костыль
@@ -83,6 +87,7 @@ func (c *Client) GetLastTranslationID(ctx context.Context, userName string) (str
 	matcher := regexp.MustCompile(`"videoId":"[^"]+"`)
 	possibleKey := matcher.Find(bodyBytes)
 	if possibleKey == nil {
+		err = fmt.Errorf("can't find last live id in get last live id request for youtube: %w", err)
 		return "", app_errors.ErrNoData
 	}
 
@@ -92,6 +97,7 @@ func (c *Client) GetLastTranslationID(ctx context.Context, userName string) (str
 func (c *Client) GetMessages() ([]entity.Message, error) {
 	chat, newContinuation, err := yt_chat.FetchContinuationChat(c.continuation, c.cfg)
 	if errors.Is(err, yt_chat.ErrLiveStreamOver) {
+		err = fmt.Errorf("failed to read new messages for youtube: %w", err)
 		return nil, err
 	}
 

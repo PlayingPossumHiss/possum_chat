@@ -26,6 +26,8 @@ func (c *Client) GetWsToken(ctx context.Context) (string, error) {
 		nil,
 	)
 	if err != nil {
+		err = fmt.Errorf("failed to get ws token for vk play live: %w", err)
+
 		return "", err
 	}
 
@@ -35,6 +37,8 @@ func (c *Client) GetWsToken(ctx context.Context) (string, error) {
 	tokenResponse := &respContract{}
 	err = json.Unmarshal(bodyBytes, tokenResponse)
 	if err != nil {
+		err = fmt.Errorf("failed to parse ws token for vk play live: %w", err)
+
 		return "", err
 	}
 
@@ -49,6 +53,8 @@ func (c *Client) GetUserID(ctx context.Context, userName string) (int, error) {
 		nil,
 	)
 	if err != nil {
+		err = fmt.Errorf("failed to get user id for vk play live: %w", err)
+
 		return 0, err
 	}
 
@@ -65,6 +71,8 @@ func (c *Client) GetUserID(ctx context.Context, userName string) (int, error) {
 	userResponse := &respContract{}
 	err = json.Unmarshal(bodyBytes, userResponse)
 	if err != nil {
+		err = fmt.Errorf("failed to parse user id for vk play live: %w", err)
+
 		return 0, err
 	}
 
@@ -79,11 +87,15 @@ func (c *Client) do(ctx context.Context, method string, url string, body io.Read
 		body,
 	)
 	if err != nil {
+		err = fmt.Errorf("failed to create api request for vk play live: %w", err)
+
 		return nil, err
 	}
 
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
+		err = fmt.Errorf("failed to do api request for vk play live: %w", err)
+
 		return nil, err
 	}
 	defer func() {
@@ -94,6 +106,8 @@ func (c *Client) do(ctx context.Context, method string, url string, body io.Read
 	}()
 	bodyBytes, err := io.ReadAll(response.Body)
 	if err != nil {
+		err = fmt.Errorf("failed to read api request from vk play live: %w", err)
+
 		return nil, err
 	}
 

@@ -41,6 +41,7 @@ func (c *Client) Init(
 		},
 	)
 	if err != nil {
+		err = fmt.Errorf("failed to create ws request for vk play live: %w", err)
 		return err
 	}
 
@@ -49,6 +50,7 @@ func (c *Client) Init(
 	if err != nil {
 		c.Close()
 
+		err = fmt.Errorf("failed to connect to chat for vk play live: %w", err)
 		return err
 	}
 
@@ -58,6 +60,7 @@ func (c *Client) Init(
 func (c *Client) Close() {
 	err := c.client.Close()
 	if err != nil {
+		err = fmt.Errorf("failed close ws connect for vk play live: %w", err)
 		logger.Error(err.Error())
 	}
 	c.client = nil
@@ -69,10 +72,12 @@ func (c *Client) connectToChat() error {
 		[]byte(fmt.Sprintf(`{"connect":{"token":"%s","name":"js"},"id":1}`, c.token)),
 	)
 	if err != nil {
+		err = fmt.Errorf("failed to write connect to chat request for vk play live: %w", err)
 		return err
 	}
 	_, _, err = c.client.ReadMessage()
 	if err != nil {
+		err = fmt.Errorf("failed to read after write connect to chat request for vk play live: %w", err)
 		return err
 	}
 	err = c.client.WriteMessage(
@@ -80,6 +85,7 @@ func (c *Client) connectToChat() error {
 		[]byte(fmt.Sprintf(`{"subscribe":{"channel":"channel-chat:%s"},"id":2}`, c.userID)),
 	)
 	if err != nil {
+		err = fmt.Errorf("failed to write subscribe to chat request for vk play live: %w", err)
 		return err
 	}
 
@@ -89,6 +95,7 @@ func (c *Client) connectToChat() error {
 func (c *Client) ReadMessage() (entity.Message, error) {
 	_, rawMsg, err := c.client.ReadMessage()
 	if err != nil {
+		err = fmt.Errorf("failed to read from ws chat for vk play live: %w", err)
 		return entity.Message{}, err
 	}
 
@@ -100,13 +107,20 @@ func (c *Client) ReadMessage() (entity.Message, error) {
 }
 
 func (c *Client) WritePong() error {
-	return c.client.WriteMessage(websocket.TextMessage, []byte("{}"))
+	err := c.client.WriteMessage(websocket.TextMessage, []byte("{}"))
+	if err != nil {
+		err = fmt.Errorf("failed to send ws pong for vk play live: %w", err)
+		return err
+	}
+
+	return nil
 }
 
 func getMessageFromBytes(rawMsg []byte) (entity.Message, error) {
 	msg := message{}
 	err := json.Unmarshal(rawMsg, &msg)
 	if err != nil {
+		err = fmt.Errorf("failed parse message for vk play live: %w", err)
 		return entity.Message{}, err
 	}
 	if msg.Push.Pub.Data.Type != "message" {

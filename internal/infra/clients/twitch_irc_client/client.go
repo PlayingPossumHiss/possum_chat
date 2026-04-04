@@ -37,9 +37,12 @@ func (c *Client) Listen(
 
 	c.wsConnect.Join(channelName)
 
+	// TODO: Сюда надо добавить реконект
+	// https://github.com/PlayingPossumHiss/possum_chat/issues/26
 	go func() {
 		err := c.wsConnect.Connect()
 		if err != nil {
+			err = fmt.Errorf("failed to connect to twitch ws chat: %w", err)
 			logger.Error(err.Error())
 
 			return

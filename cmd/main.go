@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/container"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
 
 func main() {
@@ -15,7 +17,8 @@ func main() {
 	}
 	err = app.Run()
 	if err != nil {
+		logger.Error(err.Error())
 		cancel()
-		log.Fatalln(err)
+		os.Exit(1)
 	}
 }

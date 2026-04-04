@@ -63,7 +63,11 @@ func New(ctx context.Context) (*Container, error) {
 	if err != nil {
 		return nil, err
 	}
-	logger.Init(config)
+
+	err = logger.Init(config)
+	if err != nil {
+		return nil, err
+	}
 
 	return container, nil
 }

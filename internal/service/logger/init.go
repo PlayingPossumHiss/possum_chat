@@ -57,6 +57,8 @@ func getLogLevel(src entity.ConfigLogLevel) logrus.Level {
 		return logrus.InfoLevel
 	case entity.ConfigLogLevelWarn:
 		return logrus.WarnLevel
+	case entity.ConfigLogLevelError:
+		return logrus.ErrorLevel
 	}
 
 	return logrus.ErrorLevel
