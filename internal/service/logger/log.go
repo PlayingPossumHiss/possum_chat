@@ -1,17 +1,17 @@
 package logger
 
-func Info(msg string) {
-	logger.log.Info(msg)
+func Info(msgs ...interface{}) {
+	logger.log.Info(msgs...)
 }
 
-func Debug(msg string) {
-	logger.log.Debug(msg)
+func Debug(msgs ...interface{}) {
+	logger.log.Debug(msgs...)
 }
 
-func Warn(msg string) {
-	logger.log.Warn(msg)
+func Warn(msgs ...interface{}) {
+	logger.log.Warn(msgs...)
 }
 
-func Error(msg string) {
-	logger.log.Error(msg)
+func Error(msgs ...interface{}) {
+	logger.log.Error(msgs...)
 }

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
-	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	"github.com/gempir/go-twitch-irc/v4"
 )
 
@@ -24,7 +23,7 @@ func New() *Client {
 func (c *Client) Listen(
 	callback func(entity.Message),
 	channelName string,
-) {
+) error {
 	c.wsConnect.OnPrivateMessage(func(message twitch.PrivateMessage) {
 		callback(entity.Message{
 			ID:        fmt.Sprintf("twitch_%s", message.ID),
@@ -39,13 +38,12 @@ func (c *Client) Listen(
 
 	// TODO: Сюда надо добавить реконект
 	// https://github.com/PlayingPossumHiss/possum_chat/issues/26
-	go func() {
-		err := c.wsConnect.Connect()
-		if err != nil {
-			err = fmt.Errorf("failed to connect to twitch ws chat: %w", err)
-			logger.Error(err.Error())
+	err := c.wsConnect.Connect()
+	if err != nil {
+		err = fmt.Errorf("failed to connect to twitch ws chat: %w", err)
 
-			return
-		}
-	}()
+		return err
+	}
+
+	return nil
 }

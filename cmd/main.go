@@ -17,7 +17,7 @@ func main() {
 	}
 	err = app.Run()
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Error(err)
 		cancel()
 		os.Exit(1)
 	}

@@ -6,5 +6,5 @@ type TwitchIrcClient interface {
 	Listen(
 		callback func(entity.Message),
 		channelName string,
-	)
+	) error
 }

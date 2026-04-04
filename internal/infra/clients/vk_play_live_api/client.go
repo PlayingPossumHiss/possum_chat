@@ -101,7 +101,7 @@ func (c *Client) do(ctx context.Context, method string, url string, body io.Read
 	defer func() {
 		dErr := response.Body.Close()
 		if dErr != nil {
-			logger.Error(dErr.Error())
+			logger.Error(dErr)
 		}
 	}()
 	bodyBytes, err := io.ReadAll(response.Body)

@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 	app_errors "github.com/PlayingPossumHiss/possum_chat/internal/errors"
@@ -54,34 +55,38 @@ func (s *Service) GetMessages() []entity.Message {
 
 func (s *Service) watchChat(ctx context.Context) {
 	for {
-		err := s.scrap(ctx)
-		if err != nil {
-			logger.Error(err.Error())
+		select {
+		case <-ctx.Done():
+			logger.Warn("vk play live watcher is stopped by contex cancel")
+
+			return
+		default:
+			err := s.scrap(ctx)
+			if err != nil {
+				logger.Error(err)
+			}
+
+			time.Sleep(time.Second)
 		}
 	}
 }
 
 func (s *Service) scrap(ctx context.Context) error {
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	default:
-		token, err := s.vkPlayLiveApi.GetWsToken(ctx)
-		if err != nil {
-			return err
-		}
-
-		err = s.vkPlayLiveWs.Init(ctx, token, s.streamKey)
-		if err != nil {
-			return err
-		}
-
-		defer func() {
-			s.vkPlayLiveWs.Close()
-		}()
-
-		return s.doScrapCycle(ctx)
+	token, err := s.vkPlayLiveApi.GetWsToken(ctx)
+	if err != nil {
+		return err
 	}
+
+	err = s.vkPlayLiveWs.Init(ctx, token, s.streamKey)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		s.vkPlayLiveWs.Close()
+	}()
+
+	return s.doScrapCycle(ctx)
 }
 
 func (s *Service) doScrapCycle(ctx context.Context) error {
