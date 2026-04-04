@@ -4,6 +4,7 @@ const configPath = "./config.json"
 
 type config struct {
 	Connections []configConnection `json:"connections"`
+	Logging     ConfigLogging      `json:"loging"`
 	View        configView         `json:"view"`
 	Port        int                `json:"port"`
 }
@@ -25,4 +26,18 @@ const (
 	sourceYoutube    source = "youtube"
 	sourceTwitch     source = "twitch"
 	sourceVkPlayLive source = "vk_play_live"
+)
+
+type ConfigLogging struct {
+	LogPath  string         `json:"log_path"`
+	LogLevel ConfigLogLevel `json:"level"`
+}
+
+type ConfigLogLevel string
+
+const (
+	ConfigLogLevelDebug ConfigLogLevel = "DEBUG"
+	ConfigLogLevelInfo  ConfigLogLevel = "INFO"
+	ConfigLogLevelWarn  ConfigLogLevel = "WARN"
+	ConfigLogLevelError ConfigLogLevel = "ERROR"
 )

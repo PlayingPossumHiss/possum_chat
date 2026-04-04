@@ -3,10 +3,10 @@ package settings
 import (
 	"encoding/json"
 	"io"
-	"log"
 	"os"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
 
 type Service struct {
@@ -36,7 +36,7 @@ func getSettingsFromFile() (entity.Config, error) {
 	defer func() {
 		dErr := jsonFile.Close()
 		if dErr != nil {
-			log.Println(dErr)
+			logger.Error(dErr.Error())
 		}
 	}()
 

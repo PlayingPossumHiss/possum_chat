@@ -2,10 +2,10 @@ package twitch_irc_client
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	"github.com/gempir/go-twitch-irc/v4"
 )
 
@@ -37,10 +37,13 @@ func (c *Client) Listen(
 
 	c.wsConnect.Join(channelName)
 
+	// TODO: Сюда надо добавить реконект
+	// https://github.com/PlayingPossumHiss/possum_chat/issues/26
 	go func() {
 		err := c.wsConnect.Connect()
 		if err != nil {
-			log.Println(err)
+			err = fmt.Errorf("failed to connect to twitch ws chat: %w", err)
+			logger.Error(err.Error())
 
 			return
 		}

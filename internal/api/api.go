@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	"github.com/gin-gonic/gin"
 )
 
@@ -42,5 +43,12 @@ func New(
 }
 
 func (a *Api) Run() error {
-	return a.service.Run(fmt.Sprintf(":%d", a.port))
+	logger.Warn("starting self api")
+	// Если что - этот вызов блокирующий
+	err := a.service.Run(fmt.Sprintf(":%d", a.port))
+	if err != nil {
+		return fmt.Errorf("error on start self-api: %w", err)
+	}
+
+	return nil
 }
