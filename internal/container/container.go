@@ -307,6 +307,7 @@ func (c *Container) getTwitchScraper(
 	configConnection entity.ConfigConnection,
 ) *twitch.Service {
 	return twitch.New(
+		c.ctx,
 		c.getTwitchClient(),
 		configConnection.Key,
 	)

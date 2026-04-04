@@ -36,7 +36,7 @@ func getSettingsFromFile() (entity.Config, error) {
 	defer func() {
 		dErr := jsonFile.Close()
 		if dErr != nil {
-			logger.Error(dErr.Error())
+			logger.Error(dErr)
 		}
 	}()
 

@@ -51,14 +51,14 @@ func (s *Service) watchChat(ctx context.Context) {
 		default:
 			streamKey, err := s.youtubeClient.GetLastTranslationID(ctx, s.userName)
 			if err != nil {
-				logger.Error(err.Error())
+				logger.Error(err)
 
 				continue
 			}
 
 			err = s.youtubeClient.Init(streamKey)
 			if err != nil {
-				logger.Error(err.Error())
+				logger.Error(err)
 
 				continue
 			}
@@ -67,7 +67,7 @@ func (s *Service) watchChat(ctx context.Context) {
 			// https://github.com/PlayingPossumHiss/possum_chat/issues/25
 			err = s.scrap(ctx)
 			if err != nil {
-				logger.Error(err.Error())
+				logger.Error(err)
 			}
 		}
 

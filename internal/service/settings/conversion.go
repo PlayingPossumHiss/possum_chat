@@ -12,12 +12,14 @@ func configFromJson(src config) (entity.Config, error) {
 	view, err := viewFromJson(src.View)
 	if err != nil {
 		err = fmt.Errorf("failed parse view for config: %w", err)
+
 		return entity.Config{}, err
 	}
 
 	logging, err := loggingFromJson(src.Logging)
 	if err != nil {
 		err = fmt.Errorf("failed parse logging for config: %w", err)
+
 		return entity.Config{}, err
 	}
 
@@ -33,6 +35,7 @@ func loggingFromJson(src ConfigLogging) (entity.ConfigLogging, error) {
 	logLevel, err := logLevelFromJson(src.LogLevel)
 	if err != nil {
 		err = fmt.Errorf("failed parse log level for config: %w", err)
+
 		return entity.ConfigLogging{}, err
 	}
 
@@ -90,12 +93,14 @@ func viewFromJson(src configView) (entity.ConfigView, error) {
 	timeToHideMessage, err := time.ParseDuration(src.TimeToHideMessage)
 	if err != nil {
 		err = fmt.Errorf("failed parse time to hide for config: %w", err)
+
 		return entity.ConfigView{}, err
 	}
 
 	timeToDeleteMessage, err := time.ParseDuration(src.TimeToDeleteMessage)
 	if err != nil {
 		err = fmt.Errorf("failed parse time to delete for config: %w", err)
+
 		return entity.ConfigView{}, err
 	}
 
