@@ -1,13 +1,15 @@
 package youtube_client
 
 import (
+	"bytes"
 	"context"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 	app_errors "github.com/PlayingPossumHiss/possum_chat/internal/errors"
@@ -24,6 +26,10 @@ type Client struct {
 func New() *Client {
 	return &Client{}
 }
+
+const (
+	initialDataRegex = `(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;\s*(?:var\s+meta|</script|\n)` //nolint
+)
 
 func (c *Client) Init(streamKey string) error {
 	const maxAge = 300
@@ -52,6 +58,35 @@ func (c *Client) Init(streamKey string) error {
 	c.cfg = cfg
 
 	return nil
+}
+
+func (c *Client) GetMessages() ([]entity.Message, error) {
+	chat, newContinuation, err := yt_chat.FetchContinuationChat(c.continuation, c.cfg)
+	if err != nil {
+		err = fmt.Errorf("failed to read new messages for youtube: %w", err)
+
+		return nil, err
+	}
+
+	// set the newly received continuation
+	c.continuation = newContinuation
+
+	comments := make([]entity.Message, 0, len(chat))
+	for _, msg := range chat {
+		newMsgId, err := uuid.NewV7()
+		if err != nil {
+			return nil, err
+		}
+		comments = append(comments, entity.Message{
+			Text:      msg.Message,
+			Source:    entity.SourceYoutube,
+			User:      msg.AuthorName,
+			CreatedAt: msg.Timestamp.UTC(),
+			ID:        fmt.Sprintf("youtube_%s", newMsgId.String()),
+		})
+	}
+
+	return comments, nil
 }
 
 func (c *Client) GetLastTranslationID(ctx context.Context, userName string) (string, error) {
@@ -85,45 +120,43 @@ func (c *Client) GetLastTranslationID(ctx context.Context, userName string) (str
 
 		return "", err
 	}
+
 	// Вырезать нужный кусок резуляркой - костыль
 	// но я хочу поскорее это докатить и вообще
 	// работает - не трож
-	matcher := regexp.MustCompile(`"videoId":"[^"]+"`)
-	possibleKey := matcher.Find(bodyBytes)
-	if possibleKey == nil {
-		err = fmt.Errorf("can't find last live id in get last live id request for youtube: %w", app_errors.ErrNoData)
+	initialDataArr := regexSearch(initialDataRegex, bodyBytes)
+	initialDataRaw := bytes.Trim(initialDataArr[0], "ytInitialData = ")
+	initialDataRaw = bytes.Trim(initialDataRaw, ";</script")
+
+	initialData := &liveListInitialData{}
+	err = json.Unmarshal(initialDataRaw, initialData)
+	if err != nil {
+		err = fmt.Errorf("failed to parse response of get last live id for youtube: %w", err)
 
 		return "", err
 	}
 
-	return string(possibleKey[11 : len(possibleKey)-1]), nil
+	// Получим первое же отрисовываемое видео и попробуем получить из него айдишник
+	// так же проверим не завершенна ли она
+	for _, tab := range initialData.Contents.TwoColumnBrowseResultsRenderer.Tabs {
+		for _, liveData := range tab.TabRenderer.Content.RichGridRenderer.Contents {
+			if strings.HasPrefix(
+				liveData.RichItemRenderer.Content.VideoRenderer.PublishedTimeText.SimpleText,
+				"Трансляция закончилась",
+			) {
+				return "", fmt.Errorf("last live id for youtube is finished: %w", app_errors.ErrNoData)
+			}
+
+			return liveData.RichItemRenderer.Content.VideoRenderer.VideoId, nil //nolint
+		}
+	}
+
+	return "", fmt.Errorf("failed to get live id from json for youtube: %w", app_errors.ErrNoData)
 }
 
-func (c *Client) GetMessages() ([]entity.Message, error) {
-	chat, newContinuation, err := yt_chat.FetchContinuationChat(c.continuation, c.cfg)
-	if errors.Is(err, yt_chat.ErrLiveStreamOver) {
-		err = fmt.Errorf("failed to read new messages for youtube: %w", err)
+func regexSearch(regex string, str []byte) [][]byte {
+	r, _ := regexp.Compile(regex)
+	matches := r.FindAll(str, -1)
 
-		return nil, err
-	}
-
-	// set the newly received continuation
-	c.continuation = newContinuation
-
-	comments := make([]entity.Message, 0, len(chat))
-	for _, msg := range chat {
-		newMsgId, err := uuid.NewV7()
-		if err != nil {
-			return nil, err
-		}
-		comments = append(comments, entity.Message{
-			Text:      msg.Message,
-			Source:    entity.SourceYoutube,
-			User:      msg.AuthorName,
-			CreatedAt: msg.Timestamp.UTC(),
-			ID:        fmt.Sprintf("youtube_%s", newMsgId.String()),
-		})
-	}
-
-	return comments, nil
+	return matches
 }

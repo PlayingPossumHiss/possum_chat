@@ -44,11 +44,19 @@ func (s *Service) GetMessages() []entity.Message {
 }
 
 func (s *Service) watchChat(ctx context.Context) {
+	firstTry := true
+	const secondsToWait = 5
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
+			if !firstTry {
+				// Чтобы не забанили
+				time.Sleep(secondsToWait * time.Second)
+			}
+
+			firstTry = false
 			streamKey, err := s.youtubeClient.GetLastTranslationID(ctx, s.userName)
 			if err != nil {
 				logger.Error(err)
@@ -70,9 +78,6 @@ func (s *Service) watchChat(ctx context.Context) {
 				logger.Error(err)
 			}
 		}
-
-		// Чтобы не забанили
-		time.Sleep(time.Second)
 	}
 }
 
