@@ -5,14 +5,15 @@
     <meta http-equiv='X-UA-Compatible' content='IE=edge'>
     <title>Мультичат</title>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel="icon" href="/img/favicon.ico">
     <link rel='stylesheet' type='text/css' media='screen' href='/css/messages.css'>
     <link rel='stylesheet' type='text/css' media='screen' href='/css/custom_style.css'>
-    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
     <script src='/js/messages.js'></script>
 </head>
 <body>
-    <div class="messages" id="app">
-        <div class="message" v-for="message in messages">
+    <div class="messages" v-bind:class="{'scroll-messages': useScroll}" id="app">
+        <div class="message" v-bind:class="{'scroll-message': useScroll}" v-for="message in messages">
             <img class="message-icon" v-if="message.source=='twitch'" src="/img/twitch.png">
             <img class="message-icon" v-if="message.source=='youtube'" src="/img/youtube.png">
             <img class="message-icon" v-if="message.source=='vk_play_live'" src="/img/vk_play_live.png">

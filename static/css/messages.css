@@ -17,6 +17,15 @@
     left: 0;
 }
 
+.scroll-messages {
+    position: none;
+    transform: none;
+}
+
+.scroll-message {
+    transform: none;
+}
+
 img.message-icon {
     height: 1em;
 }

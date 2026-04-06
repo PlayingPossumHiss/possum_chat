@@ -22,6 +22,8 @@ func TestUseCase_Run(t *testing.T) {
 	t.Run(
 		"Скрейпим сообщения",
 		func(t *testing.T) {
+			t.Parallel()
+
 			mc := minimock.NewController(t)
 
 			configStorage := m_message_queue.NewConfigStorageMock(mc)

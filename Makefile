@@ -21,4 +21,6 @@ lint:
 	golangci-lint run --fix
 
 build_app:
-	go build -o ./build/possum_chat ./cmd/main.go
+	rm ./possum_chat.tar.gz
+	go build -o ./possum_chat ./cmd/main.go
+	tar -czvf possum_chat.tar.gz ./possum_chat ./static/

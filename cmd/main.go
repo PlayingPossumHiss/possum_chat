@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Background()
 	app, err := container.New(ctx)
 	if err != nil {
 		log.Fatalln(err)
@@ -18,7 +18,6 @@ func main() {
 	err = app.Run()
 	if err != nil {
 		logger.Error(err)
-		cancel()
 		os.Exit(1)
 	}
 }
