@@ -1,5 +1,6 @@
 .vscode/
 config.json
 bin/
-build/
 log.log
+possum_chat
+possum_chat.tar.gz

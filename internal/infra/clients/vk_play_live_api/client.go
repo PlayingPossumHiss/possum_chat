@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
@@ -80,8 +81,12 @@ func (c *Client) GetUserID(ctx context.Context, userName string) (int, error) {
 }
 
 func (c *Client) do(ctx context.Context, method string, url string, body io.Reader) ([]byte, error) {
+	const defaultDedlineSeconds = 5
+	defaultDedlineCtx, cancel := context.WithTimeout(ctx, defaultDedlineSeconds*time.Second)
+	defer cancel()
+
 	request, err := http.NewRequestWithContext(
-		ctx,
+		defaultDedlineCtx,
 		method,
 		url,
 		body,

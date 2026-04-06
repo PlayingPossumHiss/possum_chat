@@ -66,6 +66,7 @@ func (s *Service) watchChat(ctx context.Context) {
 				logger.Error(err)
 			}
 
+			// чтобы не словить бан
 			time.Sleep(time.Second)
 		}
 	}

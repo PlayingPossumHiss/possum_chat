@@ -1,20 +1,16 @@
-var app
+let app
+let urlParams = extractParams()
+let messages = [];
 
 document.addEventListener("DOMContentLoaded", function() {
     refreshMessages(createApp);
 })
 
-
-let messages = [];
-
 function refreshMessages(callback) {
-    let queryString = window.location.search;
-    let urlParams = new URLSearchParams(queryString);
-    let for_last = urlParams.get('for_last')
     let xhr = new XMLHttpRequest();
     let url = '/api/v1/messages'
-    if (for_last != null) {
-        url += '?for_last=' + for_last
+    if (urlParams.forLast != null) {
+        url += '?for_last=' + urlParams.forLast
     }
     xhr.open('GET', url);
     xhr.responseType = 'json';
@@ -33,6 +29,7 @@ function createApp() {
         el: '#app',
         data: {
            messages: messages,
+           useScroll: urlParams.useScroll,
         },
     });
     setInterval(function() {
@@ -40,4 +37,13 @@ function createApp() {
             app.messages = messages;
         });
     }, 50)
+}
+
+function extractParams() {
+    let queryString = window.location.search;
+    let urlParams = new URLSearchParams(queryString);
+    return {
+        forLast: urlParams.get('for_last'),
+        useScroll: urlParams.get('use_scroll') == "true",
+    }
 }

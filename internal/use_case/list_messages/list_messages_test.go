@@ -20,6 +20,8 @@ func TestUseCase_ListMessages(t *testing.T) {
 	t.Run(
 		"Добавили сообщения в очередь, прочитали, а потом по таймауту они ушли",
 		func(t *testing.T) {
+			t.Parallel()
+
 			mc := minimock.NewController(t)
 
 			configStorage := m_message_queue.NewConfigStorageMock(mc)

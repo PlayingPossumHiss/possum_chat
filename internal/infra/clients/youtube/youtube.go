@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 	app_errors "github.com/PlayingPossumHiss/possum_chat/internal/errors"
@@ -90,8 +91,12 @@ func (c *Client) GetMessages() ([]entity.Message, error) {
 }
 
 func (c *Client) GetLastTranslationID(ctx context.Context, userName string) (string, error) {
+	const defaultDedlineSeconds = 5
+	defaultDedlineCtx, cancel := context.WithTimeout(ctx, defaultDedlineSeconds*time.Second)
+	defer cancel()
+
 	request, err := http.NewRequestWithContext(
-		ctx,
+		defaultDedlineCtx,
 		http.MethodGet,
 		fmt.Sprintf("https://www.youtube.com/@%s/streams", userName),
 		nil,
