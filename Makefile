@@ -20,7 +20,7 @@ test:
 lint:
 	golangci-lint run --fix
 
-build_app:
-	rm ./possum_chat.tar.gz
+build-app:
+	rm -f ./possum_chat.tar.gz
 	go build -o ./possum_chat ./cmd/main.go
 	tar -czvf possum_chat.tar.gz ./possum_chat ./static/
