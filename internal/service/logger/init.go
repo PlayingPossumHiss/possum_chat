@@ -12,6 +12,9 @@ type Logger struct {
 	log    *logrus.Logger
 	output io.Writer
 
+	errorsCounter *uint32
+	warnCounter   *uint32
+
 	config ConfigStorage
 }
 
@@ -19,7 +22,9 @@ var logger *Logger
 
 func Init(config ConfigStorage) error {
 	logger = &Logger{
-		config: config,
+		config:        config,
+		errorsCounter: new(uint32(0)),
+		warnCounter:   new(uint32(0)),
 	}
 
 	logrusLog := logrus.New()
@@ -61,5 +66,5 @@ func getLogLevel(src entity.ConfigLogLevel) logrus.Level {
 		return logrus.ErrorLevel
 	}
 
-	return logrus.ErrorLevel
+	return logrus.PanicLevel
 }

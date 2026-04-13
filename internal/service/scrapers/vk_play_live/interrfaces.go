@@ -17,7 +17,7 @@ type VkPlayLiveWs interface {
 		token string,
 		userID string,
 	) error
-	ReadMessage() (entity.Message, error)
+	ReadMessage() (*entity.Message, error)
 	WritePong() error
 	Close()
 }

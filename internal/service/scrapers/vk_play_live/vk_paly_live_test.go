@@ -38,31 +38,41 @@ func TestService_GetMessages(t *testing.T) {
 			apiMock.GetWsTokenMock.Expect(context.Background()).Return("some token", nil)
 			wsMock.InitMock.Expect(context.Background(), "some token", "100200").Return(nil)
 			var callIterator int
-			wsMock.ReadMessageMock.Set(func() (m1 entity.Message, err error) {
+			wsMock.ReadMessageMock.Set(func() (m1 *entity.Message, err error) {
 				callIterator++
 				time.Sleep(time.Millisecond * 50)
 				switch callIterator {
 				case 1:
-					return entity.Message{
-						ID:        "vk_123",
-						Source:    entity.SourceVkPlayLive,
-						User:      "possum",
-						Text:      "possum say",
+					return &entity.Message{
+						ID:     "vk_123",
+						Source: entity.SourceVkPlayLive,
+						User:   "possum",
+						Content: []entity.MessageContentItem{
+							{
+								Type:  entity.MessageContentItemTypeText,
+								Value: "possum say",
+							},
+						},
 						CreatedAt: time.Date(2026, 04, 05, 10, 0, 0, 0, time.UTC),
 					}, nil
 				case 2:
-					return entity.Message{}, app_errors.ErrIsPing
+					return nil, app_errors.ErrIsPing
 				case 3:
-					return entity.Message{
-						ID:        "vk_124",
-						Source:    entity.SourceVkPlayLive,
-						User:      "user",
-						Text:      "user say",
+					return &entity.Message{
+						ID:     "vk_124",
+						Source: entity.SourceVkPlayLive,
+						User:   "user",
+						Content: []entity.MessageContentItem{
+							{
+								Type:  entity.MessageContentItemTypeText,
+								Value: "user say",
+							},
+						},
 						CreatedAt: time.Date(2026, 04, 05, 10, 0, 0, 0, time.UTC),
 					}, nil
 				}
 
-				return entity.Message{}, app_errors.ErrIsPing
+				return nil, app_errors.ErrIsPing
 			})
 			wsMock.WritePongMock.Times(2).Expect().Return(nil)
 
@@ -81,17 +91,27 @@ func TestService_GetMessages(t *testing.T) {
 				messages,
 				[]entity.Message{
 					{
-						ID:        "vk_123",
-						Source:    entity.SourceVkPlayLive,
-						User:      "possum",
-						Text:      "possum say",
+						ID:     "vk_123",
+						Source: entity.SourceVkPlayLive,
+						User:   "possum",
+						Content: []entity.MessageContentItem{
+							{
+								Type:  entity.MessageContentItemTypeText,
+								Value: "possum say",
+							},
+						},
 						CreatedAt: time.Date(2026, 04, 05, 10, 0, 0, 0, time.UTC),
 					},
 					{
-						ID:        "vk_124",
-						Source:    entity.SourceVkPlayLive,
-						User:      "user",
-						Text:      "user say",
+						ID:     "vk_124",
+						Source: entity.SourceVkPlayLive,
+						User:   "user",
+						Content: []entity.MessageContentItem{
+							{
+								Type:  entity.MessageContentItemTypeText,
+								Value: "user say",
+							},
+						},
 						CreatedAt: time.Date(2026, 04, 05, 10, 0, 0, 0, time.UTC),
 					},
 				},
@@ -112,31 +132,41 @@ func TestService_GetMessages(t *testing.T) {
 			wsMock.InitMock.Times(2).Expect(context.Background(), "some token", "100200").Return(nil)
 			wsMock.CloseMock.Expect().Return()
 			var callIterator int
-			wsMock.ReadMessageMock.Set(func() (m1 entity.Message, err error) {
+			wsMock.ReadMessageMock.Set(func() (m1 *entity.Message, err error) {
 				callIterator++
 				time.Sleep(time.Millisecond * 50)
 				switch callIterator {
 				case 1:
-					return entity.Message{
-						ID:        "vk_123",
-						Source:    entity.SourceVkPlayLive,
-						User:      "possum",
-						Text:      "possum say",
+					return &entity.Message{
+						ID:     "vk_123",
+						Source: entity.SourceVkPlayLive,
+						User:   "possum",
+						Content: []entity.MessageContentItem{
+							{
+								Type:  entity.MessageContentItemTypeText,
+								Value: "possum say",
+							},
+						},
 						CreatedAt: time.Date(2026, 04, 05, 10, 0, 0, 0, time.UTC),
 					}, nil
 				case 2:
-					return entity.Message{}, context.DeadlineExceeded
+					return &entity.Message{}, context.DeadlineExceeded
 				case 3:
-					return entity.Message{
-						ID:        "vk_124",
-						Source:    entity.SourceVkPlayLive,
-						User:      "user",
-						Text:      "user say",
+					return &entity.Message{
+						ID:     "vk_124",
+						Source: entity.SourceVkPlayLive,
+						User:   "user",
+						Content: []entity.MessageContentItem{
+							{
+								Type:  entity.MessageContentItemTypeText,
+								Value: "user say",
+							},
+						},
 						CreatedAt: time.Date(2026, 04, 05, 10, 0, 0, 0, time.UTC),
 					}, nil
 				}
 
-				return entity.Message{}, app_errors.ErrIsPing
+				return &entity.Message{}, app_errors.ErrIsPing
 			})
 			wsMock.WritePongMock.Times(1).Expect().Return(nil)
 
@@ -155,17 +185,27 @@ func TestService_GetMessages(t *testing.T) {
 				messages,
 				[]entity.Message{
 					{
-						ID:        "vk_123",
-						Source:    entity.SourceVkPlayLive,
-						User:      "possum",
-						Text:      "possum say",
+						ID:     "vk_123",
+						Source: entity.SourceVkPlayLive,
+						User:   "possum",
+						Content: []entity.MessageContentItem{
+							{
+								Type:  entity.MessageContentItemTypeText,
+								Value: "possum say",
+							},
+						},
 						CreatedAt: time.Date(2026, 04, 05, 10, 0, 0, 0, time.UTC),
 					},
 					{
-						ID:        "vk_124",
-						Source:    entity.SourceVkPlayLive,
-						User:      "user",
-						Text:      "user say",
+						ID:     "vk_124",
+						Source: entity.SourceVkPlayLive,
+						User:   "user",
+						Content: []entity.MessageContentItem{
+							{
+								Type:  entity.MessageContentItemTypeText,
+								Value: "user say",
+							},
+						},
 						CreatedAt: time.Date(2026, 04, 05, 10, 0, 0, 0, time.UTC),
 					},
 				},

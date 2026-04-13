@@ -22,7 +22,7 @@ func New(
 	gin.SetMode(gin.ReleaseMode)
 	service := gin.New()
 	service.Use(
-		gin.LoggerWithWriter(gin.DefaultWriter, "/api/v1/messages"),
+		gin.LoggerWithWriter(gin.DefaultWriter, "/api/v1/messages", "/api/v1/logging_status"),
 		gin.Recovery(),
 	)
 	api := &Api{
@@ -34,6 +34,8 @@ func New(
 
 	service.GET("/css/custom_style.css", api.cssCustomStyleCss)
 	service.GET("/api/v1/messages", api.apiV1Messages)
+	service.GET("/api/v1/logging_status", api.apiV1LoggingStatus)
+
 	service.StaticFile("js/messages.js", "./static/js/messages.js")
 	service.StaticFile("css/messages.css", "./static/css/messages.css")
 	service.StaticFile("messages.html", "./static/messages.html")
@@ -43,7 +45,7 @@ func New(
 }
 
 func (a *Api) Run() error {
-	logger.Warn("starting self api")
+	logger.Info("starting self api")
 	// Если что - этот вызов блокирующий
 	err := a.service.Run(fmt.Sprintf(":%d", a.port))
 	if err != nil {

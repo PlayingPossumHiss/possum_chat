@@ -108,7 +108,7 @@ func (c *Container) addJobToScheduler(
 	jobName string,
 	interval time.Duration,
 ) error {
-	logger.Warn(fmt.Sprintf("starting bg task %s", jobName))
+	logger.Info(fmt.Sprintf("starting bg task %s", jobName))
 
 	_, err := c.scheduler.NewJob(
 		gocron.DurationJob(interval),
@@ -262,17 +262,17 @@ func (c *Container) getScrapers() ([]run_watch_scrapers.Scraper, error) {
 	for _, connection := range configService.Config().Connections {
 		switch connection.Source {
 		case entity.SourceYoutube:
-			logger.Warn("init youtube scraper")
+			logger.Info("init youtube scraper")
 			result = append(result, c.getYoutubeScraper(connection))
 		case entity.SourceVkPlayLive:
-			logger.Warn("init vk play live scraper")
+			logger.Info("init vk play live scraper")
 			scraper, err := c.getVkPlayLiveScraper(connection)
 			if err != nil {
 				return nil, err
 			}
 			result = append(result, scraper)
 		case entity.SourceTwitch:
-			logger.Warn("init twitch scraper")
+			logger.Info("init twitch scraper")
 			result = append(result, c.getTwitchScraper(connection))
 		}
 	}

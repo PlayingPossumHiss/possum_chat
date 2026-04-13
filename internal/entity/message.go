@@ -6,9 +6,22 @@ type Message struct {
 	ID        string
 	Source    Source
 	User      string
-	Text      string
+	Content   []MessageContentItem
 	CreatedAt time.Time
 }
+
+// TODO: возможно сделать как one of в protobuf, ну да ладно
+type MessageContentItem struct {
+	Type  MessageContentItemType
+	Value string
+}
+
+type MessageContentItemType byte
+
+const (
+	MessageContentItemTypeText MessageContentItemType = iota + 1
+	MessageContentItemTypeImage
+)
 
 type Source byte
 

@@ -97,16 +97,16 @@ func (c *Client) connectToChat() error {
 	return nil
 }
 
-func (c *Client) ReadMessage() (entity.Message, error) {
+func (c *Client) ReadMessage() (*entity.Message, error) {
 	_, rawMsg, err := c.client.ReadMessage()
 	if err != nil {
 		err = fmt.Errorf("failed to read from ws chat for vk play live: %w", err)
 
-		return entity.Message{}, err
+		return nil, err
 	}
 
 	if slices.Equal(rawMsg, []byte("{}")) {
-		return entity.Message{}, app_errors.ErrIsPing
+		return nil, app_errors.ErrIsPing
 	}
 
 	return getMessageFromBytes(rawMsg)
@@ -123,64 +123,64 @@ func (c *Client) WritePong() error {
 	return nil
 }
 
-func getMessageFromBytes(rawMsg []byte) (entity.Message, error) {
+func getMessageFromBytes(rawMsg []byte) (*entity.Message, error) {
 	msg := message{}
 	err := json.Unmarshal(rawMsg, &msg)
 	if err != nil {
 		err = fmt.Errorf("failed parse message for vk play live: %w", err)
 
-		return entity.Message{}, err
+		return nil, err
 	}
 	if msg.Push.Pub.Data.Type != "message" {
-		return entity.Message{}, nil
+		return nil, nil
 	}
-	chatMessage := entity.Message{
+	chatMessage := &entity.Message{
 		ID:        fmt.Sprintf("vk_play_live_%d", msg.Push.Pub.Data.Data.ID),
 		Source:    entity.SourceVkPlayLive,
 		User:      msg.Push.Pub.Data.Data.Author.Name,
 		CreatedAt: time.Now(),
+		Content:   getMessageContent(msg.Push.Pub.Data.Data.Data),
 	}
-	for _, textPart := range msg.Push.Pub.Data.Data.Data {
-		if textPart.Type != "text" {
-			continue
-		}
-		testPartContent := []any{}
-		err = json.Unmarshal([]byte(textPart.Content), &testPartContent)
-		if err != nil {
-			continue
-		}
-		if len(testPartContent) > 0 {
-			subText, ok := testPartContent[0].(string)
-			if !ok {
-				continue
-			}
-			chatMessage.Text += subText
-		}
-	}
-	if chatMessage.Text == "" {
-		return entity.Message{}, nil
+
+	if len(chatMessage.Content) == 0 {
+		logger.Warn("can't parse message for vk play")
+
+		return nil, nil
 	}
 
 	return chatMessage, nil
 }
 
-type message struct {
-	Push struct {
-		Pub struct {
-			Data struct {
-				Type string `json:"type"` // message
-				Data struct {
-					ID        int   `json:"id"`
-					CreatedAt int64 `json:"createdAt"`
-					Author    struct {
-						Name string `json:"displayName"`
-					} `json:"author"`
-					Data []struct {
-						Content string `json:"content"`
-						Type    string `json:"type"` // text
-					} `json:"data"`
-				} `json:"data"`
-			} `json:"data"`
-		} `json:"pub"`
-	} `json:"push"`
+func getMessageContent(messageData []messageData) []entity.MessageContentItem {
+	result := make([]entity.MessageContentItem, 0, len(messageData))
+
+	for _, messagePart := range messageData {
+		switch messagePart.Type {
+		case "text":
+			testPartContent := []any{}
+			err := json.Unmarshal([]byte(messagePart.Content), &testPartContent)
+			if err != nil {
+				continue
+			}
+			if len(testPartContent) > 0 {
+				subText, ok := testPartContent[0].(string)
+				if !ok {
+					continue
+				}
+				result = append(result, entity.MessageContentItem{
+					Type:  entity.MessageContentItemTypeText,
+					Value: subText,
+				})
+			}
+		case "smile":
+			result = append(result, entity.MessageContentItem{
+				Type:  entity.MessageContentItemTypeImage,
+				Value: messagePart.SmallUrl,
+			})
+		default:
+			continue
+		}
+	}
+
+	return result
 }
