@@ -26,10 +26,15 @@ func (c *Client) Listen(
 ) error {
 	c.wsConnect.OnPrivateMessage(func(message twitch.PrivateMessage) {
 		callback(entity.Message{
-			ID:        fmt.Sprintf("twitch_%s", message.ID),
-			Source:    entity.SourceTwitch,
-			User:      message.User.DisplayName,
-			Text:      message.Message,
+			ID:     fmt.Sprintf("twitch_%s", message.ID),
+			Source: entity.SourceTwitch,
+			User:   message.User.DisplayName,
+			Content: []entity.MessageContentItem{
+				{
+					Type:  entity.MessageContentItemTypeText,
+					Value: message.Message,
+				},
+			},
 			CreatedAt: time.Now(),
 		})
 	})

@@ -52,10 +52,15 @@ func TestUseCase_Run(t *testing.T) {
 				messageSent = true
 				return []entity.Message{
 					{
-						ID:        "youtube_1122",
-						Source:    entity.SourceYoutube,
-						User:      "possum",
-						Text:      "some message",
+						ID:     "youtube_1122",
+						Source: entity.SourceYoutube,
+						User:   "possum",
+						Content: []entity.MessageContentItem{
+							{
+								Type:  entity.MessageContentItemTypeText,
+								Value: "some message",
+							},
+						},
 						CreatedAt: time.Date(2026, 03, 28, 15, 33, 0, 0, time.UTC),
 					},
 				}, nil
@@ -77,10 +82,15 @@ func TestUseCase_Run(t *testing.T) {
 				t,
 				[]entity.Message{
 					{
-						ID:        "youtube_1122",
-						Source:    entity.SourceYoutube,
-						User:      "possum",
-						Text:      "some message",
+						ID:     "youtube_1122",
+						Source: entity.SourceYoutube,
+						User:   "possum",
+						Content: []entity.MessageContentItem{
+							{
+								Type:  entity.MessageContentItemTypeText,
+								Value: "some message",
+							},
+						},
 						CreatedAt: time.Date(2026, 03, 28, 15, 33, 0, 0, time.UTC),
 					},
 				},

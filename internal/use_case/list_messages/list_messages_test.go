@@ -59,8 +59,13 @@ func TestUseCase_ListMessages(t *testing.T) {
 			// Добавили сообщение
 			queueService.PushMessages([]entity.Message{
 				{
-					ID:        "1",
-					Text:      "some message",
+					ID: "1",
+					Content: []entity.MessageContentItem{
+						{
+							Type:  entity.MessageContentItemTypeText,
+							Value: "some message",
+						},
+					},
 					User:      "possum",
 					Source:    entity.SourceYoutube,
 					CreatedAt: time.Now().Add(-time.Hour), // должны привести в текущей дате
@@ -74,8 +79,13 @@ func TestUseCase_ListMessages(t *testing.T) {
 				t,
 				[]entity.Message{
 					{
-						ID:        "1",
-						Text:      "some message",
+						ID: "1",
+						Content: []entity.MessageContentItem{
+							{
+								Type:  entity.MessageContentItemTypeText,
+								Value: "some message",
+							},
+						},
 						User:      "possum",
 						Source:    entity.SourceYoutube,
 						CreatedAt: time.Date(2026, 03, 28, 13, 8, 0, 0, time.UTC),
@@ -87,8 +97,13 @@ func TestUseCase_ListMessages(t *testing.T) {
 			// сдвинули время и добавили еще одно
 			queueService.PushMessages([]entity.Message{
 				{
-					ID:        "2",
-					Text:      "another message",
+					ID: "2",
+					Content: []entity.MessageContentItem{
+						{
+							Type:  entity.MessageContentItemTypeText,
+							Value: "another message",
+						},
+					},
 					User:      "not a possum",
 					Source:    entity.SourceVkPlayLive,
 					CreatedAt: time.Now(),
@@ -102,15 +117,25 @@ func TestUseCase_ListMessages(t *testing.T) {
 				t,
 				[]entity.Message{
 					{
-						ID:        "1",
-						Text:      "some message",
+						ID: "1",
+						Content: []entity.MessageContentItem{
+							{
+								Type:  entity.MessageContentItemTypeText,
+								Value: "some message",
+							},
+						},
 						User:      "possum",
 						Source:    entity.SourceYoutube,
 						CreatedAt: time.Date(2026, 03, 28, 13, 8, 0, 0, time.UTC),
 					},
 					{
-						ID:        "2",
-						Text:      "another message",
+						ID: "2",
+						Content: []entity.MessageContentItem{
+							{
+								Type:  entity.MessageContentItemTypeText,
+								Value: "another message",
+							},
+						},
 						User:      "not a possum",
 						Source:    entity.SourceVkPlayLive,
 						CreatedAt: time.Date(2026, 03, 28, 13, 9, 0, 0, time.UTC),
@@ -127,8 +152,13 @@ func TestUseCase_ListMessages(t *testing.T) {
 				t,
 				[]entity.Message{
 					{
-						ID:        "2",
-						Text:      "another message",
+						ID: "2",
+						Content: []entity.MessageContentItem{
+							{
+								Type:  entity.MessageContentItemTypeText,
+								Value: "another message",
+							},
+						},
 						User:      "not a possum",
 						Source:    entity.SourceVkPlayLive,
 						CreatedAt: time.Date(2026, 03, 28, 13, 9, 0, 0, time.UTC),

@@ -28,7 +28,7 @@ func (a *Api) apiV1Messages(ctx *gin.Context) {
 		resp.Messages = append(resp.Messages, message{
 			Source:    sourceToApi(msg.Source),
 			User:      msg.User,
-			Text:      msg.Text,
+			Content:   messageContentToApi(msg.Content),
 			CreatedAt: msg.CreatedAt.Format(time.RFC3339),
 			ID:        msg.ID,
 		})
@@ -45,6 +45,33 @@ func sourceToApi(src entity.Source) source {
 		return sourceVkPlayLive
 	case entity.SourceYoutube:
 		return sourceYoutube
+	}
+
+	return ""
+}
+
+func messageContentToApi(src []entity.MessageContentItem) []messageContentItem {
+	result := make([]messageContentItem, 0, len(src))
+	for _, item := range src {
+		result = append(result, messageContentItemToApi(item))
+	}
+
+	return result
+}
+
+func messageContentItemToApi(src entity.MessageContentItem) messageContentItem {
+	return messageContentItem{
+		Value: src.Value,
+		Type:  messageContentItemTypeToApi(src.Type),
+	}
+}
+
+func messageContentItemTypeToApi(src entity.MessageContentItemType) messageContentItemType {
+	switch src {
+	case entity.MessageContentItemTypeImage:
+		return messageContentTypeImage
+	case entity.MessageContentItemTypeText:
+		return messageContentTypeText
 	}
 
 	return ""

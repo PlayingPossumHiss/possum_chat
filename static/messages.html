@@ -13,11 +13,18 @@
 </head>
 <body>
     <div class="messages" v-bind:class="{'scroll-messages': useScroll}" id="app">
+        <div>
+            <span v-if="errorCount!=0">🔴{{errorCount}}</span>
+            <span v-if="warnCount!=0">🟠{{warnCount}}</span>
+        </div>
         <div class="message" v-bind:class="{'scroll-message': useScroll}" v-for="message in messages">
             <img class="message-icon" v-if="message.source=='twitch'" src="/img/twitch.png">
             <img class="message-icon" v-if="message.source=='youtube'" src="/img/youtube.png">
             <img class="message-icon" v-if="message.source=='vk_play_live'" src="/img/vk_play_live.png">
-            {{message.user}}: {{message.text}}
+            {{message.user}}: <span v-for="message_content_item in message.message_content">
+                <img class="message-smile" v-if="message_content_item.type=='image'" v-bind:src="message_content_item.value">
+                <span v-if="message_content_item.type=='text'">{{message_content_item.value}}</span>
+            </span>
         </div>
     </div>
 </body>

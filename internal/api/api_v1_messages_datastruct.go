@@ -5,12 +5,24 @@ type apiV1MessagesResponse struct {
 }
 
 type message struct {
-	ID        string `json:"id"`
-	Source    source `json:"source"`
-	User      string `json:"user"`
-	Text      string `json:"text"`
-	CreatedAt string `json:"created_at"`
+	ID        string               `json:"id"`
+	Source    source               `json:"source"`
+	User      string               `json:"user"`
+	Content   []messageContentItem `json:"message_content"`
+	CreatedAt string               `json:"created_at"`
 }
+
+type messageContentItem struct {
+	Type  messageContentItemType `json:"type"`
+	Value string                 `json:"value"`
+}
+
+type messageContentItemType string
+
+const (
+	messageContentTypeText  messageContentItemType = "text"
+	messageContentTypeImage messageContentItemType = "image"
+)
 
 type source string
 

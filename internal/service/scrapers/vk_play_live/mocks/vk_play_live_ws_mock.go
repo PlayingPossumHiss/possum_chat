@@ -31,7 +31,7 @@ type VkPlayLiveWsMock struct {
 	beforeInitCounter uint64
 	InitMock          mVkPlayLiveWsMockInit
 
-	funcReadMessage          func() (m1 entity.Message, err error)
+	funcReadMessage          func() (mp1 *entity.Message, err error)
 	funcReadMessageOrigin    string
 	inspectFuncReadMessage   func()
 	afterReadMessageCounter  uint64
@@ -640,7 +640,7 @@ type VkPlayLiveWsMockReadMessageExpectation struct {
 
 // VkPlayLiveWsMockReadMessageResults contains results of the VkPlayLiveWs.ReadMessage
 type VkPlayLiveWsMockReadMessageResults struct {
-	m1  entity.Message
+	mp1 *entity.Message
 	err error
 }
 
@@ -679,7 +679,7 @@ func (mmReadMessage *mVkPlayLiveWsMockReadMessage) Inspect(f func()) *mVkPlayLiv
 }
 
 // Return sets up results that will be returned by VkPlayLiveWs.ReadMessage
-func (mmReadMessage *mVkPlayLiveWsMockReadMessage) Return(m1 entity.Message, err error) *VkPlayLiveWsMock {
+func (mmReadMessage *mVkPlayLiveWsMockReadMessage) Return(mp1 *entity.Message, err error) *VkPlayLiveWsMock {
 	if mmReadMessage.mock.funcReadMessage != nil {
 		mmReadMessage.mock.t.Fatalf("VkPlayLiveWsMock.ReadMessage mock is already set by Set")
 	}
@@ -687,13 +687,13 @@ func (mmReadMessage *mVkPlayLiveWsMockReadMessage) Return(m1 entity.Message, err
 	if mmReadMessage.defaultExpectation == nil {
 		mmReadMessage.defaultExpectation = &VkPlayLiveWsMockReadMessageExpectation{mock: mmReadMessage.mock}
 	}
-	mmReadMessage.defaultExpectation.results = &VkPlayLiveWsMockReadMessageResults{m1, err}
+	mmReadMessage.defaultExpectation.results = &VkPlayLiveWsMockReadMessageResults{mp1, err}
 	mmReadMessage.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
 	return mmReadMessage.mock
 }
 
 // Set uses given function f to mock the VkPlayLiveWs.ReadMessage method
-func (mmReadMessage *mVkPlayLiveWsMockReadMessage) Set(f func() (m1 entity.Message, err error)) *VkPlayLiveWsMock {
+func (mmReadMessage *mVkPlayLiveWsMockReadMessage) Set(f func() (mp1 *entity.Message, err error)) *VkPlayLiveWsMock {
 	if mmReadMessage.defaultExpectation != nil {
 		mmReadMessage.mock.t.Fatalf("Default expectation is already set for the VkPlayLiveWs.ReadMessage method")
 	}
@@ -729,7 +729,7 @@ func (mmReadMessage *mVkPlayLiveWsMockReadMessage) invocationsDone() bool {
 }
 
 // ReadMessage implements mm_vk_play_live.VkPlayLiveWs
-func (mmReadMessage *VkPlayLiveWsMock) ReadMessage() (m1 entity.Message, err error) {
+func (mmReadMessage *VkPlayLiveWsMock) ReadMessage() (mp1 *entity.Message, err error) {
 	mm_atomic.AddUint64(&mmReadMessage.beforeReadMessageCounter, 1)
 	defer mm_atomic.AddUint64(&mmReadMessage.afterReadMessageCounter, 1)
 
@@ -746,7 +746,7 @@ func (mmReadMessage *VkPlayLiveWsMock) ReadMessage() (m1 entity.Message, err err
 		if mm_results == nil {
 			mmReadMessage.t.Fatal("No results are set for the VkPlayLiveWsMock.ReadMessage")
 		}
-		return (*mm_results).m1, (*mm_results).err
+		return (*mm_results).mp1, (*mm_results).err
 	}
 	if mmReadMessage.funcReadMessage != nil {
 		return mmReadMessage.funcReadMessage()

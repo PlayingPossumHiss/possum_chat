@@ -107,11 +107,11 @@ func (s *Service) doScrapCycle(ctx context.Context) error {
 			} else if err != nil {
 				return err
 			}
-			if chatMessage == (entity.Message{}) {
+			if chatMessage == nil {
 				continue
 			}
 			s.messageMx.Lock()
-			s.messages = append(s.messages, chatMessage)
+			s.messages = append(s.messages, *chatMessage)
 			s.messageMx.Unlock()
 		}
 	}

@@ -29,3 +29,8 @@
 img.message-icon {
     height: 1em;
 }
+
+img.message-smile {
+    height: 1.5rem;
+    vertical-align: middle;
+}

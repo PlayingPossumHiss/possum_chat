@@ -79,7 +79,12 @@ func (c *Client) GetMessages() ([]entity.Message, error) {
 			return nil, err
 		}
 		comments = append(comments, entity.Message{
-			Text:      msg.Message,
+			Content: []entity.MessageContentItem{
+				{
+					Type:  entity.MessageContentItemTypeText,
+					Value: msg.Message,
+				},
+			},
 			Source:    entity.SourceYoutube,
 			User:      msg.AuthorName,
 			CreatedAt: msg.Timestamp.UTC(),
