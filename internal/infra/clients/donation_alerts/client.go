@@ -24,7 +24,7 @@ func New(
 
 const (
 	daHost = "socket.donationalerts.ru"
-	daPort = 433
+	daPort = 443
 )
 
 func (c *Client) Init(
