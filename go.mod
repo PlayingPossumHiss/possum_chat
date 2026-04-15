@@ -7,6 +7,7 @@ require (
 	github.com/go-co-op/gocron/v2 v2.19.1
 	github.com/gojuno/minimock/v3 v3.4.7
 	github.com/gorilla/websocket v1.5.3
+	github.com/graarh/golang-socketio v0.0.0-20170510162725-2c44953b9b5f
 	github.com/stretchr/testify v1.11.1
 )
 

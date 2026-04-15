@@ -84,6 +84,8 @@ func sourceFromJson(src source) entity.Source {
 		return entity.SourceYoutube
 	case sourceVkPlayLive:
 		return entity.SourceVkPlayLive
+	case sourceDonationAlerts:
+		return entity.SourceDonationAlerts
 	}
 
 	return 0

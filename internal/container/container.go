@@ -8,12 +8,14 @@ import (
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	donation_alerts_client "github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/donation_alerts"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/twitch_irc_client"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_ws"
 	youtube_client "github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/youtube"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/donation_alerts"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/twitch"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/vk_play_live"
 	youtube_scraper "github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/youtube"
@@ -274,6 +276,13 @@ func (c *Container) getScrapers() ([]run_watch_scrapers.Scraper, error) {
 		case entity.SourceTwitch:
 			logger.Info("init twitch scraper")
 			result = append(result, c.getTwitchScraper(connection))
+		case entity.SourceDonationAlerts:
+			logger.Info("init donation alerts scraper")
+			scraper, err := c.getDonationAlertsSubscraper(connection)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, scraper)
 		}
 	}
 
@@ -300,6 +309,16 @@ func (c *Container) getVkPlayLiveScraper(
 		configConnection.Key,
 		c.getVkPalyLiveApi(),
 		c.getVkPalyLiveWs(),
+	)
+}
+
+func (c *Container) getDonationAlertsSubscraper(
+	configConnection entity.ConfigConnection,
+) (*donation_alerts.Service, error) {
+	return donation_alerts.New(
+		c.ctx,
+		c.getDonationAlertsClient(),
+		configConnection.Key,
 	)
 }
 
@@ -336,4 +355,9 @@ func (c *Container) getYoutubeClient() *youtube_client.Client {
 func (c *Container) getTwitchClient() *twitch_irc_client.Client {
 	// тут отдельный коннект на каждое соединение
 	return twitch_irc_client.New()
+}
+
+func (c *Container) getDonationAlertsClient() *donation_alerts_client.Client {
+	// тут отдельный коннект на каждое соединение
+	return donation_alerts_client.New(&utils_time.DefaultClock{})
 }

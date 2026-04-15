@@ -28,6 +28,10 @@
         {
             "source": "youtube",
             "key": "PlayingPossumHiss"
+        },
+        {
+            "source": "donation_alerts",
+            "key": "am I stupid enough to left my token here? (yes, I am)"
         }
     ]
 }
@@ -42,11 +46,12 @@
     - time_to_hide_message - через сколько скрывать сообщения, если 0, то сообщения будут скрываться сразу, определяется параметром for_last виджета
     - time_to_delete_message - через сколько удалять сообщения, если 0, то сообщения живут вечно
 - connections - к чему подключаемся
-    - source - источник (один из: youtube, vk_play_live, twitch)
+    - source - источник (один из: youtube, vk_play_live, twitch, donation_alerts)
     - key - имя канала
+        - для donation_alerts токен из строки виджета (и постарайтесь его не палить, это все же креды)
 
 ## Виджет
 
 http://127.0.0.1:8081/messages.html - виджет для OBS будет тут после запуска
 http://127.0.0.1:8081/messages.html?for_last=1h - если хотим отображать все комментарии за последний час
-http://127.0.0.1:8081/messages.html?for_last=1h&use_scroll=true - если в дополнение к этому хотим, чтобы списко можно было скролить (удобно для просмотра на втором экране)
+http://127.0.0.1:8081/messages.html?for_last=1h&use_scroll=true - если в дополнение к этому хотим, чтобы список можно было скролить (удобно для просмотра на втором экране). Так же можно увидеть ошибки, если они были в логах

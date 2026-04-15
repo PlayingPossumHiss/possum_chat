@@ -29,4 +29,5 @@ const (
 	SourceYoutube Source = iota + 1
 	SourceTwitch
 	SourceVkPlayLive
+	SourceDonationAlerts
 )

@@ -23,9 +23,10 @@ type configView struct {
 type source string
 
 const (
-	sourceYoutube    source = "youtube"
-	sourceTwitch     source = "twitch"
-	sourceVkPlayLive source = "vk_play_live"
+	sourceYoutube        source = "youtube"
+	sourceTwitch         source = "twitch"
+	sourceVkPlayLive     source = "vk_play_live"
+	sourceDonationAlerts source = "donation_alerts"
 )
 
 type ConfigLogging struct {
