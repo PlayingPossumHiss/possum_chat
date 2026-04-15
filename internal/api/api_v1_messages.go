@@ -45,6 +45,8 @@ func sourceToApi(src entity.Source) source {
 		return sourceVkPlayLive
 	case entity.SourceYoutube:
 		return sourceYoutube
+	case entity.SourceDonationAlerts:
+		return sourceDonationAlerts
 	}
 
 	return ""
