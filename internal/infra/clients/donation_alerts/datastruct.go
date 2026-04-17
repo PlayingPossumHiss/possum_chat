@@ -37,6 +37,7 @@ func (target *donation) UnmarshalJSON(data []byte) error {
 			string(data),
 			err.Error(),
 		))
+
 		return err
 	}
 
@@ -48,6 +49,7 @@ func (target *donation) UnmarshalJSON(data []byte) error {
 			unquotedData,
 			err.Error(),
 		))
+
 		return err
 	}
 
