@@ -50,6 +50,9 @@ func (c *Client) Init(
 	}
 
 	err = c.conn.On("donation", func(h *socket_io.Channel, donationMsg donation) {
+		if donationMsg.Message == "" {
+			return
+		}
 		callback(entity.Message{
 			ID:        "donation_alerts_" + strconv.Itoa(int(donationMsg.ID)),
 			Source:    entity.SourceDonationAlerts,
