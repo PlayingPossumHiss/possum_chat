@@ -2,7 +2,10 @@ package donation_alerts
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
+
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
 
 type addUserRequest struct {
@@ -29,12 +32,22 @@ func (target *donation) UnmarshalJSON(data []byte) error {
 
 	unquotedData, err := strconv.Unquote(string(data))
 	if err != nil {
+		logger.Error(fmt.Sprintf(
+			"failed Unquote donation alerts message %s: %s",
+			string(data),
+			err.Error(),
+		))
 		return err
 	}
 
 	rawData := &donationJson{}
 	err = json.Unmarshal([]byte(unquotedData), rawData)
 	if err != nil {
+		logger.Error(fmt.Sprintf(
+			"failed Unmarshal donation alerts message %s: %s",
+			unquotedData,
+			err.Error(),
+		))
 		return err
 	}
 
