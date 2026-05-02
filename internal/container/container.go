@@ -274,7 +274,9 @@ func (c *Container) getScrapers() ([]run_watch_scrapers.Scraper, error) {
 		switch connection.Source {
 		case entity.SourceYoutube:
 			logger.Info("init youtube scraper")
-			result = append(result, c.getYoutubeScraper(connection))
+			scraper := c.getYoutubeScraper(connection)
+			c.uiScrapers[connection.Source] = scraper
+			result = append(result, scraper)
 		case entity.SourceVkPlayLive:
 			logger.Info("init vk play live scraper")
 			scraper, err := c.getVkPlayLiveScraper(connection)

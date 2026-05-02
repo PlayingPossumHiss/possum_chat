@@ -14,6 +14,10 @@ type Service struct {
 	userName      string
 	youtubeClient YoutubeClient
 
+	state       entity.ScraperState
+	stateMx     *sync.Mutex
+	watchCancel context.CancelFunc
+
 	messages  []entity.Message
 	messageMx *sync.Mutex
 }
@@ -27,11 +31,32 @@ func New(
 		userName:      userName,
 		youtubeClient: youtubeClient,
 		messageMx:     &sync.Mutex{},
+		stateMx:       &sync.Mutex{},
+		state:         entity.ScraperStateStopped,
 	}
 
-	go scraper.watchChat(ctx)
-
 	return scraper
+}
+
+func (s *Service) Run(ctx context.Context) {
+	logger.Info("start youtube scraper")
+	s.stateMx.Lock()
+	newCtx, cancel := context.WithCancel(ctx)
+	s.watchCancel = cancel
+	go s.watchChat(newCtx)
+}
+
+func (s *Service) Stop() {
+	logger.Info("stop youtube scraper")
+	s.stateMx.Lock()
+	defer s.stateMx.Unlock()
+
+	s.watchCancel()
+	s.state = entity.ScraperStateStopped
+}
+
+func (s *Service) Status() entity.ScraperState {
+	return s.state
 }
 
 func (s *Service) GetMessages() []entity.Message {
@@ -54,17 +79,11 @@ func (s *Service) watchChat(ctx context.Context) {
 			if !firstTry {
 				// Чтобы не забанили
 				time.Sleep(secondsToWait * time.Second)
+				s.stateMx.Lock()
 			}
-
 			firstTry = false
-			streamKey, err := s.youtubeClient.GetLastTranslationID(ctx, s.userName)
-			if err != nil {
-				logger.Error(err)
 
-				continue
-			}
-
-			err = s.youtubeClient.Init(streamKey)
+			err := s.initChat(ctx)
 			if err != nil {
 				logger.Error(err)
 
@@ -81,22 +100,38 @@ func (s *Service) watchChat(ctx context.Context) {
 	}
 }
 
+func (s *Service) initChat(ctx context.Context) error {
+	defer s.stateMx.Unlock()
+
+	streamKey, err := s.youtubeClient.GetLastTranslationID(ctx, s.userName)
+	if err != nil {
+		return err
+	}
+
+	err = s.youtubeClient.Init(streamKey)
+	if err != nil {
+		return err
+	}
+
+	s.state = entity.ScraperStateActive
+
+	return nil
+}
+
 func (s *Service) scrap(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for {
-				comments, err := s.youtubeClient.GetMessages()
-				if err != nil {
-					return err
-				}
-
-				s.messageMx.Lock()
-				s.messages = append(s.messages, comments...)
-				s.messageMx.Unlock()
+			comments, err := s.youtubeClient.GetMessages()
+			if err != nil {
+				return err
 			}
+
+			s.messageMx.Lock()
+			s.messages = append(s.messages, comments...)
+			s.messageMx.Unlock()
 		}
 	}
 }

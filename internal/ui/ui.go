@@ -3,7 +3,6 @@ package ui
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -43,44 +42,24 @@ func New(
 func (ui *UI) newMainWindow() {
 	mainWindow := ui.app.NewWindow("Possum Chat")
 
-	youtubeLabel := widget.NewLabel("Youtube")
-	youtubeButton := widget.NewButton("Run", func() {
-		log.Println("tapped")
-	})
-
-	vkLabelContent := binding.NewString()
-	vkLabelContent.Set(getLabelText(entity.SourceVkPlayLive, false))
-	vkLabel := widget.NewLabelWithData(vkLabelContent)
-	vkButton := widget.NewButton(
-		"Turn",
-		ui.turnButtonHandler(
-			entity.SourceVkPlayLive,
-			vkLabelContent,
-		),
-	)
-
-	twitchContent := binding.NewString()
-	twitchContent.Set(getLabelText(entity.SourceTwitch, false))
-	twitchLabel := widget.NewLabelWithData(twitchContent)
-	twitchButton := widget.NewButton(
-		"Turn",
-		ui.turnButtonHandler(
-			entity.SourceTwitch,
-			twitchContent,
-		),
-	)
-
-	donationAlertsLabel := widget.NewLabel("Donation Alerts")
-	donationAlertsButton := widget.NewButton("Run", func() {
-		log.Println("tapped")
-	})
+	switchesContent := make([]fyne.CanvasObject, 0, 2*len(ui.scrapers))
+	for source := range ui.scrapers {
+		scraperContent := binding.NewString()
+		scraperContent.Set(getLabelText(source, false))
+		scraperLabel := widget.NewLabelWithData(scraperContent)
+		scraperButton := widget.NewButton(
+			"Turn",
+			ui.turnButtonHandler(
+				source,
+				scraperContent,
+			),
+		)
+		switchesContent = append(switchesContent, scraperLabel, scraperButton)
+	}
 
 	grid := container.New(
 		layout.NewGridLayout(2),
-		youtubeLabel, youtubeButton,
-		vkLabel, vkButton,
-		twitchLabel, twitchButton,
-		donationAlertsLabel, donationAlertsButton,
+		switchesContent...,
 	)
 	mainWindow.SetContent(grid)
 
