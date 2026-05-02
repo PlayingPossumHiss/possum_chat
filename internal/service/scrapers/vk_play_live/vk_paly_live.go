@@ -18,6 +18,10 @@ type Service struct {
 	vkPlayLiveApi VkPlayLiveApi
 	vkPlayLiveWs  VkPlayLiveWs
 
+	state       entity.ScraperState
+	stateMx     *sync.Mutex
+	watchCancel context.CancelFunc
+
 	messages  []entity.Message
 	messageMx *sync.Mutex
 }
@@ -37,11 +41,30 @@ func New(
 		vkPlayLiveApi: vkPlayLiveApi,
 		vkPlayLiveWs:  vkPlayLiveWs,
 		messageMx:     &sync.Mutex{},
+		stateMx:       &sync.Mutex{},
+		state:         entity.ScraperStateStopped,
 	}
 
-	go scraper.watchChat(ctx)
-
 	return scraper, nil
+}
+
+func (s *Service) Run(ctx context.Context) {
+	s.stateMx.Lock()
+	newCtx, cancel := context.WithCancel(ctx)
+	s.watchCancel = cancel
+	go s.watchChat(newCtx)
+}
+
+func (s *Service) Stop() {
+	s.stateMx.Lock()
+	defer s.stateMx.Unlock()
+
+	s.watchCancel()
+	s.state = entity.ScraperStateStopped
+}
+
+func (s *Service) Status() entity.ScraperState {
+	return s.state
 }
 
 func (s *Service) GetMessages() []entity.Message {
@@ -54,6 +77,7 @@ func (s *Service) GetMessages() []entity.Message {
 }
 
 func (s *Service) watchChat(ctx context.Context) {
+	firstRun := true
 	for {
 		select {
 		case <-ctx.Done():
@@ -61,10 +85,11 @@ func (s *Service) watchChat(ctx context.Context) {
 
 			return
 		default:
-			err := s.scrap(ctx)
+			err := s.scrap(ctx, firstRun)
 			if err != nil {
 				logger.Error(err)
 			}
+			firstRun = false
 
 			// чтобы не словить бан
 			time.Sleep(time.Second)
@@ -72,7 +97,15 @@ func (s *Service) watchChat(ctx context.Context) {
 	}
 }
 
-func (s *Service) scrap(ctx context.Context) error {
+func (s *Service) scrap(
+	ctx context.Context,
+	firstRun bool,
+) error {
+	if !firstRun {
+		s.stateMx.Lock()
+	}
+	s.state = entity.ScraperStateRunning
+
 	token, err := s.vkPlayLiveApi.GetWsToken(ctx)
 	if err != nil {
 		return err
@@ -82,6 +115,8 @@ func (s *Service) scrap(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	s.state = entity.ScraperStateActive
+	s.stateMx.Unlock()
 
 	defer func() {
 		s.vkPlayLiveWs.Close()

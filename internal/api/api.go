@@ -44,13 +44,13 @@ func New(
 	return api
 }
 
-func (a *Api) Run() error {
-	logger.Info("starting self api")
-	// Если что - этот вызов блокирующий
-	err := a.service.Run(fmt.Sprintf(":%d", a.port))
-	if err != nil {
-		return fmt.Errorf("error on start self-api: %w", err)
-	}
-
-	return nil
+func (a *Api) Run() {
+	go func() {
+		logger.Info("starting self api")
+		// Если что - этот вызов блокирующий
+		err := a.service.Run(fmt.Sprintf(":%d", a.port))
+		if err != nil {
+			logger.Error(err)
+		}
+	}()
 }
