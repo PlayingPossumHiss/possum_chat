@@ -3,7 +3,6 @@ package entity
 type ScraperState byte
 
 const (
-	ScraperStateRunning = iota + 1
-	ScraperStateActive
+	ScraperStateActive ScraperState = iota + 1
 	ScraperStateStopped
 )

@@ -7,4 +7,5 @@ type DonationAlertsClient interface {
 		callback func(entity.Message),
 		token string,
 	) error
+	Close()
 }

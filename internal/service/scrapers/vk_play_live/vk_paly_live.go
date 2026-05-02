@@ -106,7 +106,6 @@ func (s *Service) scrap(
 	if !firstRun {
 		s.stateMx.Lock()
 	}
-	s.state = entity.ScraperStateRunning
 
 	token, err := s.vkPlayLiveApi.GetWsToken(ctx)
 	if err != nil {

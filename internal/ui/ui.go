@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -28,19 +29,31 @@ type Scraper interface {
 
 func New(
 	scrapers map[entity.Source]Scraper,
-) {
+) error {
 	ui := &UI{
 		app:      app.New(),
 		scrapers: scrapers,
 	}
 
-	ui.newMainWindow()
+	err := ui.newMainWindow()
+	if err != nil {
+		return err
+	}
 
 	ui.mainWindow.ShowAndRun()
+
+	return nil
 }
 
-func (ui *UI) newMainWindow() {
+func (ui *UI) newMainWindow() error {
 	mainWindow := ui.app.NewWindow("Possum Chat")
+
+	mainWindowIconData, err := os.ReadFile("./static/img/favicon.ico")
+	if err != nil {
+		return fmt.Errorf("error on get main window icon: %w", err)
+	}
+	mainWindowIcon := fyne.NewStaticResource("main_window_icon", mainWindowIconData)
+	mainWindow.SetIcon(mainWindowIcon)
 
 	switchesContent := make([]fyne.CanvasObject, 0, 2*len(ui.scrapers))
 	for source := range ui.scrapers {
@@ -64,6 +77,8 @@ func (ui *UI) newMainWindow() {
 	mainWindow.SetContent(grid)
 
 	ui.mainWindow = mainWindow
+
+	return nil
 }
 
 func (ui *UI) turnButtonHandler(

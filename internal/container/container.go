@@ -107,9 +107,12 @@ func (c *Container) Run() error {
 
 	api.Run()
 
-	ui.New(
+	err = ui.New(
 		c.uiScrapers,
 	)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -296,6 +299,7 @@ func (c *Container) getScrapers() ([]run_watch_scrapers.Scraper, error) {
 			if err != nil {
 				return nil, err
 			}
+			c.uiScrapers[connection.Source] = scraper
 			result = append(result, scraper)
 		}
 	}
