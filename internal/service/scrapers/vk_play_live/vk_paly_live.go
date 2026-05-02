@@ -49,6 +49,7 @@ func New(
 }
 
 func (s *Service) Run(ctx context.Context) {
+	logger.Info("start vk play live scraper")
 	s.stateMx.Lock()
 	newCtx, cancel := context.WithCancel(ctx)
 	s.watchCancel = cancel
@@ -56,6 +57,7 @@ func (s *Service) Run(ctx context.Context) {
 }
 
 func (s *Service) Stop() {
+	logger.Info("stop vk play live scraper")
 	s.stateMx.Lock()
 	defer s.stateMx.Unlock()
 

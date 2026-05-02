@@ -285,7 +285,9 @@ func (c *Container) getScrapers() ([]run_watch_scrapers.Scraper, error) {
 			result = append(result, scraper)
 		case entity.SourceTwitch:
 			logger.Info("init twitch scraper")
-			result = append(result, c.getTwitchScraper(connection))
+			scraper := c.getTwitchScraper(connection)
+			c.uiScrapers[connection.Source] = scraper
+			result = append(result, scraper)
 		case entity.SourceDonationAlerts:
 			logger.Info("init donation alerts scraper")
 			scraper, err := c.getDonationAlertsSubscraper(connection)

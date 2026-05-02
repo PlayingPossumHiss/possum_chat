@@ -15,6 +15,10 @@ type Service struct {
 	twitchClient TwitchIrcClient
 	channelName  string
 
+	state       entity.ScraperState
+	stateMx     *sync.Mutex
+	watchCancel context.CancelFunc
+
 	messages  []entity.Message
 	messageMx *sync.Mutex
 }
@@ -28,16 +32,42 @@ func New(
 		twitchClient: twitchClient,
 		channelName:  channelName,
 		messageMx:    &sync.Mutex{},
+		stateMx:      &sync.Mutex{},
+		state:        entity.ScraperStateStopped,
 	}
 
-	go service.watchChat(ctx)
-
 	return service
+}
+
+func (s *Service) Run(ctx context.Context) {
+	logger.Info("start twitch scraper")
+	s.stateMx.Lock()
+	newCtx, cancel := context.WithCancel(ctx)
+	s.watchCancel = cancel
+	go s.watchChat(newCtx)
+}
+
+func (s *Service) Stop() {
+	logger.Info("stop twitch scraper")
+	s.stateMx.Lock()
+	defer s.stateMx.Unlock()
+
+	s.watchCancel()
+	err := s.twitchClient.Close()
+	if err != nil {
+		logger.Error(err)
+	}
+	s.state = entity.ScraperStateStopped
+}
+
+func (s *Service) Status() entity.ScraperState {
+	return s.state
 }
 
 func (s *Service) watchChat(
 	ctx context.Context,
 ) {
+	firstRun := true
 	for {
 		select {
 		case <-ctx.Done():
@@ -45,6 +75,21 @@ func (s *Service) watchChat(
 
 			return
 		default:
+			if !firstRun {
+				s.stateMx.Lock()
+			}
+			firstRun = false
+
+			go func() {
+				// TODO: найти (написать) библиотеку, что не копипаста с js
+				// Тут из-за архитектуры и с реконектами проблема
+				// Пока костыль, что за секунду-то поднимается клиент
+
+				time.Sleep(time.Second)
+				s.state = entity.ScraperStateActive
+				s.stateMx.Unlock()
+			}()
+
 			err := s.twitchClient.Listen(s.onGetMessage, s.channelName)
 			if err != nil {
 				err = fmt.Errorf("error on listen twitch chat: %w", err)

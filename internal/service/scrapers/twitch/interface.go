@@ -7,4 +7,5 @@ type TwitchIrcClient interface {
 		callback func(entity.Message),
 		channelName string,
 	) error
+	Close() error
 }

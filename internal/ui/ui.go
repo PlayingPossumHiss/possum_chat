@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"fyne.io/fyne/v2"
@@ -48,27 +49,26 @@ func (ui *UI) newMainWindow() {
 	})
 
 	vkLabelContent := binding.NewString()
-	vkLabelContent.Set("VK Play Live (stopped)")
+	vkLabelContent.Set(getLabelText(entity.SourceVkPlayLive, false))
 	vkLabel := widget.NewLabelWithData(vkLabelContent)
-	vkButton := widget.NewButton("Turn", func() {
-		scraper, ok := ui.scrapers[entity.SourceVkPlayLive]
-		if !ok {
-			logger.Error("can't find VK Play Live scraper")
-			return
-		}
-		if scraper.Status() == entity.ScraperStateStopped {
-			scraper.Run(context.Background())
-			vkLabelContent.Set("VK Play Live (active)")
-		} else {
-			scraper.Stop()
-			vkLabelContent.Set("VK Play Live (stopped)")
-		}
-	})
+	vkButton := widget.NewButton(
+		"Turn",
+		ui.turnButtonHandler(
+			entity.SourceVkPlayLive,
+			vkLabelContent,
+		),
+	)
 
-	twitchLabel := widget.NewLabel("Twitch")
-	twitchButton := widget.NewButton("Run", func() {
-		log.Println("tapped")
-	})
+	twitchContent := binding.NewString()
+	twitchContent.Set(getLabelText(entity.SourceTwitch, false))
+	twitchLabel := widget.NewLabelWithData(twitchContent)
+	twitchButton := widget.NewButton(
+		"Turn",
+		ui.turnButtonHandler(
+			entity.SourceTwitch,
+			twitchContent,
+		),
+	)
 
 	donationAlertsLabel := widget.NewLabel("Donation Alerts")
 	donationAlertsButton := widget.NewButton("Run", func() {
@@ -85,4 +85,55 @@ func (ui *UI) newMainWindow() {
 	mainWindow.SetContent(grid)
 
 	ui.mainWindow = mainWindow
+}
+
+func (ui *UI) turnButtonHandler(
+	source entity.Source,
+	label binding.String,
+) func() {
+	return func() {
+		scraper, ok := ui.scrapers[source]
+		if !ok {
+			logger.Error("can't scraper")
+			return
+		}
+		if scraper.Status() == entity.ScraperStateStopped {
+			scraper.Run(context.Background())
+			label.Set(getLabelText(source, true))
+		} else {
+			scraper.Stop()
+			label.Set(getLabelText(source, false))
+		}
+	}
+}
+
+func getLabelText(
+	source entity.Source,
+	isActive bool,
+) string {
+	var (
+		serviceName string
+		statusName  string
+	)
+
+	switch source {
+	case entity.SourceDonationAlerts:
+		serviceName = "Donation Alerts"
+	case entity.SourceTwitch:
+		serviceName = "Twitch"
+	case entity.SourceVkPlayLive:
+		serviceName = "VK Play Live"
+	case entity.SourceYoutube:
+		serviceName = "Youtube"
+	default:
+		serviceName = "Unknown"
+	}
+
+	if isActive {
+		statusName = "active"
+	} else {
+		statusName = "stopped"
+	}
+
+	return fmt.Sprintf("%s (%s)", serviceName, statusName)
 }
