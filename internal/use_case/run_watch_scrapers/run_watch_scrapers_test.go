@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue"
 	m_message_queue "github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue/mocks"
 	youtube_scraper "github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/youtube"
@@ -24,15 +25,21 @@ func TestUseCase_Run(t *testing.T) {
 		func(t *testing.T) {
 			t.Parallel()
 
-			mc := minimock.NewController(t)
-
-			configStorage := m_message_queue.NewConfigStorageMock(mc)
+			configStorage := m_message_queue.NewConfigStorageMock(t)
 			configStorage.ConfigMock.Expect().Return(entity.Config{
+				Logging: entity.ConfigLogging{
+					LogLevel: entity.ConfigLogLevelError,
+					LogPath:  "",
+				},
 				View: entity.ConfigView{
 					TimeToHideMessage:   time.Hour,
 					TimeToDeleteMessage: time.Hour,
 				},
 			})
+			logger.Init(configStorage)
+
+			mc := minimock.NewController(t)
+
 			clock := m_clock.NewClockMock(mc)
 			clock.NowMock.Expect().Return(time.Date(2026, 03, 28, 15, 33, 0, 0, time.UTC))
 			queueService := message_queue.New(
@@ -43,7 +50,15 @@ func TestUseCase_Run(t *testing.T) {
 			messageSent := false
 			scrapers := []run_watch_scrapers.Scraper{}
 			youtubeClient := m_youtube.NewYoutubeClientMock(mc)
-			youtubeClient.GetLastTranslationIDMock.Expect(context.Background(), "my_channel_name").Return("qqqwwwwee", nil)
+			youtubeClient.GetLastTranslationIDMock.Set(
+				func(ctx context.Context, userName string) (s1 string, err error) {
+					if userName == "my_channel_name" {
+						return "qqqwwwwee", nil
+					}
+
+					return "", nil
+				},
+			)
 			youtubeClient.InitMock.Expect("qqqwwwwee").Return(nil)
 			youtubeClient.GetMessagesMock.Set(func() (ma1 []entity.Message, err error) {
 				if messageSent {
@@ -66,11 +81,13 @@ func TestUseCase_Run(t *testing.T) {
 				}, nil
 			})
 
-			scrapers = append(scrapers, youtube_scraper.New(
+			youtubeScraper := youtube_scraper.New(
 				context.Background(),
 				"my_channel_name",
 				youtubeClient,
-			))
+			)
+			youtubeScraper.Run(context.Background())
+			scrapers = append(scrapers, youtubeScraper)
 			uc := run_watch_scrapers.New(scrapers, queueService)
 
 			time.Sleep(10 * time.Millisecond)

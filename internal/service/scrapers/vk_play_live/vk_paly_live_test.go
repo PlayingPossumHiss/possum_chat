@@ -35,8 +35,14 @@ func TestService_GetMessages(t *testing.T) {
 			wsMock := mocks.NewVkPlayLiveWsMock(t)
 
 			apiMock.GetUserIDMock.Expect(context.Background(), "playingpossum").Return(100200, nil)
-			apiMock.GetWsTokenMock.Expect(context.Background()).Return("some token", nil)
-			wsMock.InitMock.Expect(context.Background(), "some token", "100200").Return(nil)
+			apiMock.GetWsTokenMock.Return("some token", nil)
+			wsMock.InitMock.Set(func(ctx context.Context, token, userID string) (err error) {
+				if token == "some token" && userID == "100200" {
+					return nil
+				}
+				t.Error("error on InitMock")
+				return nil
+			})
 			var callIterator int
 			wsMock.ReadMessageMock.Set(func() (m1 *entity.Message, err error) {
 				callIterator++
@@ -82,6 +88,7 @@ func TestService_GetMessages(t *testing.T) {
 				apiMock,
 				wsMock,
 			)
+			scraper.Run(context.Background())
 
 			assert.NoError(t, err, "ошибка создания скрейпера")
 			time.Sleep(time.Millisecond * 220)
@@ -128,8 +135,16 @@ func TestService_GetMessages(t *testing.T) {
 			wsMock := mocks.NewVkPlayLiveWsMock(t)
 
 			apiMock.GetUserIDMock.Times(1).Expect(context.Background(), "playingpossum").Return(100200, nil)
-			apiMock.GetWsTokenMock.Times(2).Expect(context.Background()).Return("some token", nil)
-			wsMock.InitMock.Times(2).Expect(context.Background(), "some token", "100200").Return(nil)
+			apiMock.GetWsTokenMock.Times(2).Return("some token", nil)
+			wsMock.InitMock.Times(2).Set(
+				func(ctx context.Context, token, userID string) (err error) {
+					if token == "some token" && userID == "100200" {
+						return nil
+					}
+					t.Error("fail on InitMock")
+					return nil
+				},
+			)
 			wsMock.CloseMock.Expect().Return()
 			var callIterator int
 			wsMock.ReadMessageMock.Set(func() (m1 *entity.Message, err error) {
@@ -176,6 +191,7 @@ func TestService_GetMessages(t *testing.T) {
 				apiMock,
 				wsMock,
 			)
+			scraper.Run(context.Background())
 
 			assert.NoError(t, err, "ошибка создания скрейпера")
 			time.Sleep(time.Millisecond * 1230)

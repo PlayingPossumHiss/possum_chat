@@ -30,17 +30,17 @@ type Scraper interface {
 func New(
 	scrapers map[entity.Source]Scraper,
 ) error {
-	ui := &UI{
+	newUI := &UI{
 		app:      app.New(),
 		scrapers: scrapers,
 	}
 
-	err := ui.newMainWindow()
+	err := newUI.newMainWindow()
 	if err != nil {
 		return err
 	}
 
-	ui.mainWindow.ShowAndRun()
+	newUI.mainWindow.ShowAndRun()
 
 	return nil
 }
@@ -55,10 +55,20 @@ func (ui *UI) newMainWindow() error {
 	mainWindowIcon := fyne.NewStaticResource("main_window_icon", mainWindowIconData)
 	mainWindow.SetIcon(mainWindowIcon)
 
-	switchesContent := make([]fyne.CanvasObject, 0, 2*len(ui.scrapers))
+	const itemsInLine = 2
+
+	switchesContent := make([]fyne.CanvasObject, 0, itemsInLine*(1+len(ui.scrapers)))
+	switchesContent = append(
+		switchesContent,
+		widget.NewLabel("Sources"),
+		widget.NewLabel("Switch"),
+	)
 	for source := range ui.scrapers {
 		scraperContent := binding.NewString()
-		scraperContent.Set(getLabelText(source, false))
+		err = scraperContent.Set(getLabelText(source, false))
+		if err != nil {
+			return err
+		}
 		scraperLabel := widget.NewLabelWithData(scraperContent)
 		scraperButton := widget.NewButton(
 			"Turn",
@@ -71,7 +81,7 @@ func (ui *UI) newMainWindow() error {
 	}
 
 	grid := container.New(
-		layout.NewGridLayout(2),
+		layout.NewGridLayout(itemsInLine),
 		switchesContent...,
 	)
 	mainWindow.SetContent(grid)
@@ -89,14 +99,25 @@ func (ui *UI) turnButtonHandler(
 		scraper, ok := ui.scrapers[source]
 		if !ok {
 			logger.Error("can't scraper")
+
 			return
 		}
 		if scraper.Status() == entity.ScraperStateStopped {
 			scraper.Run(context.Background())
-			label.Set(getLabelText(source, true))
+			err := label.Set(getLabelText(source, true))
+			if err != nil {
+				logger.Error(fmt.Errorf("failed to change label: %w", err))
+
+				return
+			}
 		} else {
 			scraper.Stop()
-			label.Set(getLabelText(source, false))
+			err := label.Set(getLabelText(source, false))
+			if err != nil {
+				logger.Error(fmt.Errorf("failed to change label: %w", err))
+
+				return
+			}
 		}
 	}
 }
