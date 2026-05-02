@@ -20,6 +20,7 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/vk_play_live"
 	youtube_scraper "github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/youtube"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/settings"
+	"github.com/PlayingPossumHiss/possum_chat/internal/ui"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/get_style"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/list_messages"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/run_watch_scrapers"
@@ -35,6 +36,7 @@ type Container struct {
 	configService       *settings.Service
 	messageQueueService *message_queue.Service
 	scrapers            []run_watch_scrapers.Scraper
+	uiScrapers          map[entity.Source]ui.Scraper
 
 	// юзкейсы
 	watchSubscribersRunner *run_watch_scrapers.UseCase
@@ -58,7 +60,8 @@ const (
 
 func New(ctx context.Context) (*Container, error) {
 	container := &Container{
-		ctx: ctx,
+		uiScrapers: map[entity.Source]ui.Scraper{},
+		ctx:        ctx,
 	}
 
 	config, err := container.getConfig()
@@ -102,7 +105,16 @@ func (c *Container) Run() error {
 
 	c.scheduler.Start()
 
-	return api.Run()
+	api.Run()
+
+	err = ui.New(
+		c.uiScrapers,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *Container) addJobToScheduler(
@@ -265,23 +277,29 @@ func (c *Container) getScrapers() ([]run_watch_scrapers.Scraper, error) {
 		switch connection.Source {
 		case entity.SourceYoutube:
 			logger.Info("init youtube scraper")
-			result = append(result, c.getYoutubeScraper(connection))
+			scraper := c.getYoutubeScraper(connection)
+			c.uiScrapers[connection.Source] = scraper
+			result = append(result, scraper)
 		case entity.SourceVkPlayLive:
 			logger.Info("init vk play live scraper")
 			scraper, err := c.getVkPlayLiveScraper(connection)
 			if err != nil {
 				return nil, err
 			}
+			c.uiScrapers[connection.Source] = scraper
 			result = append(result, scraper)
 		case entity.SourceTwitch:
 			logger.Info("init twitch scraper")
-			result = append(result, c.getTwitchScraper(connection))
+			scraper := c.getTwitchScraper(connection)
+			c.uiScrapers[connection.Source] = scraper
+			result = append(result, scraper)
 		case entity.SourceDonationAlerts:
 			logger.Info("init donation alerts scraper")
 			scraper, err := c.getDonationAlertsSubscraper(connection)
 			if err != nil {
 				return nil, err
 			}
+			c.uiScrapers[connection.Source] = scraper
 			result = append(result, scraper)
 		}
 	}

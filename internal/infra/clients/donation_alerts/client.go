@@ -27,6 +27,10 @@ const (
 	daPort = 443
 )
 
+func (c *Client) Close() {
+	c.conn.Close()
+}
+
 func (c *Client) Init(
 	callback func(entity.Message),
 	token string,

@@ -20,6 +20,10 @@ func New() *Client {
 	}
 }
 
+func (c *Client) Close() error {
+	return c.wsConnect.Disconnect()
+}
+
 func (c *Client) Listen(
 	callback func(entity.Message),
 	channelName string,
