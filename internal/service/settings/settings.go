@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
-	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
 
 type Service struct {
@@ -29,15 +28,24 @@ func (s *Service) Config() entity.Config {
 }
 
 func getSettingsFromFile() (entity.Config, error) {
+	_, err := os.Stat(configPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = saveSettingToFile(defaultConfig)
+			if err != nil {
+				return entity.Config{}, err
+			}
+		} else {
+			return entity.Config{}, err
+		}
+	}
+
 	jsonFile, err := os.Open(configPath)
 	if err != nil {
 		return entity.Config{}, err
 	}
 	defer func() {
-		dErr := jsonFile.Close()
-		if dErr != nil {
-			logger.Error(dErr)
-		}
+		jsonFile.Close()
 	}()
 
 	bytes, err := io.ReadAll(jsonFile)
@@ -58,4 +66,46 @@ func getSettingsFromFile() (entity.Config, error) {
 	}
 
 	return config, nil
+}
+
+func saveSettingToFile(src entity.Config) error {
+	parsedConfig := configToJson(src)
+	configBytes, err := json.MarshalIndent(parsedConfig, "", "\t")
+	if err != nil {
+		return err
+	}
+
+	err = createConfigIfNotExist()
+	if err != nil {
+		return err
+	}
+
+	file, err := os.OpenFile(configPath, os.O_WRONLY|os.O_TRUNC, 0o644) //nolint
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = file.Write(configBytes)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func createConfigIfNotExist() error {
+	_, err := os.Stat(configPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			file, err := os.Create(configPath)
+			if err != nil {
+				return err
+			}
+
+			defer file.Close()
+		}
+	}
+
+	return nil
 }

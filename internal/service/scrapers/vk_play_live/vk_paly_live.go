@@ -14,7 +14,8 @@ import (
 )
 
 type Service struct {
-	streamKey     string
+	userName      string
+	userID        string
 	vkPlayLiveApi VkPlayLiveApi
 	vkPlayLiveWs  VkPlayLiveWs
 
@@ -32,12 +33,8 @@ func New(
 	vkPlayLiveApi VkPlayLiveApi,
 	vkPlayLiveWs VkPlayLiveWs,
 ) (*Service, error) {
-	userID, err := vkPlayLiveApi.GetUserID(ctx, streamKey)
-	if err != nil {
-		return nil, err
-	}
 	scraper := &Service{
-		streamKey:     strconv.Itoa(userID),
+		userName:      streamKey,
 		vkPlayLiveApi: vkPlayLiveApi,
 		vkPlayLiveWs:  vkPlayLiveWs,
 		messageMx:     &sync.Mutex{},
@@ -80,6 +77,7 @@ func (s *Service) GetMessages() []entity.Message {
 
 func (s *Service) watchChat(ctx context.Context) {
 	firstRun := true
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -87,7 +85,15 @@ func (s *Service) watchChat(ctx context.Context) {
 
 			return
 		default:
-			err := s.scrap(ctx, firstRun)
+			userID, err := s.vkPlayLiveApi.GetUserID(ctx, s.userName)
+			if err != nil {
+				logger.Error(err)
+
+				continue
+			}
+			s.userID = strconv.Itoa(userID)
+
+			err = s.scrap(ctx, firstRun)
 			if err != nil {
 				logger.Error(err)
 			}
@@ -112,7 +118,7 @@ func (s *Service) scrap(
 		return err
 	}
 
-	err = s.vkPlayLiveWs.Init(ctx, token, s.streamKey)
+	err = s.vkPlayLiveWs.Init(ctx, token, s.userID)
 	if err != nil {
 		return err
 	}
