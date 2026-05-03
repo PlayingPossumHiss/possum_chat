@@ -79,12 +79,7 @@ func (c *Client) GetMessages() ([]entity.Message, error) {
 			return nil, err
 		}
 		comments = append(comments, entity.Message{
-			Content: []entity.MessageContentItem{
-				{
-					Type:  entity.MessageContentItemTypeText,
-					Value: msg.Message,
-				},
-			},
+			Content:   parseMessage(msg.Message),
 			Source:    entity.SourceYoutube,
 			User:      msg.AuthorName,
 			CreatedAt: msg.Timestamp.UTC(),
@@ -93,6 +88,39 @@ func (c *Client) GetMessages() ([]entity.Message, error) {
 	}
 
 	return comments, nil
+}
+
+func parseMessage(src string) []entity.MessageContentItem {
+	emojiPrefix := "https://yt3.ggpht.com"
+	srcElements := strings.Split(src, " ")
+	result := []entity.MessageContentItem{}
+
+	var buffer []string
+	for _, srcElement := range srcElements {
+		if strings.HasPrefix(srcElement, emojiPrefix) {
+			if len(buffer) != 0 {
+				result = append(result, entity.MessageContentItem{
+					Type:  entity.MessageContentItemTypeText,
+					Value: strings.Join(buffer, " "),
+				})
+				buffer = nil
+			}
+			result = append(result, entity.MessageContentItem{
+				Type:  entity.MessageContentItemTypeImage,
+				Value: srcElement,
+			})
+		} else {
+			buffer = append(buffer, srcElement)
+		}
+	}
+	if len(buffer) != 0 {
+		result = append(result, entity.MessageContentItem{
+			Type:  entity.MessageContentItemTypeText,
+			Value: strings.Join(buffer, " "),
+		})
+	}
+
+	return result
 }
 
 func (c *Client) GetLastTranslationID(ctx context.Context, userName string) (string, error) {
