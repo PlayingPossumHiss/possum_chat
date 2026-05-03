@@ -34,7 +34,14 @@ func TestService_GetMessages(t *testing.T) {
 			apiMock := mocks.NewVkPlayLiveApiMock(t)
 			wsMock := mocks.NewVkPlayLiveWsMock(t)
 
-			apiMock.GetUserIDMock.Expect(context.Background(), "playingpossum").Return(100200, nil)
+			apiMock.GetUserIDMock.Times(1).Set(func(ctx context.Context, userName string) (i1 int, err error) {
+				if userName == "playingpossum" {
+					return 100200, nil
+				}
+
+				t.Error("error on GetUserIDMock")
+				return 0, nil
+			})
 			apiMock.GetWsTokenMock.Return("some token", nil)
 			wsMock.InitMock.Set(func(ctx context.Context, token, userID string) (err error) {
 				if token == "some token" && userID == "100200" {
@@ -134,7 +141,14 @@ func TestService_GetMessages(t *testing.T) {
 			apiMock := mocks.NewVkPlayLiveApiMock(t)
 			wsMock := mocks.NewVkPlayLiveWsMock(t)
 
-			apiMock.GetUserIDMock.Times(1).Expect(context.Background(), "playingpossum").Return(100200, nil)
+			apiMock.GetUserIDMock.Times(2).Set(func(ctx context.Context, userName string) (i1 int, err error) {
+				if userName == "playingpossum" {
+					return 100200, nil
+				}
+
+				t.Error("error on GetUserIDMock")
+				return 0, nil
+			})
 			apiMock.GetWsTokenMock.Times(2).Return("some token", nil)
 			wsMock.InitMock.Times(2).Set(
 				func(ctx context.Context, token, userID string) (err error) {

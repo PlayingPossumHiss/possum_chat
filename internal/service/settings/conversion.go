@@ -31,7 +31,7 @@ func configFromJson(src config) (entity.Config, error) {
 	}, nil
 }
 
-func loggingFromJson(src ConfigLogging) (entity.ConfigLogging, error) {
+func loggingFromJson(src configLogging) (entity.ConfigLogging, error) {
 	logLevel, err := logLevelFromJson(src.LogLevel)
 	if err != nil {
 		err = fmt.Errorf("failed parse log level for config: %w", err)
@@ -45,15 +45,15 @@ func loggingFromJson(src ConfigLogging) (entity.ConfigLogging, error) {
 	}, nil
 }
 
-func logLevelFromJson(src ConfigLogLevel) (entity.ConfigLogLevel, error) {
+func logLevelFromJson(src configLogLevel) (entity.ConfigLogLevel, error) {
 	switch src {
-	case ConfigLogLevelDebug:
+	case configLogLevelDebug:
 		return entity.ConfigLogLevelDebug, nil
-	case ConfigLogLevelError:
+	case configLogLevelError:
 		return entity.ConfigLogLevelError, nil
-	case ConfigLogLevelInfo:
+	case configLogLevelInfo:
 		return entity.ConfigLogLevelInfo, nil
-	case ConfigLogLevelWarn:
+	case configLogLevelWarn:
 		return entity.ConfigLogLevelWarn, nil
 	}
 
@@ -111,4 +111,66 @@ func viewFromJson(src configView) (entity.ConfigView, error) {
 		TimeToHideMessage:   timeToHideMessage,
 		TimeToDeleteMessage: timeToDeleteMessage,
 	}, nil
+}
+
+func configToJson(src entity.Config) config {
+	return config{
+		Connections: connctionsToJson(src.Connections),
+		Logging: configLogging{
+			LogPath:  src.Logging.LogPath,
+			LogLevel: logLevelToJson(src.Logging.LogLevel),
+		},
+		View: configView{
+			CssStyle:            src.View.CssStyle,
+			TimeToHideMessage:   src.View.TimeToHideMessage.String(),
+			TimeToDeleteMessage: src.View.TimeToDeleteMessage.String(),
+		},
+		Port: src.Port,
+	}
+}
+
+func connctionsToJson(src []entity.ConfigConnection) []configConnection {
+	result := make([]configConnection, 0, len(src))
+	for _, connection := range src {
+		result = append(result, connctionToJson(connection))
+	}
+
+	return result
+}
+
+func connctionToJson(src entity.ConfigConnection) configConnection {
+	return configConnection{
+		Source: sourceToJson(src.Source),
+		Key:    src.Key,
+	}
+}
+
+func sourceToJson(src entity.Source) source {
+	switch src {
+	case entity.SourceTwitch:
+		return sourceTwitch
+	case entity.SourceYoutube:
+		return sourceYoutube
+	case entity.SourceVkPlayLive:
+		return sourceVkPlayLive
+	case entity.SourceDonationAlerts:
+		return sourceDonationAlerts
+	}
+
+	return ""
+}
+
+func logLevelToJson(src entity.ConfigLogLevel) configLogLevel {
+	switch src {
+	case entity.ConfigLogLevelDebug:
+		return configLogLevelDebug
+	case entity.ConfigLogLevelError:
+		return configLogLevelError
+	case entity.ConfigLogLevelInfo:
+		return configLogLevelInfo
+	case entity.ConfigLogLevelWarn:
+		return configLogLevelWarn
+	}
+
+	return configLogLevelInfo
 }

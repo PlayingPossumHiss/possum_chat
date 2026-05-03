@@ -1,10 +1,16 @@
 package settings
 
+import (
+	"time"
+
+	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+)
+
 const configPath = "./config.json"
 
 type config struct {
 	Connections []configConnection `json:"connections"`
-	Logging     ConfigLogging      `json:"loging"`
+	Logging     configLogging      `json:"loging"`
 	View        configView         `json:"view"`
 	Port        int                `json:"port"`
 }
@@ -29,16 +35,31 @@ const (
 	sourceDonationAlerts source = "donation_alerts"
 )
 
-type ConfigLogging struct {
+type configLogging struct {
 	LogPath  string         `json:"log_path"`
-	LogLevel ConfigLogLevel `json:"level"`
+	LogLevel configLogLevel `json:"level"`
 }
 
-type ConfigLogLevel string
+type configLogLevel string
 
 const (
-	ConfigLogLevelDebug ConfigLogLevel = "DEBUG"
-	ConfigLogLevelInfo  ConfigLogLevel = "INFO"
-	ConfigLogLevelWarn  ConfigLogLevel = "WARN"
-	ConfigLogLevelError ConfigLogLevel = "ERROR"
+	configLogLevelDebug configLogLevel = "DEBUG"
+	configLogLevelInfo  configLogLevel = "INFO"
+	configLogLevelWarn  configLogLevel = "WARN"
+	configLogLevelError configLogLevel = "ERROR"
 )
+
+var defaultConfig = entity.Config{
+	Connections: []entity.ConfigConnection{
+		{Source: entity.SourceTwitch},
+		{Source: entity.SourceVkPlayLive},
+		{Source: entity.SourceYoutube},
+		{Source: entity.SourceDonationAlerts},
+	},
+	Logging: entity.ConfigLogging{LogLevel: entity.ConfigLogLevelInfo},
+	View: entity.ConfigView{
+		TimeToHideMessage:   3 * time.Minute, //nolint
+		TimeToDeleteMessage: time.Hour,
+	},
+	Port: 8081, //nolint
+}
