@@ -28,7 +28,6 @@ type Service struct {
 }
 
 func New(
-	ctx context.Context,
 	streamKey string,
 	vkPlayLiveApi VkPlayLiveApi,
 	vkPlayLiveWs VkPlayLiveWs,

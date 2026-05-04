@@ -30,13 +30,10 @@ import (
 )
 
 type Container struct {
-	ctx context.Context //nolint
-
 	// сервисы
 	configService       *settings.Service
 	messageQueueService *message_queue.Service
-	scrapers            []run_watch_scrapers.Scraper
-	uiScrapers          map[entity.Source]ui.Scraper
+	scrapers            map[entity.Source]Scraper
 
 	// юзкейсы
 	watchSubscribersRunner *run_watch_scrapers.UseCase
@@ -59,10 +56,7 @@ const (
 )
 
 func New(ctx context.Context) (*Container, error) {
-	container := &Container{
-		uiScrapers: map[entity.Source]ui.Scraper{},
-		ctx:        ctx,
-	}
+	container := &Container{}
 
 	config, err := container.getConfig()
 	if err != nil {
@@ -103,12 +97,21 @@ func (c *Container) Run() error {
 		return err
 	}
 
+	scrapers, err := c.getScrapers()
+	if err != nil {
+		return err
+	}
+
 	c.scheduler.Start()
 
 	api.Run()
 
+	uiScrapers := make(map[entity.Source]ui.Scraper, len(scrapers))
+	for source, scraper := range scrapers {
+		uiScrapers[source] = scraper
+	}
 	err = ui.New(
-		c.uiScrapers,
+		uiScrapers,
 	)
 	if err != nil {
 		return err
@@ -127,7 +130,6 @@ func (c *Container) addJobToScheduler(
 	_, err := c.scheduler.NewJob(
 		gocron.DurationJob(interval),
 		gocron.NewTask(job),
-		gocron.WithContext(c.ctx),
 		gocron.WithName(jobName),
 		gocron.WithEventListeners(
 			gocron.AfterJobRunsWithError(func(jobID uuid.UUID, jobName string, jobErr error) {
@@ -212,8 +214,12 @@ func (c *Container) getWatchSubscribersRunner() (*run_watch_scrapers.UseCase, er
 		return nil, err
 	}
 
+	scrapersForRun := make([]run_watch_scrapers.Scraper, 0, len(scrapers))
+	for _, scraper := range scrapers {
+		scrapersForRun = append(scrapersForRun, scraper)
+	}
 	c.watchSubscribersRunner = run_watch_scrapers.New(
-		scrapers,
+		scrapersForRun,
 		messageQueueService,
 	)
 
@@ -262,45 +268,43 @@ func (c *Container) getConfig() (*settings.Service, error) {
 	return c.configService, nil
 }
 
-func (c *Container) getScrapers() ([]run_watch_scrapers.Scraper, error) {
+func (c *Container) getScrapers() (map[entity.Source]Scraper, error) {
 	if c.scrapers != nil {
 		return c.scrapers, nil
 	}
+
+	c.scrapers = map[entity.Source]Scraper{}
 
 	configService, err := c.getConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	result := []run_watch_scrapers.Scraper{}
+	result := map[entity.Source]Scraper{}
 	for _, connection := range configService.Config().Connections {
 		switch connection.Source {
 		case entity.SourceYoutube:
 			logger.Info("init youtube scraper")
 			scraper := c.getYoutubeScraper(connection)
-			c.uiScrapers[connection.Source] = scraper
-			result = append(result, scraper)
+			result[connection.Source] = scraper
 		case entity.SourceVkPlayLive:
 			logger.Info("init vk play live scraper")
 			scraper, err := c.getVkPlayLiveScraper(connection)
 			if err != nil {
 				return nil, err
 			}
-			c.uiScrapers[connection.Source] = scraper
-			result = append(result, scraper)
+			result[connection.Source] = scraper
 		case entity.SourceTwitch:
 			logger.Info("init twitch scraper")
 			scraper := c.getTwitchScraper(connection)
-			c.uiScrapers[connection.Source] = scraper
-			result = append(result, scraper)
+			result[connection.Source] = scraper
 		case entity.SourceDonationAlerts:
 			logger.Info("init donation alerts scraper")
 			scraper, err := c.getDonationAlertsSubscraper(connection)
 			if err != nil {
 				return nil, err
 			}
-			c.uiScrapers[connection.Source] = scraper
-			result = append(result, scraper)
+			result[connection.Source] = scraper
 		}
 	}
 
@@ -313,7 +317,6 @@ func (c *Container) getYoutubeScraper(
 	configConnection entity.ConfigConnection,
 ) *youtube_scraper.Service {
 	return youtube_scraper.New(
-		c.ctx,
 		configConnection.Key,
 		c.getYoutubeClient(),
 	)
@@ -323,7 +326,6 @@ func (c *Container) getVkPlayLiveScraper(
 	configConnection entity.ConfigConnection,
 ) (*vk_play_live.Service, error) {
 	return vk_play_live.New(
-		c.ctx,
 		configConnection.Key,
 		c.getVkPalyLiveApi(),
 		c.getVkPalyLiveWs(),
@@ -334,7 +336,6 @@ func (c *Container) getDonationAlertsSubscraper(
 	configConnection entity.ConfigConnection,
 ) (*donation_alerts.Service, error) {
 	return donation_alerts.New(
-		c.ctx,
 		c.getDonationAlertsClient(),
 		configConnection.Key,
 	)
@@ -344,7 +345,6 @@ func (c *Container) getTwitchScraper(
 	configConnection entity.ConfigConnection,
 ) *twitch.Service {
 	return twitch.New(
-		c.ctx,
 		c.getTwitchClient(),
 		configConnection.Key,
 	)

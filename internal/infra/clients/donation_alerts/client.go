@@ -5,15 +5,16 @@ import (
 	"strconv"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
-	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
+	app_errors "github.com/PlayingPossumHiss/possum_chat/internal/errors"
 	utils_time "github.com/PlayingPossumHiss/possum_chat/internal/utils/time"
 	socket_io "github.com/graarh/golang-socketio"
 	"github.com/graarh/golang-socketio/transport"
 )
 
 type Client struct {
-	conn  *socket_io.Client
-	clock utils_time.Clock
+	conn    *socket_io.Client
+	clock   utils_time.Clock
+	errChan chan error
 }
 
 func New(
@@ -31,6 +32,10 @@ func (c *Client) Close() {
 	c.conn.Close()
 }
 
+func (c *Client) Done() error {
+	return <-c.errChan
+}
+
 func (c *Client) Init(
 	callback func(entity.Message),
 	token string,
@@ -43,6 +48,7 @@ func (c *Client) Init(
 		return err
 	}
 	c.conn = conn
+	c.errChan = make(chan error)
 
 	addUserMessage := &addUserRequest{
 		Token: token,
@@ -80,7 +86,11 @@ func (c *Client) Init(
 	}
 
 	err = c.conn.On(socket_io.OnDisconnection, func(h *socket_io.Channel) {
-		logger.Error("donation alert connection is closed")
+		c.errChan <- fmt.Errorf(
+			"donation alerts connection is closed: %w",
+			app_errors.ErrScraperStoped,
+		)
+		close(c.errChan)
 	})
 	if err != nil {
 		return err

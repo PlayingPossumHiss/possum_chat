@@ -4,6 +4,7 @@ import (
 	"context"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
@@ -21,7 +22,6 @@ type Service struct {
 }
 
 func New(
-	ctx context.Context,
 	daClient DonationAlertsClient,
 	token string,
 ) (*Service, error) {
@@ -46,6 +46,23 @@ func (s *Service) Run(ctx context.Context) {
 		logger.Error(err)
 	}
 	s.state = entity.ScraperStateActive
+	go s.WatchLoop()
+}
+
+func (s *Service) WatchLoop() {
+	for {
+		err := s.daClient.Done()
+		logger.Error(err)
+		if s.state == entity.ScraperStateStopped {
+			return
+		}
+
+		time.Sleep(time.Second)
+		err = s.daClient.Init(s.onGetMessage, s.token)
+		if err != nil {
+			logger.Error(err)
+		}
+	}
 }
 
 func (s *Service) Stop() {
