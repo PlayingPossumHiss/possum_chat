@@ -8,4 +8,5 @@ type DonationAlertsClient interface {
 		token string,
 	) error
 	Close()
+	Done() error
 }

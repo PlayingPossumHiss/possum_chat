@@ -24,7 +24,6 @@ type Service struct {
 }
 
 func New(
-	ctx context.Context,
 	twitchClient TwitchIrcClient,
 	channelName string,
 ) *Service {

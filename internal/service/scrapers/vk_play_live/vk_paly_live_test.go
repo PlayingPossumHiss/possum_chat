@@ -90,7 +90,6 @@ func TestService_GetMessages(t *testing.T) {
 			wsMock.WritePongMock.Times(2).Expect().Return(nil)
 
 			scraper, err := vk_play_live.New(
-				context.Background(),
 				"playingpossum",
 				apiMock,
 				wsMock,
@@ -200,7 +199,6 @@ func TestService_GetMessages(t *testing.T) {
 			wsMock.WritePongMock.Times(1).Expect().Return(nil)
 
 			scraper, err := vk_play_live.New(
-				context.Background(),
 				"playingpossum",
 				apiMock,
 				wsMock,

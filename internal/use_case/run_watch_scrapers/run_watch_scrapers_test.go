@@ -82,7 +82,6 @@ func TestUseCase_Run(t *testing.T) {
 			})
 
 			youtubeScraper := youtube_scraper.New(
-				context.Background(),
 				"my_channel_name",
 				youtubeClient,
 			)

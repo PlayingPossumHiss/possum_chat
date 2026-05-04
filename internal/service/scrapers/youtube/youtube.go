@@ -23,7 +23,6 @@ type Service struct {
 }
 
 func New(
-	ctx context.Context,
 	userName string,
 	youtubeClient YoutubeClient,
 ) *Service {
