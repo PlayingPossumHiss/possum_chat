@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
 
 type Service struct {
 	settings entity.Config
+	mx       *sync.Mutex
 }
 
 func New() (*Service, error) {
@@ -20,7 +23,26 @@ func New() (*Service, error) {
 
 	return &Service{
 		settings: settings,
+		mx:       &sync.Mutex{},
 	}, nil
+}
+
+func (s *Service) UpdateConfig(opts []entity.ConfigUpdateOption) error {
+	logger.Info("update config")
+	s.mx.Lock()
+	defer s.mx.Unlock()
+	config := s.settings
+	for _, option := range opts {
+		option(&config)
+	}
+
+	err := saveSettingToFile(config)
+	if err != nil {
+		return err
+	}
+	s.settings = config
+
+	return nil
 }
 
 func (s *Service) Config() entity.Config {
@@ -60,12 +82,20 @@ func getSettingsFromFile() (entity.Config, error) {
 		return entity.Config{}, err
 	}
 
-	config, err := configFromJson(settings)
+	config, version, err := configFromJson(settings)
 	if err != nil {
 		return entity.Config{}, err
 	}
+	if version != currentVersion {
+		config = upgradeConfig(config, version)
+	}
 
 	return config, nil
+}
+
+// upgradeConfig пока тут ничего, но потом появится
+func upgradeConfig(src entity.Config, _ string) entity.Config {
+	return src
 }
 
 func saveSettingToFile(src entity.Config) error {

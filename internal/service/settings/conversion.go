@@ -8,19 +8,19 @@ import (
 	app_errors "github.com/PlayingPossumHiss/possum_chat/internal/errors"
 )
 
-func configFromJson(src config) (entity.Config, error) {
+func configFromJson(src config) (entity.Config, string, error) {
 	view, err := viewFromJson(src.View)
 	if err != nil {
 		err = fmt.Errorf("failed parse view for config: %w", err)
 
-		return entity.Config{}, err
+		return entity.Config{}, "", err
 	}
 
 	logging, err := loggingFromJson(src.Logging)
 	if err != nil {
 		err = fmt.Errorf("failed parse logging for config: %w", err)
 
-		return entity.Config{}, err
+		return entity.Config{}, "", err
 	}
 
 	return entity.Config{
@@ -28,7 +28,7 @@ func configFromJson(src config) (entity.Config, error) {
 		Logging:     logging,
 		View:        view,
 		Port:        src.Port,
-	}, nil
+	}, src.Version, nil
 }
 
 func loggingFromJson(src configLogging) (entity.ConfigLogging, error) {
@@ -60,35 +60,13 @@ func logLevelFromJson(src configLogLevel) (entity.ConfigLogLevel, error) {
 	return 0, fmt.Errorf("%w: %s", app_errors.ErrInvalidConfig, src)
 }
 
-func connectionsFromJson(src []configConnection) []entity.ConfigConnection {
-	result := make([]entity.ConfigConnection, 0, len(src))
-	for _, connectionJson := range src {
-		result = append(result, connectionFromJson(connectionJson))
+func connectionsFromJson(src configConnections) entity.ConfigConnections {
+	return entity.ConfigConnections{
+		Youtube:        entity.ConfigYoutube{ChannelName: src.Youtube.ChannelName},
+		Twitch:         entity.ConfigTwitch{ChannelName: src.Twitch.ChannelName},
+		VkPlayLive:     entity.ConfigVkPlayLive{ChannelName: src.VkPlayLive.ChannelName},
+		DonationAlerts: entity.ConfigDonationAlerts{Token: src.DonationAlerts.Token},
 	}
-
-	return result
-}
-
-func connectionFromJson(src configConnection) entity.ConfigConnection {
-	return entity.ConfigConnection{
-		Key:    src.Key,
-		Source: sourceFromJson(src.Source),
-	}
-}
-
-func sourceFromJson(src source) entity.Source {
-	switch src {
-	case sourceTwitch:
-		return entity.SourceTwitch
-	case sourceYoutube:
-		return entity.SourceYoutube
-	case sourceVkPlayLive:
-		return entity.SourceVkPlayLive
-	case sourceDonationAlerts:
-		return entity.SourceDonationAlerts
-	}
-
-	return 0
 }
 
 func viewFromJson(src configView) (entity.ConfigView, error) {
@@ -125,39 +103,18 @@ func configToJson(src entity.Config) config {
 			TimeToHideMessage:   src.View.TimeToHideMessage.String(),
 			TimeToDeleteMessage: src.View.TimeToDeleteMessage.String(),
 		},
-		Port: src.Port,
+		Port:    src.Port,
+		Version: currentVersion,
 	}
 }
 
-func connctionsToJson(src []entity.ConfigConnection) []configConnection {
-	result := make([]configConnection, 0, len(src))
-	for _, connection := range src {
-		result = append(result, connctionToJson(connection))
+func connctionsToJson(src entity.ConfigConnections) configConnections {
+	return configConnections{
+		Youtube:        configYoutube{ChannelName: src.Youtube.ChannelName},
+		Twitch:         configTwitch{ChannelName: src.Twitch.ChannelName},
+		VkPlayLive:     configVkPlayLive{ChannelName: src.VkPlayLive.ChannelName},
+		DonationAlerts: configDonationAlerts{Token: src.DonationAlerts.Token},
 	}
-
-	return result
-}
-
-func connctionToJson(src entity.ConfigConnection) configConnection {
-	return configConnection{
-		Source: sourceToJson(src.Source),
-		Key:    src.Key,
-	}
-}
-
-func sourceToJson(src entity.Source) source {
-	switch src {
-	case entity.SourceTwitch:
-		return sourceTwitch
-	case entity.SourceYoutube:
-		return sourceYoutube
-	case entity.SourceVkPlayLive:
-		return sourceVkPlayLive
-	case entity.SourceDonationAlerts:
-		return sourceDonationAlerts
-	}
-
-	return ""
 }
 
 func logLevelToJson(src entity.ConfigLogLevel) configLogLevel {

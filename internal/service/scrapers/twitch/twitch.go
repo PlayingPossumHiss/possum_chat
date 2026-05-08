@@ -8,12 +8,13 @@ import (
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	app_errors "github.com/PlayingPossumHiss/possum_chat/internal/errors"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
 
 type Service struct {
-	twitchClient TwitchIrcClient
-	channelName  string
+	twitchClient  TwitchIrcClient
+	configStorage ConfigStorage
 
 	state       entity.ScraperState
 	stateMx     *sync.Mutex
@@ -25,17 +26,27 @@ type Service struct {
 
 func New(
 	twitchClient TwitchIrcClient,
-	channelName string,
+	configStorage ConfigStorage,
 ) *Service {
 	service := &Service{
-		twitchClient: twitchClient,
-		channelName:  channelName,
-		messageMx:    &sync.Mutex{},
-		stateMx:      &sync.Mutex{},
-		state:        entity.ScraperStateStopped,
+		twitchClient:  twitchClient,
+		configStorage: configStorage,
+		messageMx:     &sync.Mutex{},
+		stateMx:       &sync.Mutex{},
+		state:         entity.ScraperStateStopped,
 	}
 
 	return service
+}
+
+func (s *Service) GetConnectionConfig() string {
+	return s.configStorage.Config().Connections.Twitch.ChannelName
+}
+
+func (s *Service) ConnectionConfigUpdateOption(newValue string) entity.ConfigUpdateOption {
+	return func(c *entity.Config) {
+		c.Connections.Twitch.ChannelName = newValue
+	}
 }
 
 func (s *Service) Run(ctx context.Context) {
@@ -75,9 +86,18 @@ func (s *Service) watchChat(
 			return
 		default:
 			if !firstRun {
+				time.Sleep(time.Second)
 				s.stateMx.Lock()
 			}
 			firstRun = false
+
+			channelName := s.GetConnectionConfig()
+			if len(channelName) == 0 {
+				err := fmt.Errorf("%w: can't get channel name for twitch", app_errors.ErrInvalidConfig)
+				logger.Error(err)
+
+				continue
+			}
 
 			go func() {
 				// TODO: найти (написать) библиотеку, что не копипаста с js
@@ -89,14 +109,15 @@ func (s *Service) watchChat(
 				s.stateMx.Unlock()
 			}()
 
-			err := s.twitchClient.Listen(s.onGetMessage, s.channelName)
+			err := s.twitchClient.Listen(
+				s.onGetMessage,
+				channelName,
+			)
 			if err != nil {
 				err = fmt.Errorf("error on listen twitch chat: %w", err)
 				logger.Error(err)
 			}
 		}
-
-		time.Sleep(time.Second)
 	}
 }
 

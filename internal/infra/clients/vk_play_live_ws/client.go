@@ -109,6 +109,8 @@ func (c *Client) ReadMessage() (*entity.Message, error) {
 		return nil, app_errors.ErrIsPing
 	}
 
+	logger.Debug(fmt.Sprintf("message from vk paly live: %s", string(rawMsg)))
+
 	return getMessageFromBytes(rawMsg)
 }
 
@@ -156,7 +158,7 @@ func getMessageContent(messageData []messageData) []entity.MessageContentItem {
 
 	for _, messagePart := range messageData {
 		switch messagePart.Type {
-		case "text":
+		case "text", "link":
 			testPartContent := []any{}
 			err := json.Unmarshal([]byte(messagePart.Content), &testPartContent)
 			if err != nil {

@@ -1,4 +1,4 @@
-package container
+package ui
 
 import (
 	"context"
@@ -7,10 +7,13 @@ import (
 )
 
 type Scraper interface {
-	GetMessages() []entity.Message
 	Run(ctx context.Context)
 	Stop()
 	Status() entity.ScraperState
 	GetConnectionConfig() string
 	ConnectionConfigUpdateOption(string) entity.ConfigUpdateOption
+}
+
+type ConfigStorage interface {
+	UpdateConfig(opts []entity.ConfigUpdateOption) error
 }

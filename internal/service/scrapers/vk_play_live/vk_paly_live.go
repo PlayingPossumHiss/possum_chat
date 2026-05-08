@@ -3,6 +3,7 @@ package vk_play_live
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"strconv"
 	"sync"
@@ -14,7 +15,7 @@ import (
 )
 
 type Service struct {
-	userName      string
+	configStorage ConfigStorage
 	userID        string
 	vkPlayLiveApi VkPlayLiveApi
 	vkPlayLiveWs  VkPlayLiveWs
@@ -28,12 +29,12 @@ type Service struct {
 }
 
 func New(
-	streamKey string,
+	configStorage ConfigStorage,
 	vkPlayLiveApi VkPlayLiveApi,
 	vkPlayLiveWs VkPlayLiveWs,
 ) (*Service, error) {
 	scraper := &Service{
-		userName:      streamKey,
+		configStorage: configStorage,
 		vkPlayLiveApi: vkPlayLiveApi,
 		vkPlayLiveWs:  vkPlayLiveWs,
 		messageMx:     &sync.Mutex{},
@@ -42,6 +43,16 @@ func New(
 	}
 
 	return scraper, nil
+}
+
+func (s *Service) GetConnectionConfig() string {
+	return s.configStorage.Config().Connections.VkPlayLive.ChannelName
+}
+
+func (s *Service) ConnectionConfigUpdateOption(newValue string) entity.ConfigUpdateOption {
+	return func(c *entity.Config) {
+		c.Connections.VkPlayLive.ChannelName = newValue
+	}
 }
 
 func (s *Service) Run(ctx context.Context) {
@@ -84,7 +95,23 @@ func (s *Service) watchChat(ctx context.Context) {
 
 			return
 		default:
-			userID, err := s.vkPlayLiveApi.GetUserID(ctx, s.userName)
+			if !firstRun {
+				// чтобы не словить бан
+				time.Sleep(time.Second)
+			}
+
+			channelName := s.GetConnectionConfig()
+			if len(channelName) == 0 {
+				err := fmt.Errorf("%w: can't get channel name for vk play live", app_errors.ErrInvalidConfig)
+				logger.Error(err)
+
+				continue
+			}
+
+			userID, err := s.vkPlayLiveApi.GetUserID(
+				ctx,
+				channelName,
+			)
 			if err != nil {
 				logger.Error(err)
 
@@ -97,9 +124,6 @@ func (s *Service) watchChat(ctx context.Context) {
 				logger.Error(err)
 			}
 			firstRun = false
-
-			// чтобы не словить бан
-			time.Sleep(time.Second)
 		}
 	}
 }

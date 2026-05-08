@@ -36,14 +36,20 @@ func (c *Client) Init(streamKey string) error {
 	const maxAge = 300
 	customCookies := []*http.Cookie{
 		{
-			Name:   "PREF",
-			Value:  "tz=Europe.Rome",
-			MaxAge: maxAge,
+			Name:     "PREF",
+			Secure:   true,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+			Value:    "tz=Europe.Rome",
+			MaxAge:   maxAge,
 		},
 		{
-			Name:   "CONSENT",
-			Value:  fmt.Sprintf("YES+yt.432048971.it+FX+%d", 100+rand.Intn(999-100+1)), //nolint
-			MaxAge: maxAge,
+			Name:     "CONSENT",
+			Secure:   true,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+			Value:    fmt.Sprintf("YES+yt.432048971.it+FX+%d", 100+rand.Intn(999-100+1)), //nolint
+			MaxAge:   maxAge,
 		},
 	}
 	yt_chat.AddCookies(customCookies)
@@ -91,6 +97,8 @@ func (c *Client) GetMessages() ([]entity.Message, error) {
 }
 
 func parseMessage(src string) []entity.MessageContentItem {
+	logger.Debug(fmt.Sprintf("message from youtube: %s", src))
+
 	emojiPrefix := "https://yt3.ggpht.com"
 	srcElements := strings.Split(src, " ")
 	result := []entity.MessageContentItem{}

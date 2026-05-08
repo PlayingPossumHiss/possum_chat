@@ -2,16 +2,18 @@ package youtube_scraper
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"sync"
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	app_errors "github.com/PlayingPossumHiss/possum_chat/internal/errors"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
 
 type Service struct {
-	userName      string
+	configStorage ConfigStorage
 	youtubeClient YoutubeClient
 
 	state       entity.ScraperState
@@ -23,11 +25,11 @@ type Service struct {
 }
 
 func New(
-	userName string,
+	configStorage ConfigStorage,
 	youtubeClient YoutubeClient,
 ) *Service {
 	scraper := &Service{
-		userName:      userName,
+		configStorage: configStorage,
 		youtubeClient: youtubeClient,
 		messageMx:     &sync.Mutex{},
 		stateMx:       &sync.Mutex{},
@@ -35,6 +37,16 @@ func New(
 	}
 
 	return scraper
+}
+
+func (s *Service) GetConnectionConfig() string {
+	return s.configStorage.Config().Connections.Youtube.ChannelName
+}
+
+func (s *Service) ConnectionConfigUpdateOption(newValue string) entity.ConfigUpdateOption {
+	return func(c *entity.Config) {
+		c.Connections.Youtube.ChannelName = newValue
+	}
 }
 
 func (s *Service) Run(ctx context.Context) {
@@ -102,7 +114,14 @@ func (s *Service) watchChat(ctx context.Context) {
 func (s *Service) initChat(ctx context.Context) error {
 	defer s.stateMx.Unlock()
 
-	streamKey, err := s.youtubeClient.GetLastTranslationID(ctx, s.userName)
+	channelName := s.GetConnectionConfig()
+	if len(channelName) == 0 {
+		return fmt.Errorf("%w: can't get channel name for vk play live", app_errors.ErrInvalidConfig)
+	}
+	streamKey, err := s.youtubeClient.GetLastTranslationID(
+		ctx,
+		channelName,
+	)
 	if err != nil {
 		return err
 	}

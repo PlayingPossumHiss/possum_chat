@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	"github.com/gempir/go-twitch-irc/v4"
 )
 
@@ -29,6 +30,8 @@ func (c *Client) Listen(
 	channelName string,
 ) error {
 	c.wsConnect.OnPrivateMessage(func(message twitch.PrivateMessage) {
+		logger.Debug(fmt.Sprintf("message from youtube: %s", message.Raw))
+
 		callback(entity.Message{
 			ID:     fmt.Sprintf("twitch_%s", message.ID),
 			Source: entity.SourceTwitch,

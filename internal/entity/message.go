@@ -31,3 +31,7 @@ const (
 	SourceVkPlayLive
 	SourceDonationAlerts
 )
+
+func (s Source) KeyIsSecret() bool {
+	return s == SourceDonationAlerts
+}

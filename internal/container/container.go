@@ -102,6 +102,11 @@ func (c *Container) Run() error {
 		return err
 	}
 
+	configService, err := c.getConfig()
+	if err != nil {
+		return err
+	}
+
 	c.scheduler.Start()
 
 	api.Run()
@@ -112,6 +117,7 @@ func (c *Container) Run() error {
 	}
 	err = ui.New(
 		uiScrapers,
+		configService,
 	)
 	if err != nil {
 		return err
@@ -273,81 +279,80 @@ func (c *Container) getScrapers() (map[entity.Source]Scraper, error) {
 		return c.scrapers, nil
 	}
 
-	c.scrapers = map[entity.Source]Scraper{}
-
-	configService, err := c.getConfig()
+	result := map[entity.Source]Scraper{}
+	ytScraper, err := c.getYoutubeScraper()
 	if err != nil {
 		return nil, err
 	}
-
-	result := map[entity.Source]Scraper{}
-	for _, connection := range configService.Config().Connections {
-		switch connection.Source {
-		case entity.SourceYoutube:
-			logger.Info("init youtube scraper")
-			scraper := c.getYoutubeScraper(connection)
-			result[connection.Source] = scraper
-		case entity.SourceVkPlayLive:
-			logger.Info("init vk play live scraper")
-			scraper, err := c.getVkPlayLiveScraper(connection)
-			if err != nil {
-				return nil, err
-			}
-			result[connection.Source] = scraper
-		case entity.SourceTwitch:
-			logger.Info("init twitch scraper")
-			scraper := c.getTwitchScraper(connection)
-			result[connection.Source] = scraper
-		case entity.SourceDonationAlerts:
-			logger.Info("init donation alerts scraper")
-			scraper, err := c.getDonationAlertsSubscraper(connection)
-			if err != nil {
-				return nil, err
-			}
-			result[connection.Source] = scraper
-		}
+	result[entity.SourceYoutube] = ytScraper
+	twitchScraper, err := c.getTwitchScraper()
+	if err != nil {
+		return nil, err
 	}
+	result[entity.SourceTwitch] = twitchScraper
+	vkScraper, err := c.getVkPlayLiveScraper()
+	if err != nil {
+		return nil, err
+	}
+	result[entity.SourceVkPlayLive] = vkScraper
+	daScraper, err := c.getDonationAlertsScraper()
+	if err != nil {
+		return nil, err
+	}
+	result[entity.SourceDonationAlerts] = daScraper
 
 	c.scrapers = result
 
 	return c.scrapers, nil
 }
 
-func (c *Container) getYoutubeScraper(
-	configConnection entity.ConfigConnection,
-) *youtube_scraper.Service {
+func (c *Container) getYoutubeScraper() (*youtube_scraper.Service, error) {
+	configService, err := c.getConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return youtube_scraper.New(
-		configConnection.Key,
+		configService,
 		c.getYoutubeClient(),
-	)
+	), nil
 }
 
-func (c *Container) getVkPlayLiveScraper(
-	configConnection entity.ConfigConnection,
-) (*vk_play_live.Service, error) {
+func (c *Container) getVkPlayLiveScraper() (*vk_play_live.Service, error) {
+	configService, err := c.getConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return vk_play_live.New(
-		configConnection.Key,
+		configService,
 		c.getVkPalyLiveApi(),
 		c.getVkPalyLiveWs(),
 	)
 }
 
-func (c *Container) getDonationAlertsSubscraper(
-	configConnection entity.ConfigConnection,
-) (*donation_alerts.Service, error) {
+func (c *Container) getDonationAlertsScraper() (*donation_alerts.Service, error) {
+	configService, err := c.getConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return donation_alerts.New(
 		c.getDonationAlertsClient(),
-		configConnection.Key,
+		configService,
 	)
 }
 
-func (c *Container) getTwitchScraper(
-	configConnection entity.ConfigConnection,
-) *twitch.Service {
+func (c *Container) getTwitchScraper() (*twitch.Service, error) {
+	configService, err := c.getConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return twitch.New(
 		c.getTwitchClient(),
-		configConnection.Key,
-	)
+		configService,
+	), nil
 }
 
 func (c *Container) getVkPalyLiveApi() *vk_play_live_api.Client {

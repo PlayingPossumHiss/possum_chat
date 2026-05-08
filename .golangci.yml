@@ -3,6 +3,7 @@ run:
   tests: false
 linters:
   enable:
+    - gomodguard_v2
     - asasalint
     - asciicheck
     - bidichk
@@ -32,7 +33,6 @@ linters:
 #    - godox
     - goheader
     - gomoddirectives
-    - gomodguard
     - goprintffuncname
     - gosec
     - grouper

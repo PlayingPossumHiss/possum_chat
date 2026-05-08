@@ -35,6 +35,9 @@ func TestUseCase_Run(t *testing.T) {
 					TimeToHideMessage:   time.Hour,
 					TimeToDeleteMessage: time.Hour,
 				},
+				Connections: entity.ConfigConnections{
+					Youtube: entity.ConfigYoutube{ChannelName: "my_channel_name"},
+				},
 			})
 			logger.Init(configStorage)
 
@@ -82,7 +85,7 @@ func TestUseCase_Run(t *testing.T) {
 			})
 
 			youtubeScraper := youtube_scraper.New(
-				"my_channel_name",
+				configStorage,
 				youtubeClient,
 			)
 			youtubeScraper.Run(context.Background())
