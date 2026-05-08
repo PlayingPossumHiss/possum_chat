@@ -20,8 +20,6 @@ type UI struct {
 	mainWindow    fyne.Window
 	configStorage ConfigStorage
 	scrapers      map[entity.Source]Scraper
-	onSave        []onSaveCallback
-	needToSave    bool
 }
 
 type onSaveCallback func() entity.ConfigUpdateOption
@@ -56,6 +54,39 @@ func (ui *UI) newMainWindow() error {
 	mainWindowIcon := fyne.NewStaticResource("main_window_icon", mainWindowIconData)
 	mainWindow.SetIcon(mainWindowIcon)
 
+	tabs := container.NewAppTabs()
+
+	connectionTabContent, err := ui.getConnectionTabContent()
+	if err != nil {
+		return fmt.Errorf("error on get main window connection tab content: %w", err)
+	}
+	tabs.Append(container.NewTabItem("Connections", connectionTabContent))
+
+	tabs.Append(container.NewTabItem("Styles", ui.getCssTabContent()))
+
+	mainWindow.SetContent(tabs)
+
+	ui.mainWindow = mainWindow
+
+	return nil
+}
+
+func (ui *UI) getCssTabContent() fyne.CanvasObject {
+	cssField := widget.NewEntry()
+	cssField.SetText(ui.configStorage.Config().View.CssStyle)
+	cssField.MultiLine = true
+	cssField.OnChanged = func(s string) {
+		ui.configStorage.UpdateConfig([]entity.ConfigUpdateOption{
+			func(target *entity.Config) {
+				target.View.CssStyle = cssField.Text
+			},
+		})
+	}
+
+	return cssField
+}
+
+func (ui *UI) getConnectionTabContent() (fyne.CanvasObject, error) {
 	const itemsInLine = 3
 
 	switchesContent := make([]fyne.CanvasObject, 0, itemsInLine*(1+len(ui.scrapers)))
@@ -63,11 +94,7 @@ func (ui *UI) newMainWindow() error {
 		switchesContent,
 		widget.NewLabel("Switch"),
 		widget.NewLabel("Sources"),
-		// Кнопка сохранения настроек
-		widget.NewButton(
-			"Save",
-			ui.saveSettingsHandler(),
-		),
+		widget.NewLabel("Key"),
 	)
 
 	connectionsOrder := []entity.Source{
@@ -79,7 +106,7 @@ func (ui *UI) newMainWindow() error {
 	for _, source := range connectionsOrder {
 		rowItems, err := ui.getConnectionRow(source)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		switchesContent = append(switchesContent, rowItems...)
 	}
@@ -88,11 +115,8 @@ func (ui *UI) newMainWindow() error {
 		layout.NewGridLayout(itemsInLine),
 		switchesContent...,
 	)
-	mainWindow.SetContent(grid)
 
-	ui.mainWindow = mainWindow
-
-	return nil
+	return grid, nil
 }
 
 func (ui *UI) getConnectionRow(source entity.Source) ([]fyne.CanvasObject, error) {
@@ -118,11 +142,10 @@ func (ui *UI) getConnectionRow(source entity.Source) ([]fyne.CanvasObject, error
 	scraperConfig := widget.NewEntry()
 	scraperConfig.SetText(scraper.GetConnectionConfig())
 	scraperConfig.Password = source.KeyIsSecret()
-	ui.onSave = append(ui.onSave, func() entity.ConfigUpdateOption {
-		return scraper.ConnectionConfigUpdateOption(scraperConfig.Text)
-	})
 	scraperConfig.OnChanged = func(s string) {
-		ui.needToSave = true
+		ui.configStorage.UpdateConfig([]entity.ConfigUpdateOption{
+			scraper.ConnectionConfigUpdateOption(scraperConfig.Text),
+		})
 	}
 
 	return []fyne.CanvasObject{
@@ -130,20 +153,6 @@ func (ui *UI) getConnectionRow(source entity.Source) ([]fyne.CanvasObject, error
 		scraperLabel,
 		scraperConfig,
 	}, nil
-}
-
-func (ui *UI) saveSettingsHandler() func() {
-	return func() {
-		opts := make([]entity.ConfigUpdateOption, 0, len(ui.onSave))
-		for _, onSave := range ui.onSave {
-			opts = append(opts, onSave())
-		}
-		err := ui.configStorage.UpdateConfig(opts)
-		if err != nil {
-			logger.Error(fmt.Errorf("error on save config: %w", err))
-		}
-		ui.needToSave = false
-	}
 }
 
 func (ui *UI) turnButtonHandler(
@@ -158,9 +167,6 @@ func (ui *UI) turnButtonHandler(
 			return
 		}
 		if scraper.Status() == entity.ScraperStateStopped {
-			if ui.needToSave {
-				ui.saveSettingsHandler()()
-			}
 			scraper.Run(context.Background())
 			err := label.Set(getLabelText(source, true))
 			if err != nil {
