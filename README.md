@@ -2,7 +2,7 @@
 
 ## Запуск приложения
 
-При запуске для каждого источника, формируется строка с кнопкой запуска. В подписе кнопке указан текущий статус подключения
+При запуске для каждого источника, формируется строка с кнопкой запуска. В подписе кнопке указан текущий статус подключения. Для запуска надо указать параметры подключения, нажать кнопку сохранить и после этого включать чаты для разных источников
 
 ## Конфиг
 
@@ -10,34 +10,31 @@
 
 ``` json
 {
-    "port": 8081,
-    "view": {
-        "css_style": "",
-        "time_to_hide_message": "180s",
-        "time_to_delete_message": "1h"
-    },
-    "loging": {
-        "log_path": "",
-        "level": "INFO"
-    },
-    "connections": [
-        {
-            "source": "twitch",
-            "key": "playingpossumhiss"
-        },
-        {
-            "source": "vk_play_live",
-            "key": "playingpossum"
-        },
-        {
-            "source": "youtube",
-            "key": "PlayingPossumHiss"
-        },
-        {
-            "source": "donation_alerts",
-            "key": "am I stupid enough to left my token here? (yes, I am)"
-        }
-    ]
+	"connections": {
+		"youtube": {
+			"channel_name": "PlayingPossumHiss"
+		},
+		"twitch": {
+			"channel_name": "playingpossumhiss"
+		},
+		"vk_play_live": {
+			"channel_name": "playingpossum"
+		},
+		"donation_alerts": {
+			"token": "I'm a token"
+		}
+	},
+	"loging": {
+		"log_path": "./log.log",
+		"level": "INFO"
+	},
+	"view": {
+		"css_style": "",
+		"time_to_hide_message": "2m0s",
+		"time_to_delete_message": "1h0m0s"
+	},
+	"port": 8081,
+	"version": "1.0"
 }
 ```
 

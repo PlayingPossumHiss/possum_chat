@@ -21,3 +21,7 @@ type VkPlayLiveWs interface {
 	WritePong() error
 	Close()
 }
+
+type ConfigStorage interface {
+	Config() entity.Config
+}

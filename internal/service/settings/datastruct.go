@@ -6,18 +6,42 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 )
 
-const configPath = "./config.json"
+const (
+	configPath = "./config.json"
+)
+
+var currentVersion = "1.0"
 
 type config struct {
-	Connections []configConnection `json:"connections"`
-	Logging     configLogging      `json:"loging"`
-	View        configView         `json:"view"`
-	Port        int                `json:"port"`
+	Connections configConnections `json:"connections"`
+	Logging     configLogging     `json:"loging"`
+	View        configView        `json:"view"`
+	Port        int               `json:"port"`
+	Version     string            `json:"version"`
 }
 
-type configConnection struct {
-	Source source `json:"source"`
-	Key    string `json:"key"`
+// ConfigConnection настройки подключений
+type configConnections struct {
+	Youtube        configYoutube        `json:"youtube"`
+	Twitch         configTwitch         `json:"twitch"`
+	VkPlayLive     configVkPlayLive     `json:"vk_play_live"`
+	DonationAlerts configDonationAlerts `json:"donation_alerts"`
+}
+
+type configYoutube struct {
+	ChannelName string `json:"channel_name"`
+}
+
+type configTwitch struct {
+	ChannelName string `json:"channel_name"`
+}
+
+type configVkPlayLive struct {
+	ChannelName string `json:"channel_name"`
+}
+
+type configDonationAlerts struct {
+	Token string `json:"token"`
 }
 
 type configView struct {
@@ -25,15 +49,6 @@ type configView struct {
 	TimeToHideMessage   string `json:"time_to_hide_message"`
 	TimeToDeleteMessage string `json:"time_to_delete_message"`
 }
-
-type source string
-
-const (
-	sourceYoutube        source = "youtube"
-	sourceTwitch         source = "twitch"
-	sourceVkPlayLive     source = "vk_play_live"
-	sourceDonationAlerts source = "donation_alerts"
-)
 
 type configLogging struct {
 	LogPath  string         `json:"log_path"`
@@ -50,13 +65,8 @@ const (
 )
 
 var defaultConfig = entity.Config{
-	Connections: []entity.ConfigConnection{
-		{Source: entity.SourceTwitch},
-		{Source: entity.SourceVkPlayLive},
-		{Source: entity.SourceYoutube},
-		{Source: entity.SourceDonationAlerts},
-	},
-	Logging: entity.ConfigLogging{LogLevel: entity.ConfigLogLevelInfo},
+	Connections: entity.ConfigConnections{},
+	Logging:     entity.ConfigLogging{LogLevel: entity.ConfigLogLevelInfo},
 	View: entity.ConfigView{
 		TimeToHideMessage:   3 * time.Minute, //nolint
 		TimeToDeleteMessage: time.Hour,

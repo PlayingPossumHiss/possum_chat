@@ -6,6 +6,7 @@ import (
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 	app_errors "github.com/PlayingPossumHiss/possum_chat/internal/errors"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	utils_time "github.com/PlayingPossumHiss/possum_chat/internal/utils/time"
 	socket_io "github.com/graarh/golang-socketio"
 	"github.com/graarh/golang-socketio/transport"
@@ -59,7 +60,31 @@ func (c *Client) Init(
 		return err
 	}
 
-	err = c.conn.On("donation", func(h *socket_io.Channel, donationMsg donation) {
+	err = c.conn.On("donation", c.onDonation(callback))
+	if err != nil {
+		return err
+	}
+
+	err = c.conn.On(socket_io.OnDisconnection, func(h *socket_io.Channel) {
+		c.errChan <- fmt.Errorf(
+			"donation alerts connection is closed: %w",
+			app_errors.ErrScraperStoped,
+		)
+		close(c.errChan)
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) onDonation(
+	callback func(entity.Message),
+) func(h *socket_io.Channel, donationMsg donation) {
+	return func(h *socket_io.Channel, donationMsg donation) {
+		logger.Debug(fmt.Sprintf("message from donation alerts: %s", donationMsg.Message))
+
 		if donationMsg.Message == "" {
 			return
 		}
@@ -80,21 +105,5 @@ func (c *Client) Init(
 				},
 			},
 		})
-	})
-	if err != nil {
-		return err
 	}
-
-	err = c.conn.On(socket_io.OnDisconnection, func(h *socket_io.Channel) {
-		c.errChan <- fmt.Errorf(
-			"donation alerts connection is closed: %w",
-			app_errors.ErrScraperStoped,
-		)
-		close(c.errChan)
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

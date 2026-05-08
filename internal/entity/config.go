@@ -4,16 +4,36 @@ import "time"
 
 // Config настройки сервиса
 type Config struct {
-	Connections []ConfigConnection
+	Connections ConfigConnections
 	Logging     ConfigLogging
 	View        ConfigView
 	Port        int
 }
 
+type ConfigUpdateOption func(*Config)
+
 // ConfigConnection настройки подключений
-type ConfigConnection struct {
-	Source Source
-	Key    string
+type ConfigConnections struct {
+	Youtube        ConfigYoutube
+	Twitch         ConfigTwitch
+	VkPlayLive     ConfigVkPlayLive
+	DonationAlerts ConfigDonationAlerts
+}
+
+type ConfigYoutube struct {
+	ChannelName string
+}
+
+type ConfigTwitch struct {
+	ChannelName string
+}
+
+type ConfigVkPlayLive struct {
+	ChannelName string
+}
+
+type ConfigDonationAlerts struct {
+	Token string
 }
 
 // ConfigView настройки отображения виджета OBS

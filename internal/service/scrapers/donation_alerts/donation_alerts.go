@@ -2,17 +2,19 @@ package donation_alerts
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"sync"
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	app_errors "github.com/PlayingPossumHiss/possum_chat/internal/errors"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
 
 type Service struct {
-	daClient DonationAlertsClient
-	token    string
+	daClient      DonationAlertsClient
+	configStorage ConfigStorage
 
 	state   entity.ScraperState
 	stateMx *sync.Mutex
@@ -23,17 +25,27 @@ type Service struct {
 
 func New(
 	daClient DonationAlertsClient,
-	token string,
+	configStorage ConfigStorage,
 ) (*Service, error) {
 	service := &Service{
-		daClient:  daClient,
-		token:     token,
-		messageMx: &sync.Mutex{},
-		stateMx:   &sync.Mutex{},
-		state:     entity.ScraperStateStopped,
+		daClient:      daClient,
+		configStorage: configStorage,
+		messageMx:     &sync.Mutex{},
+		stateMx:       &sync.Mutex{},
+		state:         entity.ScraperStateStopped,
 	}
 
 	return service, nil
+}
+
+func (s *Service) GetConnectionConfig() string {
+	return s.configStorage.Config().Connections.DonationAlerts.Token
+}
+
+func (s *Service) ConnectionConfigUpdateOption(newValue string) entity.ConfigUpdateOption {
+	return func(c *entity.Config) {
+		c.Connections.DonationAlerts.Token = newValue
+	}
 }
 
 func (s *Service) Run(ctx context.Context) {
@@ -41,10 +53,24 @@ func (s *Service) Run(ctx context.Context) {
 	s.stateMx.Lock()
 	defer s.stateMx.Unlock()
 
-	err := s.daClient.Init(s.onGetMessage, s.token)
-	if err != nil {
+	token := s.GetConnectionConfig()
+	if len(token) == 0 {
+		err := fmt.Errorf("%w: empty token for donation alerts", app_errors.ErrInvalidConfig)
 		logger.Error(err)
+
+		return
 	}
+	err := s.daClient.Init(
+		s.onGetMessage,
+		token,
+	)
+	if err != nil {
+		err := fmt.Errorf("failed to init donation alerts connection: %w", err)
+		logger.Error(err)
+
+		return
+	}
+
 	s.state = entity.ScraperStateActive
 	go s.WatchLoop()
 }
@@ -58,7 +84,17 @@ func (s *Service) WatchLoop() {
 		}
 
 		time.Sleep(time.Second)
-		err = s.daClient.Init(s.onGetMessage, s.token)
+		token := s.GetConnectionConfig()
+		if len(token) == 0 {
+			err := fmt.Errorf("%w: empty token for donation alerts", app_errors.ErrInvalidConfig)
+			logger.Error(err)
+
+			return
+		}
+		err = s.daClient.Init(
+			s.onGetMessage,
+			token,
+		)
 		if err != nil {
 			logger.Error(err)
 		}

@@ -11,3 +11,7 @@ type YoutubeClient interface {
 	GetMessages() ([]entity.Message, error)
 	GetLastTranslationID(ctx context.Context, userName string) (string, error)
 }
+
+type ConfigStorage interface {
+	Config() entity.Config
+}

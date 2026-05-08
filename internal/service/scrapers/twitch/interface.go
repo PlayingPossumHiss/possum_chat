@@ -9,3 +9,7 @@ type TwitchIrcClient interface {
 	) error
 	Close() error
 }
+
+type ConfigStorage interface {
+	Config() entity.Config
+}

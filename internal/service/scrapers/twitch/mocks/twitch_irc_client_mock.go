@@ -16,6 +16,13 @@ type TwitchIrcClientMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
+	funcClose          func() (err error)
+	funcCloseOrigin    string
+	inspectFuncClose   func()
+	afterCloseCounter  uint64
+	beforeCloseCounter uint64
+	CloseMock          mTwitchIrcClientMockClose
+
 	funcListen          func(callback func(entity.Message), channelName string) (err error)
 	funcListenOrigin    string
 	inspectFuncListen   func(callback func(entity.Message), channelName string)
@@ -32,12 +39,200 @@ func NewTwitchIrcClientMock(t minimock.Tester) *TwitchIrcClientMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.CloseMock = mTwitchIrcClientMockClose{mock: m}
+
 	m.ListenMock = mTwitchIrcClientMockListen{mock: m}
 	m.ListenMock.callArgs = []*TwitchIrcClientMockListenParams{}
 
 	t.Cleanup(m.MinimockFinish)
 
 	return m
+}
+
+type mTwitchIrcClientMockClose struct {
+	optional           bool
+	mock               *TwitchIrcClientMock
+	defaultExpectation *TwitchIrcClientMockCloseExpectation
+	expectations       []*TwitchIrcClientMockCloseExpectation
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// TwitchIrcClientMockCloseExpectation specifies expectation struct of the TwitchIrcClient.Close
+type TwitchIrcClientMockCloseExpectation struct {
+	mock *TwitchIrcClientMock
+
+	results      *TwitchIrcClientMockCloseResults
+	returnOrigin string
+	Counter      uint64
+}
+
+// TwitchIrcClientMockCloseResults contains results of the TwitchIrcClient.Close
+type TwitchIrcClientMockCloseResults struct {
+	err error
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmClose *mTwitchIrcClientMockClose) Optional() *mTwitchIrcClientMockClose {
+	mmClose.optional = true
+	return mmClose
+}
+
+// Expect sets up expected params for TwitchIrcClient.Close
+func (mmClose *mTwitchIrcClientMockClose) Expect() *mTwitchIrcClientMockClose {
+	if mmClose.mock.funcClose != nil {
+		mmClose.mock.t.Fatalf("TwitchIrcClientMock.Close mock is already set by Set")
+	}
+
+	if mmClose.defaultExpectation == nil {
+		mmClose.defaultExpectation = &TwitchIrcClientMockCloseExpectation{}
+	}
+
+	return mmClose
+}
+
+// Inspect accepts an inspector function that has same arguments as the TwitchIrcClient.Close
+func (mmClose *mTwitchIrcClientMockClose) Inspect(f func()) *mTwitchIrcClientMockClose {
+	if mmClose.mock.inspectFuncClose != nil {
+		mmClose.mock.t.Fatalf("Inspect function is already set for TwitchIrcClientMock.Close")
+	}
+
+	mmClose.mock.inspectFuncClose = f
+
+	return mmClose
+}
+
+// Return sets up results that will be returned by TwitchIrcClient.Close
+func (mmClose *mTwitchIrcClientMockClose) Return(err error) *TwitchIrcClientMock {
+	if mmClose.mock.funcClose != nil {
+		mmClose.mock.t.Fatalf("TwitchIrcClientMock.Close mock is already set by Set")
+	}
+
+	if mmClose.defaultExpectation == nil {
+		mmClose.defaultExpectation = &TwitchIrcClientMockCloseExpectation{mock: mmClose.mock}
+	}
+	mmClose.defaultExpectation.results = &TwitchIrcClientMockCloseResults{err}
+	mmClose.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmClose.mock
+}
+
+// Set uses given function f to mock the TwitchIrcClient.Close method
+func (mmClose *mTwitchIrcClientMockClose) Set(f func() (err error)) *TwitchIrcClientMock {
+	if mmClose.defaultExpectation != nil {
+		mmClose.mock.t.Fatalf("Default expectation is already set for the TwitchIrcClient.Close method")
+	}
+
+	if len(mmClose.expectations) > 0 {
+		mmClose.mock.t.Fatalf("Some expectations are already set for the TwitchIrcClient.Close method")
+	}
+
+	mmClose.mock.funcClose = f
+	mmClose.mock.funcCloseOrigin = minimock.CallerInfo(1)
+	return mmClose.mock
+}
+
+// Times sets number of times TwitchIrcClient.Close should be invoked
+func (mmClose *mTwitchIrcClientMockClose) Times(n uint64) *mTwitchIrcClientMockClose {
+	if n == 0 {
+		mmClose.mock.t.Fatalf("Times of TwitchIrcClientMock.Close mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmClose.expectedInvocations, n)
+	mmClose.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmClose
+}
+
+func (mmClose *mTwitchIrcClientMockClose) invocationsDone() bool {
+	if len(mmClose.expectations) == 0 && mmClose.defaultExpectation == nil && mmClose.mock.funcClose == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmClose.mock.afterCloseCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmClose.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// Close implements mm_twitch.TwitchIrcClient
+func (mmClose *TwitchIrcClientMock) Close() (err error) {
+	mm_atomic.AddUint64(&mmClose.beforeCloseCounter, 1)
+	defer mm_atomic.AddUint64(&mmClose.afterCloseCounter, 1)
+
+	mmClose.t.Helper()
+
+	if mmClose.inspectFuncClose != nil {
+		mmClose.inspectFuncClose()
+	}
+
+	if mmClose.CloseMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmClose.CloseMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmClose.CloseMock.defaultExpectation.results
+		if mm_results == nil {
+			mmClose.t.Fatal("No results are set for the TwitchIrcClientMock.Close")
+		}
+		return (*mm_results).err
+	}
+	if mmClose.funcClose != nil {
+		return mmClose.funcClose()
+	}
+	mmClose.t.Fatalf("Unexpected call to TwitchIrcClientMock.Close.")
+	return
+}
+
+// CloseAfterCounter returns a count of finished TwitchIrcClientMock.Close invocations
+func (mmClose *TwitchIrcClientMock) CloseAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmClose.afterCloseCounter)
+}
+
+// CloseBeforeCounter returns a count of TwitchIrcClientMock.Close invocations
+func (mmClose *TwitchIrcClientMock) CloseBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmClose.beforeCloseCounter)
+}
+
+// MinimockCloseDone returns true if the count of the Close invocations corresponds
+// the number of defined expectations
+func (m *TwitchIrcClientMock) MinimockCloseDone() bool {
+	if m.CloseMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.CloseMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.CloseMock.invocationsDone()
+}
+
+// MinimockCloseInspect logs each unmet expectation
+func (m *TwitchIrcClientMock) MinimockCloseInspect() {
+	for _, e := range m.CloseMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to TwitchIrcClientMock.Close")
+		}
+	}
+
+	afterCloseCounter := mm_atomic.LoadUint64(&m.afterCloseCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CloseMock.defaultExpectation != nil && afterCloseCounter < 1 {
+		m.t.Errorf("Expected call to TwitchIrcClientMock.Close at\n%s", m.CloseMock.defaultExpectation.returnOrigin)
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcClose != nil && afterCloseCounter < 1 {
+		m.t.Errorf("Expected call to TwitchIrcClientMock.Close at\n%s", m.funcCloseOrigin)
+	}
+
+	if !m.CloseMock.invocationsDone() && afterCloseCounter > 0 {
+		m.t.Errorf("Expected %d calls to TwitchIrcClientMock.Close at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.CloseMock.expectedInvocations), m.CloseMock.expectedInvocationsOrigin, afterCloseCounter)
+	}
 }
 
 type mTwitchIrcClientMockListen struct {
@@ -386,6 +581,8 @@ func (m *TwitchIrcClientMock) MinimockListenInspect() {
 func (m *TwitchIrcClientMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
 		if !m.minimockDone() {
+			m.MinimockCloseInspect()
+
 			m.MinimockListenInspect()
 		}
 	})
@@ -410,5 +607,6 @@ func (m *TwitchIrcClientMock) MinimockWait(timeout mm_time.Duration) {
 func (m *TwitchIrcClientMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockCloseDone() &&
 		m.MinimockListenDone()
 }

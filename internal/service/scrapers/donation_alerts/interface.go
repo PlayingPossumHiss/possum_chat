@@ -10,3 +10,7 @@ type DonationAlertsClient interface {
 	Close()
 	Done() error
 }
+
+type ConfigStorage interface {
+	Config() entity.Config
+}

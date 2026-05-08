@@ -16,23 +16,24 @@ import (
 )
 
 type UI struct {
-	app        fyne.App
-	mainWindow fyne.Window
-	scrapers   map[entity.Source]Scraper
+	app           fyne.App
+	mainWindow    fyne.Window
+	configStorage ConfigStorage
+	scrapers      map[entity.Source]Scraper
+	onSave        []onSaveCallback
+	needToSave    bool
 }
 
-type Scraper interface {
-	Run(ctx context.Context)
-	Stop()
-	Status() entity.ScraperState
-}
+type onSaveCallback func() entity.ConfigUpdateOption
 
 func New(
 	scrapers map[entity.Source]Scraper,
+	configStorage ConfigStorage,
 ) error {
 	newUI := &UI{
-		app:      app.New(),
-		scrapers: scrapers,
+		app:           app.New(),
+		scrapers:      scrapers,
+		configStorage: configStorage,
 	}
 
 	err := newUI.newMainWindow()
@@ -55,29 +56,32 @@ func (ui *UI) newMainWindow() error {
 	mainWindowIcon := fyne.NewStaticResource("main_window_icon", mainWindowIconData)
 	mainWindow.SetIcon(mainWindowIcon)
 
-	const itemsInLine = 2
+	const itemsInLine = 3
 
 	switchesContent := make([]fyne.CanvasObject, 0, itemsInLine*(1+len(ui.scrapers)))
 	switchesContent = append(
 		switchesContent,
-		widget.NewLabel("Sources"),
 		widget.NewLabel("Switch"),
+		widget.NewLabel("Sources"),
+		// Кнопка сохранения настроек
+		widget.NewButton(
+			"Save",
+			ui.saveSettingsHandler(),
+		),
 	)
-	for source := range ui.scrapers {
-		scraperContent := binding.NewString()
-		err = scraperContent.Set(getLabelText(source, false))
+
+	connectionsOrder := []entity.Source{
+		entity.SourceYoutube,
+		entity.SourceTwitch,
+		entity.SourceVkPlayLive,
+		entity.SourceDonationAlerts,
+	}
+	for _, source := range connectionsOrder {
+		rowItems, err := ui.getConnectionRow(source)
 		if err != nil {
 			return err
 		}
-		scraperLabel := widget.NewLabelWithData(scraperContent)
-		scraperButton := widget.NewButton(
-			"Turn",
-			ui.turnButtonHandler(
-				source,
-				scraperContent,
-			),
-		)
-		switchesContent = append(switchesContent, scraperLabel, scraperButton)
+		switchesContent = append(switchesContent, rowItems...)
 	}
 
 	grid := container.New(
@@ -89,6 +93,57 @@ func (ui *UI) newMainWindow() error {
 	ui.mainWindow = mainWindow
 
 	return nil
+}
+
+func (ui *UI) getConnectionRow(source entity.Source) ([]fyne.CanvasObject, error) {
+	scraper := ui.scrapers[source]
+	// Заголовок
+	scraperContent := binding.NewString()
+	err := scraperContent.Set(getLabelText(source, false))
+	if err != nil {
+		return nil, err
+	}
+	scraperLabel := widget.NewLabelWithData(scraperContent)
+
+	// Кнопка переключения
+	scraperButton := widget.NewButton(
+		"Turn",
+		ui.turnButtonHandler(
+			source,
+			scraperContent,
+		),
+	)
+
+	// Строка с конфигом
+	scraperConfig := widget.NewEntry()
+	scraperConfig.SetText(scraper.GetConnectionConfig())
+	scraperConfig.Password = source.KeyIsSecret()
+	ui.onSave = append(ui.onSave, func() entity.ConfigUpdateOption {
+		return scraper.ConnectionConfigUpdateOption(scraperConfig.Text)
+	})
+	scraperConfig.OnChanged = func(s string) {
+		ui.needToSave = true
+	}
+
+	return []fyne.CanvasObject{
+		scraperButton,
+		scraperLabel,
+		scraperConfig,
+	}, nil
+}
+
+func (ui *UI) saveSettingsHandler() func() {
+	return func() {
+		opts := make([]entity.ConfigUpdateOption, 0, len(ui.onSave))
+		for _, onSave := range ui.onSave {
+			opts = append(opts, onSave())
+		}
+		err := ui.configStorage.UpdateConfig(opts)
+		if err != nil {
+			logger.Error(fmt.Errorf("error on save config: %w", err))
+		}
+		ui.needToSave = false
+	}
 }
 
 func (ui *UI) turnButtonHandler(
@@ -103,6 +158,9 @@ func (ui *UI) turnButtonHandler(
 			return
 		}
 		if scraper.Status() == entity.ScraperStateStopped {
+			if ui.needToSave {
+				ui.saveSettingsHandler()()
+			}
 			scraper.Run(context.Background())
 			err := label.Set(getLabelText(source, true))
 			if err != nil {
