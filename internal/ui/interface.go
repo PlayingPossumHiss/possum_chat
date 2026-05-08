@@ -16,4 +16,5 @@ type Scraper interface {
 
 type ConfigStorage interface {
 	UpdateConfig(opts []entity.ConfigUpdateOption) error
+	Config() entity.Config
 }
