@@ -10,18 +10,14 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	app_errors "github.com/PlayingPossumHiss/possum_chat/internal/errors"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
 
 func (ui *UI) getSettingsTabContent() *fyne.Container {
 	const itemsInLine = 2
 
-	settingsContent := make([]fyne.CanvasObject, 0, itemsInLine*(1+len(ui.scrapers)))
-	settingsContent = append(
-		settingsContent,
-		widget.NewLabel("Key"),
-		widget.NewLabel("Value"),
-	)
+	settingsContent := make([]fyne.CanvasObject, 0, itemsInLine*len(ui.scrapers))
 
 	settingsContent = append(
 		settingsContent,
@@ -38,6 +34,11 @@ func (ui *UI) getSettingsTabContent() *fyne.Container {
 		ui.getPortSettingsView()...,
 	)
 
+	settingsContent = append(
+		settingsContent,
+		ui.getLangSettingsView()...,
+	)
+
 	grid := container.New(
 		layout.NewGridLayout(itemsInLine),
 		settingsContent...,
@@ -52,7 +53,7 @@ func (ui *UI) getTimeToHideSettingsView() []fyne.CanvasObject {
 	ui.bindTimeToHideSettingsViewHandler(timeToHideField)
 
 	return []fyne.CanvasObject{
-		widget.NewLabel("Time to hide message (sec)"),
+		widget.NewLabel(ui.languageProvider.Local(entity.LanguageTextConstantSettingsTimeToHideMessage)),
 		timeToHideField,
 	}
 }
@@ -83,7 +84,7 @@ func (ui *UI) getTimeToDeleteSettingsView() []fyne.CanvasObject {
 	ui.bindTimeToDeleteSettingsViewHandler(timeToDeleteField)
 
 	return []fyne.CanvasObject{
-		widget.NewLabel("Time to delete message (min.)"),
+		widget.NewLabel(ui.languageProvider.Local(entity.LanguageTextConstantSettingsTimeToDeleteMessage)),
 		timeToDeleteField,
 	}
 }
@@ -130,15 +131,60 @@ func (ui *UI) getPortSettingsView() []fyne.CanvasObject {
 	}
 
 	return []fyne.CanvasObject{
-		widget.NewLabel("Port (need restart)"),
+		widget.NewLabel(ui.languageProvider.Local(entity.LanguageTextConstantSettingsPort)),
 		portField,
 	}
 }
 
+func (ui *UI) getLangSettingsView() []fyne.CanvasObject {
+	langField := widget.NewSelectEntry([]string{"en", "ru"})
+	langField.SetText(langFromEntity(ui.configStorage.Config().UI.Lang))
+	langField.OnChanged = func(s string) {
+		newValue, err := langToEntity(s)
+		if err != nil {
+			logger.Warn(fmt.Sprintf("try to change lang to invalid value %s", langField.Text))
+			langField.SetText(langFromEntity(ui.configStorage.Config().UI.Lang))
+
+			return
+		}
+		err = ui.configStorage.UpdateConfig([]entity.ConfigUpdateOption{
+			func(target *entity.Config) {
+				target.UI.Lang = newValue
+			},
+		})
+		if err != nil {
+			logger.Error(fmt.Errorf("failed to update config: %w", err))
+		}
+	}
+
+	return []fyne.CanvasObject{
+		widget.NewLabel(ui.languageProvider.Local(entity.LanguageTextConstantSettingsLang)),
+		langField,
+	}
+}
+
+func langToEntity(src string) (entity.ConfigLang, error) {
+	switch src {
+	case "en":
+		return entity.ConfigLangEn, nil
+	case "ru":
+		return entity.ConfigLangRu, nil
+	}
+
+	return 0, app_errors.ErrInvalidConfig
+}
+
+func langFromEntity(src entity.ConfigLang) string {
+	if src == entity.ConfigLangRu {
+		return "ru"
+	}
+
+	return "en"
+}
+
 func (ui *UI) getCssTabContent() *widget.Entry {
-	cssField := widget.NewEntry()
+	cssField := widget.NewMultiLineEntry()
 	cssField.SetText(ui.configStorage.Config().View.CssStyle)
-	cssField.MultiLine = true
 	cssField.OnChanged = func(s string) {
 		err := ui.configStorage.UpdateConfig([]entity.ConfigUpdateOption{
 			func(target *entity.Config) {

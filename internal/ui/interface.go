@@ -18,3 +18,7 @@ type ConfigStorage interface {
 	UpdateConfig(opts []entity.ConfigUpdateOption) error
 	Config() entity.Config
 }
+
+type LanguageProvider interface {
+	Local(name entity.LanguageTextConstant) string
+}

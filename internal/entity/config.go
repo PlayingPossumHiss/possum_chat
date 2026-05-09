@@ -7,10 +7,22 @@ type Config struct {
 	Connections ConfigConnections
 	Logging     ConfigLogging
 	View        ConfigView
+	UI          ConfigUI
 	Port        int
 }
 
 type ConfigUpdateOption func(*Config)
+
+type ConfigUI struct {
+	Lang ConfigLang
+}
+
+type ConfigLang byte
+
+const (
+	ConfigLangEn ConfigLang = iota + 1
+	ConfigLangRu
+)
 
 // ConfigConnection настройки подключений
 type ConfigConnections struct {

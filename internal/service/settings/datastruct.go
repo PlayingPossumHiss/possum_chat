@@ -10,15 +10,27 @@ const (
 	configPath = "./config.json"
 )
 
-var currentVersion = "1.0"
+var currentVersion = "1.1"
 
 type config struct {
 	Connections configConnections `json:"connections"`
 	Logging     configLogging     `json:"loging"`
 	View        configView        `json:"view"`
+	UI          configUI          `json:"ui"`
 	Port        int               `json:"port"`
 	Version     string            `json:"version"`
 }
+
+type configUI struct {
+	Lang configLang `json:"lang"`
+}
+
+type configLang string
+
+const (
+	configLangEn configLang = "en"
+	configLangRu configLang = "ru"
+)
 
 // ConfigConnection настройки подключений
 type configConnections struct {
@@ -72,4 +84,7 @@ var defaultConfig = entity.Config{
 		TimeToDeleteMessage: time.Hour,
 	},
 	Port: 8081, //nolint
+	UI: entity.ConfigUI{
+		Lang: entity.ConfigLangEn,
+	},
 }

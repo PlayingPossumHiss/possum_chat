@@ -8,27 +8,35 @@ import (
 	app_errors "github.com/PlayingPossumHiss/possum_chat/internal/errors"
 )
 
-func configFromJson(src config) (entity.Config, string, error) {
+func configFromJson(src config) (entity.Config, error) {
 	view, err := viewFromJson(src.View)
 	if err != nil {
 		err = fmt.Errorf("failed parse view for config: %w", err)
 
-		return entity.Config{}, "", err
+		return entity.Config{}, err
 	}
 
 	logging, err := loggingFromJson(src.Logging)
 	if err != nil {
 		err = fmt.Errorf("failed parse logging for config: %w", err)
 
-		return entity.Config{}, "", err
+		return entity.Config{}, err
+	}
+
+	lang, err := langFromJson(src.UI.Lang)
+	if err != nil {
+		err = fmt.Errorf("failed parse lang for config: %w", err)
+
+		return entity.Config{}, err
 	}
 
 	return entity.Config{
 		Connections: connectionsFromJson(src.Connections),
 		Logging:     logging,
 		View:        view,
+		UI:          entity.ConfigUI{Lang: lang},
 		Port:        src.Port,
-	}, src.Version, nil
+	}, nil
 }
 
 func loggingFromJson(src configLogging) (entity.ConfigLogging, error) {
@@ -57,7 +65,26 @@ func logLevelFromJson(src configLogLevel) (entity.ConfigLogLevel, error) {
 		return entity.ConfigLogLevelWarn, nil
 	}
 
-	return 0, fmt.Errorf("%w: %s", app_errors.ErrInvalidConfig, src)
+	return 0, fmt.Errorf("%w: wrong log level %s", app_errors.ErrInvalidConfig, src)
+}
+
+func langToJson(src entity.ConfigLang) configLang {
+	if src == entity.ConfigLangRu {
+		return configLangRu
+	}
+
+	return configLangEn
+}
+
+func langFromJson(src configLang) (entity.ConfigLang, error) {
+	switch src {
+	case configLangEn:
+		return entity.ConfigLangEn, nil
+	case configLangRu:
+		return entity.ConfigLangRu, nil
+	}
+
+	return 0, fmt.Errorf("%w: wrong lang %s", app_errors.ErrInvalidConfig, src)
 }
 
 func connectionsFromJson(src configConnections) entity.ConfigConnections {
@@ -103,6 +130,7 @@ func configToJson(src entity.Config) config {
 			TimeToHideMessage:   src.View.TimeToHideMessage.String(),
 			TimeToDeleteMessage: src.View.TimeToDeleteMessage.String(),
 		},
+		UI:      configUI{Lang: langToJson(src.UI.Lang)},
 		Port:    src.Port,
 		Version: currentVersion,
 	}
