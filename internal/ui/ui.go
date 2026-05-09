@@ -22,8 +22,6 @@ type UI struct {
 	scrapers      map[entity.Source]Scraper
 }
 
-type onSaveCallback func() entity.ConfigUpdateOption
-
 func New(
 	scrapers map[entity.Source]Scraper,
 	configStorage ConfigStorage,
@@ -64,6 +62,8 @@ func (ui *UI) newMainWindow() error {
 
 	tabs.Append(container.NewTabItem("Styles", ui.getCssTabContent()))
 
+	tabs.Append(container.NewTabItem("Settings", ui.getSettingsTabContent()))
+
 	mainWindow.SetContent(tabs)
 
 	ui.mainWindow = mainWindow
@@ -71,22 +71,7 @@ func (ui *UI) newMainWindow() error {
 	return nil
 }
 
-func (ui *UI) getCssTabContent() fyne.CanvasObject {
-	cssField := widget.NewEntry()
-	cssField.SetText(ui.configStorage.Config().View.CssStyle)
-	cssField.MultiLine = true
-	cssField.OnChanged = func(s string) {
-		ui.configStorage.UpdateConfig([]entity.ConfigUpdateOption{
-			func(target *entity.Config) {
-				target.View.CssStyle = cssField.Text
-			},
-		})
-	}
-
-	return cssField
-}
-
-func (ui *UI) getConnectionTabContent() (fyne.CanvasObject, error) {
+func (ui *UI) getConnectionTabContent() (*fyne.Container, error) {
 	const itemsInLine = 3
 
 	switchesContent := make([]fyne.CanvasObject, 0, itemsInLine*(1+len(ui.scrapers)))
@@ -143,9 +128,12 @@ func (ui *UI) getConnectionRow(source entity.Source) ([]fyne.CanvasObject, error
 	scraperConfig.SetText(scraper.GetConnectionConfig())
 	scraperConfig.Password = source.KeyIsSecret()
 	scraperConfig.OnChanged = func(s string) {
-		ui.configStorage.UpdateConfig([]entity.ConfigUpdateOption{
+		err = ui.configStorage.UpdateConfig([]entity.ConfigUpdateOption{
 			scraper.ConnectionConfigUpdateOption(scraperConfig.Text),
 		})
+		if err != nil {
+			logger.Error(fmt.Errorf("failed to update config: %w", err))
+		}
 	}
 
 	return []fyne.CanvasObject{
