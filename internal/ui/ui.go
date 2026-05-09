@@ -16,20 +16,23 @@ import (
 )
 
 type UI struct {
-	app           fyne.App
-	mainWindow    fyne.Window
-	configStorage ConfigStorage
-	scrapers      map[entity.Source]Scraper
+	app              fyne.App
+	mainWindow       fyne.Window
+	configStorage    ConfigStorage
+	languageProvider LanguageProvider
+	scrapers         map[entity.Source]Scraper
 }
 
 func New(
+	languageProvider LanguageProvider,
 	scrapers map[entity.Source]Scraper,
 	configStorage ConfigStorage,
 ) error {
 	newUI := &UI{
-		app:           app.New(),
-		scrapers:      scrapers,
-		configStorage: configStorage,
+		app:              app.New(),
+		scrapers:         scrapers,
+		languageProvider: languageProvider,
+		configStorage:    configStorage,
 	}
 
 	err := newUI.newMainWindow()
@@ -58,11 +61,20 @@ func (ui *UI) newMainWindow() error {
 	if err != nil {
 		return fmt.Errorf("error on get main window connection tab content: %w", err)
 	}
-	tabs.Append(container.NewTabItem("Connections", connectionTabContent))
+	tabs.Append(container.NewTabItem(
+		ui.languageProvider.Local(entity.LanguageTextConstantConnectionsTab),
+		connectionTabContent,
+	))
 
-	tabs.Append(container.NewTabItem("Styles", ui.getCssTabContent()))
+	tabs.Append(container.NewTabItem(
+		ui.languageProvider.Local(entity.LanguageTextConstantCSSTab),
+		ui.getCssTabContent(),
+	))
 
-	tabs.Append(container.NewTabItem("Settings", ui.getSettingsTabContent()))
+	tabs.Append(container.NewTabItem(
+		ui.languageProvider.Local(entity.LanguageTextConstantSettingsTab),
+		ui.getSettingsTabContent(),
+	))
 
 	mainWindow.SetContent(tabs)
 
@@ -77,9 +89,9 @@ func (ui *UI) getConnectionTabContent() (*fyne.Container, error) {
 	switchesContent := make([]fyne.CanvasObject, 0, itemsInLine*(1+len(ui.scrapers)))
 	switchesContent = append(
 		switchesContent,
-		widget.NewLabel("Switch"),
-		widget.NewLabel("Sources"),
-		widget.NewLabel("Key"),
+		widget.NewLabel(ui.languageProvider.Local(entity.LanguageTextConstantConnectionSwitchesHead)),
+		widget.NewLabel(ui.languageProvider.Local(entity.LanguageTextConstantConnectionSourcesHead)),
+		widget.NewLabel(ui.languageProvider.Local(entity.LanguageTextConstantConnectionKeysHead)),
 	)
 
 	connectionsOrder := []entity.Source{
@@ -108,7 +120,7 @@ func (ui *UI) getConnectionRow(source entity.Source) ([]fyne.CanvasObject, error
 	scraper := ui.scrapers[source]
 	// Заголовок
 	scraperContent := binding.NewString()
-	err := scraperContent.Set(getLabelText(source, false))
+	err := scraperContent.Set(ui.getLabelText(source, false))
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +128,7 @@ func (ui *UI) getConnectionRow(source entity.Source) ([]fyne.CanvasObject, error
 
 	// Кнопка переключения
 	scraperButton := widget.NewButton(
-		"Turn",
+		ui.languageProvider.Local(entity.LanguageTextConstantConnectionSwitchButton),
 		ui.turnButtonHandler(
 			source,
 			scraperContent,
@@ -156,7 +168,7 @@ func (ui *UI) turnButtonHandler(
 		}
 		if scraper.Status() == entity.ScraperStateStopped {
 			scraper.Run(context.Background())
-			err := label.Set(getLabelText(source, true))
+			err := label.Set(ui.getLabelText(source, true))
 			if err != nil {
 				logger.Error(fmt.Errorf("failed to change label: %w", err))
 
@@ -164,7 +176,7 @@ func (ui *UI) turnButtonHandler(
 			}
 		} else {
 			scraper.Stop()
-			err := label.Set(getLabelText(source, false))
+			err := label.Set(ui.getLabelText(source, false))
 			if err != nil {
 				logger.Error(fmt.Errorf("failed to change label: %w", err))
 
@@ -174,7 +186,7 @@ func (ui *UI) turnButtonHandler(
 	}
 }
 
-func getLabelText(
+func (ui *UI) getLabelText(
 	source entity.Source,
 	isActive bool,
 ) string {
@@ -197,9 +209,9 @@ func getLabelText(
 	}
 
 	if isActive {
-		statusName = "active"
+		statusName = ui.languageProvider.Local(entity.LanguageTextConstantUnknownScraperIsOn)
 	} else {
-		statusName = "stopped"
+		statusName = ui.languageProvider.Local(entity.LanguageTextConstantUnknownScraperIsOff)
 	}
 
 	return fmt.Sprintf("%s (%s)", serviceName, statusName)

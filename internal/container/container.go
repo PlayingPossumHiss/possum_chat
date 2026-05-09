@@ -13,6 +13,7 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_ws"
 	youtube_client "github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/youtube"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/language_provider"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/donation_alerts"
@@ -34,6 +35,7 @@ type Container struct {
 	configService       *settings.Service
 	messageQueueService *message_queue.Service
 	scrapers            map[entity.Source]Scraper
+	languageProvider    *language_provider.LanguageProvider
 
 	// юзкейсы
 	watchSubscribersRunner *run_watch_scrapers.UseCase
@@ -107,6 +109,11 @@ func (c *Container) Run() error {
 		return err
 	}
 
+	languageProvider, err := c.getLanguageProvider()
+	if err != nil {
+		return err
+	}
+
 	c.scheduler.Start()
 
 	api.Run()
@@ -116,6 +123,7 @@ func (c *Container) Run() error {
 		uiScrapers[source] = scraper
 	}
 	err = ui.New(
+		languageProvider,
 		uiScrapers,
 		configService,
 	)
@@ -124,6 +132,21 @@ func (c *Container) Run() error {
 	}
 
 	return nil
+}
+
+func (c *Container) getLanguageProvider() (*language_provider.LanguageProvider, error) {
+	if c.languageProvider != nil {
+		return c.languageProvider, nil
+	}
+
+	configService, err := c.getConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	c.languageProvider = language_provider.New(configService.Config().UI.Lang)
+
+	return c.languageProvider, nil
 }
 
 func (c *Container) addJobToScheduler(

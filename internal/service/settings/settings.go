@@ -16,7 +16,12 @@ type Service struct {
 }
 
 func New() (*Service, error) {
-	settings, err := getSettingsFromFile()
+	settingsRaw, err := getRawSettingsFromFile()
+	if err != nil {
+		return nil, err
+	}
+
+	settings, err := processSettings(settingsRaw)
 	if err != nil {
 		return nil, err
 	}
@@ -49,22 +54,22 @@ func (s *Service) Config() entity.Config {
 	return s.settings
 }
 
-func getSettingsFromFile() (entity.Config, error) {
+func getRawSettingsFromFile() (config, error) {
 	_, err := os.Stat(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			err = saveSettingToFile(defaultConfig)
 			if err != nil {
-				return entity.Config{}, err
+				return config{}, err
 			}
 		} else {
-			return entity.Config{}, err
+			return config{}, err
 		}
 	}
 
 	jsonFile, err := os.Open(configPath)
 	if err != nil {
-		return entity.Config{}, err
+		return config{}, err
 	}
 	defer func() {
 		jsonFile.Close()
@@ -72,29 +77,48 @@ func getSettingsFromFile() (entity.Config, error) {
 
 	bytes, err := io.ReadAll(jsonFile)
 	if err != nil {
-		return entity.Config{}, err
+		return config{}, err
 	}
 
 	var settings config
 
 	err = json.Unmarshal(bytes, &settings)
 	if err != nil {
-		return entity.Config{}, err
+		return config{}, err
 	}
 
-	config, version, err := configFromJson(settings)
+	return settings, nil
+}
+
+func processSettings(settings config) (entity.Config, error) {
+	needToSave := false
+	if settings.Version != currentVersion {
+		needToSave = true
+		settings = upgradeConfig(settings)
+	}
+
+	config, err := configFromJson(settings)
 	if err != nil {
 		return entity.Config{}, err
 	}
-	if version != currentVersion {
-		config = upgradeConfig(config, version)
+
+	if needToSave {
+		err := saveSettingToFile(config)
+		if err != nil {
+			return entity.Config{}, err
+		}
 	}
 
 	return config, nil
 }
 
 // upgradeConfig пока тут ничего, но потом появится
-func upgradeConfig(src entity.Config, _ string) entity.Config {
+func upgradeConfig(src config) config {
+	if src.Version == "1.0" {
+		src.UI.Lang = configLangEn
+		src.Version = "1.1"
+	}
+
 	return src
 }
 
