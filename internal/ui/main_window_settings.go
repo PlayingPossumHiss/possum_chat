@@ -39,6 +39,12 @@ func (ui *UI) getSettingsTabContent() *fyne.Container {
 		ui.getLangSettingsView()...,
 	)
 
+	settingsContent = append(
+		settingsContent,
+		widget.NewLabel(ui.languageProvider.Local(entity.LanguageTextConstantAppVersion)),
+		widget.NewLabel("v1.2.1"),
+	)
+
 	grid := container.New(
 		layout.NewGridLayout(itemsInLine),
 		settingsContent...,
