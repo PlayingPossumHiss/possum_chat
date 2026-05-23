@@ -160,6 +160,12 @@ func (c *Client) GetLastTranslationID(ctx context.Context, userName string) (str
 			logger.Error(dErr)
 		}
 	}()
+
+	if response.StatusCode != http.StatusOK {
+		// Ну раз не 200, то видимо это и есть ключ трансляции
+		return userName, nil
+	}
+
 	bodyBytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		err = fmt.Errorf("failed to read response of get last live id for youtube: %w", err)
@@ -182,22 +188,37 @@ func (c *Client) GetLastTranslationID(ctx context.Context, userName string) (str
 		return "", err
 	}
 
+	streamID := getStreamIDFormParsedData(initialData)
+	if streamID != "" {
+		return streamID, nil
+	}
+
+	return "", fmt.Errorf("failed to get live id from json for youtube: %w", app_errors.ErrNoData)
+}
+
+func getStreamIDFormParsedData(initialData *liveListInitialData) string {
 	// Получим первое же отрисовываемое видео и попробуем получить из него айдишник
 	// так же проверим не завершенна ли она
 	for _, tab := range initialData.Contents.TwoColumnBrowseResultsRenderer.Tabs {
 		for _, liveData := range tab.TabRenderer.Content.RichGridRenderer.Contents {
-			if strings.HasPrefix(
-				liveData.RichItemRenderer.Content.VideoRenderer.PublishedTimeText.SimpleText,
-				"Трансляция закончилась",
-			) {
-				return "", fmt.Errorf("last live id for youtube is finished: %w", app_errors.ErrNoData)
+			viewModel := liveData.RichItemRenderer.Content.LockupViewModel
+			for _, mdRow := range viewModel.Metadata.LockupMetadataViewModel.Metadata.ContentMetadataViewModel.MetadataRows {
+				for _, rowMetadataText := range mdRow.MetadataParts {
+					if strings.HasPrefix(
+						rowMetadataText.Text.Content,
+						"Зрителей",
+					) || strings.HasPrefix(
+						rowMetadataText.Text.Content,
+						"Планируемая дата публикации",
+					) {
+						return viewModel.ContentId
+					}
+				}
 			}
-
-			return liveData.RichItemRenderer.Content.VideoRenderer.VideoId, nil //nolint
 		}
 	}
 
-	return "", fmt.Errorf("failed to get live id from json for youtube: %w", app_errors.ErrNoData)
+	return ""
 }
 
 func regexSearch(regex string, str []byte) [][]byte {

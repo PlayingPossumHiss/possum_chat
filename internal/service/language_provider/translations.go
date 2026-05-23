@@ -58,5 +58,9 @@ var (
 			entity.ConfigLangEn: "Language (need restart)",
 			entity.ConfigLangRu: "Язык (нужен перезапуск)",
 		},
+		entity.LanguageTextConstantAppVersion: {
+			entity.ConfigLangEn: "Version",
+			entity.ConfigLangRu: "Версия",
+		},
 	}
 )

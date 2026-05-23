@@ -16,4 +16,5 @@ const (
 	LanguageTextConstantSettingsTimeToDeleteMessage LanguageTextConstant = "SETTINGS_TIME_TO_DELETE_MESSAGE"
 	LanguageTextConstantSettingsPort                LanguageTextConstant = "SETTINGS_PORT"
 	LanguageTextConstantSettingsLang                LanguageTextConstant = "SETTINGS_LANG"
+	LanguageTextConstantAppVersion                  LanguageTextConstant = "APP_VERSION"
 )
