@@ -21,12 +21,28 @@ type liveListInitialDataTab struct {
 type liveListInitialDataTabContent struct {
 	RichItemRenderer struct {
 		Content struct {
-			VideoRenderer struct {
-				VideoId           string
-				PublishedTimeText struct {
-					SimpleText string
+			LockupViewModel struct {
+				ContentId string
+				Metadata  struct {
+					LockupMetadataViewModel struct {
+						Metadata struct {
+							ContentMetadataViewModel struct {
+								MetadataRows []liveListInitialDataMetadataRow
+							}
+						}
+					}
 				}
 			}
 		}
+	}
+}
+
+type liveListInitialDataMetadataRow struct {
+	MetadataParts []liveListInitialDataMetadataPart
+}
+
+type liveListInitialDataMetadataPart struct {
+	Text struct {
+		Content string
 	}
 }
