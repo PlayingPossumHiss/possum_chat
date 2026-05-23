@@ -160,6 +160,12 @@ func (c *Client) GetLastTranslationID(ctx context.Context, userName string) (str
 			logger.Error(dErr)
 		}
 	}()
+
+	if response.StatusCode != http.StatusOK {
+		// Ну раз не 200, то видимо это и есть ключ трансляции
+		return userName, nil
+	}
+
 	bodyBytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		err = fmt.Errorf("failed to read response of get last live id for youtube: %w", err)
