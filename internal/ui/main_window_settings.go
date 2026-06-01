@@ -14,6 +14,8 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
 
+const version = "41ae5ff"
+
 func (ui *UI) getSettingsTabContent() *fyne.Container {
 	const itemsInLine = 2
 
@@ -42,7 +44,7 @@ func (ui *UI) getSettingsTabContent() *fyne.Container {
 	settingsContent = append(
 		settingsContent,
 		widget.NewLabel(ui.languageProvider.Local(entity.LanguageTextConstantAppVersion)),
-		widget.NewLabel("v1.2.1"),
+		widget.NewLabel(version),
 	)
 
 	grid := container.New(

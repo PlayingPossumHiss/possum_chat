@@ -57,7 +57,6 @@ func (s *Service) ConnectionConfigUpdateOption(newValue string) entity.ConfigUpd
 
 func (s *Service) Run(ctx context.Context) {
 	logger.Info("start vk play live scraper")
-	s.stateMx.Lock()
 	newCtx, cancel := context.WithCancel(ctx)
 	s.watchCancel = cancel
 	go s.watchChat(newCtx)
@@ -119,7 +118,7 @@ func (s *Service) watchChat(ctx context.Context) {
 			}
 			s.userID = strconv.Itoa(userID)
 
-			err = s.scrap(ctx, firstRun)
+			err = s.scrap(ctx)
 			if err != nil {
 				logger.Error(err)
 			}
@@ -130,11 +129,8 @@ func (s *Service) watchChat(ctx context.Context) {
 
 func (s *Service) scrap(
 	ctx context.Context,
-	firstRun bool,
 ) error {
-	if !firstRun {
-		s.stateMx.Lock()
-	}
+	s.stateMx.Lock()
 
 	token, err := s.vkPlayLiveApi.GetWsToken(ctx)
 	if err != nil {
