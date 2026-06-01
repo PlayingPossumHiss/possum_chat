@@ -51,7 +51,6 @@ func (s *Service) ConnectionConfigUpdateOption(newValue string) entity.ConfigUpd
 
 func (s *Service) Run(ctx context.Context) {
 	logger.Info("start twitch scraper")
-	s.stateMx.Lock()
 	newCtx, cancel := context.WithCancel(ctx)
 	s.watchCancel = cancel
 	go s.watchChat(newCtx)
@@ -87,17 +86,8 @@ func (s *Service) watchChat(
 		default:
 			if !firstRun {
 				time.Sleep(time.Second)
-				s.stateMx.Lock()
 			}
-			firstRun = false
-
-			channelName := s.GetConnectionConfig()
-			if len(channelName) == 0 {
-				err := fmt.Errorf("%w: can't get channel name for twitch", app_errors.ErrInvalidConfig)
-				logger.Error(err)
-
-				continue
-			}
+			s.stateMx.Lock()
 
 			go func() {
 				// TODO: найти (написать) библиотеку, что не копипаста с js
@@ -108,6 +98,16 @@ func (s *Service) watchChat(
 				s.state = entity.ScraperStateActive
 				s.stateMx.Unlock()
 			}()
+
+			firstRun = false
+
+			channelName := s.GetConnectionConfig()
+			if len(channelName) == 0 {
+				err := fmt.Errorf("%w: can't get channel name for twitch", app_errors.ErrInvalidConfig)
+				logger.Error(err)
+
+				continue
+			}
 
 			err := s.twitchClient.Listen(
 				s.onGetMessage,

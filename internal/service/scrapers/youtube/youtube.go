@@ -51,9 +51,9 @@ func (s *Service) ConnectionConfigUpdateOption(newValue string) entity.ConfigUpd
 
 func (s *Service) Run(ctx context.Context) {
 	logger.Info("start youtube scraper")
-	s.stateMx.Lock()
 	newCtx, cancel := context.WithCancel(ctx)
 	s.watchCancel = cancel
+	s.state = entity.ScraperStateStarting
 	go s.watchChat(newCtx)
 }
 
@@ -87,12 +87,16 @@ func (s *Service) watchChat(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
+			// Чтобы не забанили
 			if !firstTry {
-				// Чтобы не забанили
 				time.Sleep(secondsToWait * time.Second)
-				s.stateMx.Lock()
 			}
 			firstTry = false
+
+			// Если остановили, то завершаем попытки
+			if s.state == entity.ScraperStateStopped {
+				return
+			}
 
 			err := s.initChat(ctx)
 			if err != nil {
@@ -112,6 +116,7 @@ func (s *Service) watchChat(ctx context.Context) {
 }
 
 func (s *Service) initChat(ctx context.Context) error {
+	s.stateMx.Lock()
 	defer s.stateMx.Unlock()
 
 	channelName := s.GetConnectionConfig()
