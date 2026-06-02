@@ -22,10 +22,13 @@
             <img class="message-icon" v-if="message.source=='youtube'" src="/img/youtube.png">
             <img class="message-icon" v-if="message.source=='vk_play_live'" src="/img/vk_play_live.png">
             <img class="message-icon" v-if="message.source=='donation_alerts'" src="/img/donation_alerts.png">
-            {{message.user}}: <span v-for="message_content_item in message.message_content">
-                <img class="message-smile" v-if="message_content_item.type=='image'" v-bind:src="message_content_item.value">
-                <span v-if="message_content_item.type=='text'">{{message_content_item.value}}</span>
-            </span>
+            <div class="message-user">{{message.user}}</div>
+            <div class="message-content">
+                <span v-for="message_content_item in message.message_content">
+                    <img class="message-smile" v-if="message_content_item.type=='image'" v-bind:src="message_content_item.value">
+                    <span v-if="message_content_item.type=='text'">{{message_content_item.value}}</span>
+                </span>
+            </div>
         </div>
     </div>
 </body>

@@ -62,5 +62,13 @@ var (
 			entity.ConfigLangEn: "Version",
 			entity.ConfigLangRu: "Версия",
 		},
+		entity.LanguageTextConstantTestMessageButton: {
+			entity.ConfigLangEn: "Test",
+			entity.ConfigLangRu: "Тест",
+		},
+		entity.LanguageTextConstantTestMessageContent: {
+			entity.ConfigLangEn: "The quick brown fox jumps over the lazy dog",
+			entity.ConfigLangRu: "Съешь ещё этих мягких французских булок, да выпей же чаю",
+		},
 	}
 )
