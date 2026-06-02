@@ -20,6 +20,7 @@ type UI struct {
 	mainWindow       fyne.Window
 	configStorage    ConfigStorage
 	languageProvider LanguageProvider
+	messageQueue     MessageQueue
 	scrapers         map[entity.Source]Scraper
 }
 
@@ -27,12 +28,14 @@ func New(
 	languageProvider LanguageProvider,
 	scrapers map[entity.Source]Scraper,
 	configStorage ConfigStorage,
+	messageQueue MessageQueue,
 ) error {
 	newUI := &UI{
 		app:              app.New(),
 		scrapers:         scrapers,
 		languageProvider: languageProvider,
 		configStorage:    configStorage,
+		messageQueue:     messageQueue,
 	}
 
 	err := newUI.newMainWindow()

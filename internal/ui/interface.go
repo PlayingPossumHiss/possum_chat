@@ -22,3 +22,7 @@ type ConfigStorage interface {
 type LanguageProvider interface {
 	Local(name entity.LanguageTextConstant) string
 }
+
+type MessageQueue interface {
+	PushMessages(messages []entity.Message)
+}

@@ -114,6 +114,11 @@ func (c *Container) Run() error {
 		return err
 	}
 
+	messageQueue, err := c.getMessageQueueService()
+	if err != nil {
+		return err
+	}
+
 	c.scheduler.Start()
 
 	api.Run()
@@ -126,6 +131,7 @@ func (c *Container) Run() error {
 		languageProvider,
 		uiScrapers,
 		configService,
+		messageQueue,
 	)
 	if err != nil {
 		return err

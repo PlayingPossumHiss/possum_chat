@@ -190,7 +190,12 @@ func langFromEntity(src entity.ConfigLang) string {
 	return "en"
 }
 
-func (ui *UI) getCssTabContent() *widget.Entry {
+func (ui *UI) getCssTabContent() *fyne.Container {
+	testMessageButton := widget.NewButton(
+		ui.languageProvider.Local(entity.LanguageTextConstantTestMessageButton),
+		ui.sendTestMessage,
+	)
+
 	cssField := widget.NewMultiLineEntry()
 	cssField.SetText(ui.configStorage.Config().View.CssStyle)
 	cssField.OnChanged = func(s string) {
@@ -204,5 +209,93 @@ func (ui *UI) getCssTabContent() *widget.Entry {
 		}
 	}
 
-	return cssField
+	content := container.New(layout.NewVBoxLayout(), testMessageButton, cssField)
+
+	return content
+}
+
+func (ui *UI) sendTestMessage() {
+	content := ui.languageProvider.Local(entity.LanguageTextConstantTestMessageContent)
+	ui.messageQueue.PushMessages([]entity.Message{
+		{
+			ID:        "test_1",
+			Source:    entity.SourceYoutube,
+			User:      "youtube user",
+			CreatedAt: time.Now(),
+			Content: []entity.MessageContentItem{
+				{
+					Value: content,
+					Type:  entity.MessageContentItemTypeText,
+				},
+				{
+					Value: "/img/youtube.png",
+					Type:  entity.MessageContentItemTypeImage,
+				},
+				{
+					Value: "from youtube",
+					Type:  entity.MessageContentItemTypeText,
+				},
+			},
+		},
+		{
+			ID:        "test_2",
+			Source:    entity.SourceTwitch,
+			User:      "twitch user",
+			CreatedAt: time.Now(),
+			Content: []entity.MessageContentItem{
+				{
+					Value: content,
+					Type:  entity.MessageContentItemTypeText,
+				},
+				{
+					Value: "/img/twitch.png",
+					Type:  entity.MessageContentItemTypeImage,
+				},
+				{
+					Value: "from twitch",
+					Type:  entity.MessageContentItemTypeText,
+				},
+			},
+		},
+		{
+			ID:        "test_3",
+			Source:    entity.SourceVkPlayLive,
+			User:      "VK user",
+			CreatedAt: time.Now(),
+			Content: []entity.MessageContentItem{
+				{
+					Value: content,
+					Type:  entity.MessageContentItemTypeText,
+				},
+				{
+					Value: "/img/vk_play_live.png",
+					Type:  entity.MessageContentItemTypeImage,
+				},
+				{
+					Value: "from vk",
+					Type:  entity.MessageContentItemTypeText,
+				},
+			},
+		},
+		{
+			ID:        "test_4",
+			Source:    entity.SourceDonationAlerts,
+			User:      "DA user",
+			CreatedAt: time.Now(),
+			Content: []entity.MessageContentItem{
+				{
+					Value: content,
+					Type:  entity.MessageContentItemTypeText,
+				},
+				{
+					Value: "/img/donation_alerts.png",
+					Type:  entity.MessageContentItemTypeImage,
+				},
+				{
+					Value: "from DA",
+					Type:  entity.MessageContentItemTypeText,
+				},
+			},
+		},
+	})
 }
