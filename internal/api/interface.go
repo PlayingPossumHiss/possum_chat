@@ -7,7 +7,8 @@ import (
 )
 
 type GetStyleUC interface {
-	GetStyle() string
+	GetCustomStyle() string
+	GetMainStyle() (string, error)
 }
 
 type ListMessagesUC interface {

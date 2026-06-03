@@ -19,4 +19,5 @@ const (
 	LanguageTextConstantAppVersion                  LanguageTextConstant = "APP_VERSION"
 	LanguageTextConstantTestMessageButton           LanguageTextConstant = "TEST_MESSAGE_BUTTON"
 	LanguageTextConstantTestMessageContent          LanguageTextConstant = "TEST_MESSAGE_CONTENT"
+	LanguageTextConstantMainStyleField              LanguageTextConstant = "MAIN_STYLE_FIELD"
 )
