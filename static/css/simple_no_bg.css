@@ -1,0 +1,50 @@
+.message {
+    padding: 0.5rem;
+    font-weight: bold;
+    transform: rotate(180deg);
+}
+
+.messages {
+    transform: rotate(180deg);
+    position: absolute;
+    height: 100%;
+    bottom: 0;
+    right: 0;
+    left: 0;
+}
+
+.scroll-messages {
+    position: none;
+    transform: none;
+}
+
+.scroll-message {
+    transform: none;
+}
+
+.message-icon {
+    height: 1em;
+}
+
+.message-smile {
+    height: 1.5rem;
+    vertical-align: middle;
+    padding-left: 0.1rem;
+    padding-right: 0.1rem;
+}
+
+.message-user {
+    display: inline;
+    text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+    color: white;
+}
+
+.message-user::after {
+  content: ":";
+}
+
+.message-content {
+    display: inline;
+    text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+    color: white;
+}

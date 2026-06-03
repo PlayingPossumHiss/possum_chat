@@ -111,11 +111,25 @@ func viewFromJson(src configView) (entity.ConfigView, error) {
 		return entity.ConfigView{}, err
 	}
 
+	cssMainStyle := cssMainStyleFromJson(src.CssMainStyle)
+
 	return entity.ConfigView{
 		CssStyle:            src.CssStyle,
+		CssMainStyle:        cssMainStyle,
 		TimeToHideMessage:   timeToHideMessage,
 		TimeToDeleteMessage: timeToDeleteMessage,
 	}, nil
+}
+
+func cssMainStyleFromJson(src configMainStyle) entity.ConfigMainStyle {
+	switch src {
+	case configMainStyleSimpleBlock:
+		return entity.ConfigMainStyleSimpleBlock
+	case configMainStyleSimpleNoBg:
+		return entity.ConfigMainStyleSimpleNoBg
+	}
+
+	return entity.ConfigMainStyleSimpleBlock
 }
 
 func configToJson(src entity.Config) config {
@@ -127,6 +141,7 @@ func configToJson(src entity.Config) config {
 		},
 		View: configView{
 			CssStyle:            src.View.CssStyle,
+			CssMainStyle:        cssMainStyleToJson(src.View.CssMainStyle),
 			TimeToHideMessage:   src.View.TimeToHideMessage.String(),
 			TimeToDeleteMessage: src.View.TimeToDeleteMessage.String(),
 		},
@@ -134,6 +149,17 @@ func configToJson(src entity.Config) config {
 		Port:    src.Port,
 		Version: currentVersion,
 	}
+}
+
+func cssMainStyleToJson(src entity.ConfigMainStyle) configMainStyle {
+	switch src {
+	case entity.ConfigMainStyleSimpleBlock:
+		return configMainStyleSimpleBlock
+	case entity.ConfigMainStyleSimpleNoBg:
+		return configMainStyleSimpleNoBg
+	}
+
+	return configMainStyleSimpleBlock
 }
 
 func connctionsToJson(src entity.ConfigConnections) configConnections {

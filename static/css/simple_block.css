@@ -4,7 +4,7 @@
     padding: 0.5rem;
     margin-top: 0.5rem;
     font-weight: bold;
-    background-color: rgba(255, 255, 255, 0.7);
+    background-color: rgba(255, 255, 255, 0.5);
     transform: rotate(180deg);
 }
 
@@ -26,13 +26,15 @@
     transform: none;
 }
 
-img.message-icon {
+.message-icon {
     height: 1em;
 }
 
-img.message-smile {
+.message-smile {
     height: 1.5rem;
     vertical-align: middle;
+    padding-left: 0.1rem;
+    padding-right: 0.1rem;
 }
 
 .message-user {

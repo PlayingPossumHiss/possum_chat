@@ -71,9 +71,7 @@ func getRawSettingsFromFile() (config, error) {
 	if err != nil {
 		return config{}, err
 	}
-	defer func() {
-		jsonFile.Close()
-	}()
+	defer jsonFile.Close()
 
 	bytes, err := io.ReadAll(jsonFile)
 	if err != nil {
@@ -117,6 +115,11 @@ func upgradeConfig(src config) config {
 	if src.Version == "1.0" {
 		src.UI.Lang = configLangEn
 		src.Version = "1.1"
+	}
+
+	if src.Version == "1.1" {
+		src.View.CssMainStyle = configMainStyleSimpleBlock
+		src.Version = "1.2"
 	}
 
 	return src

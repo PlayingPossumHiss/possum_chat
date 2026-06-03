@@ -24,6 +24,13 @@ const (
 	ConfigLangRu
 )
 
+type ConfigMainStyle byte
+
+const (
+	ConfigMainStyleSimpleBlock ConfigMainStyle = iota + 1
+	ConfigMainStyleSimpleNoBg
+)
+
 // ConfigConnection настройки подключений
 type ConfigConnections struct {
 	Youtube        ConfigYoutube
@@ -51,6 +58,7 @@ type ConfigDonationAlerts struct {
 // ConfigView настройки отображения виджета OBS
 type ConfigView struct {
 	CssStyle            string
+	CssMainStyle        ConfigMainStyle
 	TimeToHideMessage   time.Duration
 	TimeToDeleteMessage time.Duration
 }

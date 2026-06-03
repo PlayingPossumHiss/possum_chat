@@ -35,9 +35,9 @@ func New(
 	service.GET("/css/custom_style.css", api.cssCustomStyleCss)
 	service.GET("/api/v1/messages", api.apiV1Messages)
 	service.GET("/api/v1/logging_status", api.apiV1LoggingStatus)
+	service.GET("css/messages.css", api.cssMainStyleCss)
 
 	service.StaticFile("js/messages.js", "./static/js/messages.js")
-	service.StaticFile("css/messages.css", "./static/css/messages.css")
 	service.StaticFile("messages.html", "./static/messages.html")
 	service.Static("/img", "./static/img")
 

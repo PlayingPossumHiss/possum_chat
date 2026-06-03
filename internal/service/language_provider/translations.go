@@ -70,5 +70,9 @@ var (
 			entity.ConfigLangEn: "The quick brown fox jumps over the lazy dog",
 			entity.ConfigLangRu: "Съешь ещё этих мягких французских булок, да выпей же чаю",
 		},
+		entity.LanguageTextConstantMainStyleField: {
+			entity.ConfigLangEn: "Main style",
+			entity.ConfigLangRu: "Основной стиль",
+		},
 	}
 )

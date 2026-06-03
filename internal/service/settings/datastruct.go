@@ -10,7 +10,7 @@ const (
 	configPath = "./config.json"
 )
 
-var currentVersion = "1.1"
+var currentVersion = "1.2"
 
 type config struct {
 	Connections configConnections `json:"connections"`
@@ -57,10 +57,18 @@ type configDonationAlerts struct {
 }
 
 type configView struct {
-	CssStyle            string `json:"css_style"`
-	TimeToHideMessage   string `json:"time_to_hide_message"`
-	TimeToDeleteMessage string `json:"time_to_delete_message"`
+	CssStyle            string          `json:"css_style"`
+	CssMainStyle        configMainStyle `json:"main_style"`
+	TimeToHideMessage   string          `json:"time_to_hide_message"`
+	TimeToDeleteMessage string          `json:"time_to_delete_message"`
 }
+
+type configMainStyle string
+
+const (
+	configMainStyleSimpleBlock configMainStyle = "simple_block"
+	configMainStyleSimpleNoBg  configMainStyle = "simple_no_bg"
+)
 
 type configLogging struct {
 	LogPath  string         `json:"log_path"`
