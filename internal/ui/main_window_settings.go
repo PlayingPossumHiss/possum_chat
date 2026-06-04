@@ -14,7 +14,7 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
 
-const version = "285d788"
+const version = "v1.2.2"
 
 func (ui *UI) getSettingsTabContent() *fyne.Container {
 	const itemsInLine = 2
@@ -47,9 +47,11 @@ func (ui *UI) getSettingsTabContent() *fyne.Container {
 		widget.NewLabel(version),
 	)
 
-	grid := container.New(
-		layout.NewGridLayout(itemsInLine),
-		settingsContent...,
+	grid := container.NewVBox(
+		container.New(
+			layout.NewGridLayout(itemsInLine),
+			settingsContent...,
+		),
 	)
 
 	return grid

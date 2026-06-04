@@ -13,6 +13,7 @@ func (a *Api) cssMainStyleCss(ctx *gin.Context) {
 	if err != nil {
 		logger.Error(err)
 		ctx.String(http.StatusInternalServerError, "")
+
 		return
 	}
 	ctx.String(http.StatusOK, content)

@@ -99,6 +99,19 @@ func (c *Container) Run() error {
 		return err
 	}
 
+	c.scheduler.Start()
+
+	api.Run()
+
+	err = c.startUI()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Container) startUI() error {
 	scrapers, err := c.getScrapers()
 	if err != nil {
 		return err
@@ -118,10 +131,6 @@ func (c *Container) Run() error {
 	if err != nil {
 		return err
 	}
-
-	c.scheduler.Start()
-
-	api.Run()
 
 	uiScrapers := make(map[entity.Source]ui.Scraper, len(scrapers))
 	for source, scraper := range scrapers {
