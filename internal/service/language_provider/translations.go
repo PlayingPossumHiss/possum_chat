@@ -74,5 +74,29 @@ var (
 			entity.ConfigLangEn: "Main style",
 			entity.ConfigLangRu: "Основной стиль",
 		},
+		entity.LanguageTextConstantWidgetOBS: {
+			entity.ConfigLangEn: "OBS widget",
+			entity.ConfigLangRu: "Виджет OBS",
+		},
+		entity.LanguageTextConstantMessagePanel: {
+			entity.ConfigLangEn: "All messages",
+			entity.ConfigLangRu: "Все сообщения",
+		},
+		entity.LanguageTextConstantMyGithub: {
+			entity.ConfigLangEn: "My GitHub",
+			entity.ConfigLangRu: "Мой GitHub",
+		},
+		entity.LanguageTextConstantYoutubeConnPlaceholder: {
+			entity.ConfigLangEn: "Channel name (without @) or stream ID",
+			entity.ConfigLangRu: "Имя канала (без @) или ID трансляции",
+		},
+		entity.LanguageTextConstantTwitchConnPlaceholder: {
+			entity.ConfigLangEn: "Channel name (without @)",
+			entity.ConfigLangRu: "Имя канала (без @)",
+		},
+		entity.LanguageTextConstantDaConnPlaceholder: {
+			entity.ConfigLangEn: "Widget url token",
+			entity.ConfigLangRu: "Токен из виджета",
+		},
 	}
 )

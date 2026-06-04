@@ -28,13 +28,14 @@ func (ui *UI) getCssTabContent() *fyne.Container {
 	}
 
 	mainStyleRow := container.New(
-		layout.NewGridLayout(3),
+		layout.NewGridLayout(connectionTabRows),
 		ui.getMainStyleSettingsView()...,
 	)
 
 	content := container.New(
 		layout.NewVBoxLayout(),
-		mainStyleRow, cssField,
+		mainStyleRow,
+		cssField,
 	)
 
 	return content
@@ -102,86 +103,58 @@ func mainStyleFromConsig(src entity.ConfigMainStyle) string {
 
 func (ui *UI) sendTestMessage() {
 	content := ui.languageProvider.Local(entity.LanguageTextConstantTestMessageContent)
-	ui.messageQueue.PushMessages([]entity.Message{
+	type messageDesc struct {
+		source entity.Source
+		name   string
+		img    string
+	}
+	messagesDescs := []messageDesc{
 		{
-			ID:        "test_1",
-			Source:    entity.SourceYoutube,
-			User:      "youtube user",
-			CreatedAt: time.Now(),
-			Content: []entity.MessageContentItem{
-				{
-					Value: content,
-					Type:  entity.MessageContentItemTypeText,
-				},
-				{
-					Value: "/img/youtube.png",
-					Type:  entity.MessageContentItemTypeImage,
-				},
-				{
-					Value: "from youtube",
-					Type:  entity.MessageContentItemTypeText,
-				},
-			},
+			source: entity.SourceYoutube,
+			name:   "youtube",
+			img:    "/img/youtube.png",
 		},
 		{
-			ID:        "test_2",
-			Source:    entity.SourceTwitch,
-			User:      "twitch user",
-			CreatedAt: time.Now(),
-			Content: []entity.MessageContentItem{
-				{
-					Value: content,
-					Type:  entity.MessageContentItemTypeText,
-				},
-				{
-					Value: "/img/twitch.png",
-					Type:  entity.MessageContentItemTypeImage,
-				},
-				{
-					Value: "from twitch",
-					Type:  entity.MessageContentItemTypeText,
-				},
-			},
+			source: entity.SourceTwitch,
+			name:   "twitch",
+			img:    "/img/twitch.png",
 		},
 		{
-			ID:        "test_3",
-			Source:    entity.SourceVkPlayLive,
-			User:      "VK user",
-			CreatedAt: time.Now(),
-			Content: []entity.MessageContentItem{
-				{
-					Value: content,
-					Type:  entity.MessageContentItemTypeText,
-				},
-				{
-					Value: "/img/vk_play_live.png",
-					Type:  entity.MessageContentItemTypeImage,
-				},
-				{
-					Value: "from vk",
-					Type:  entity.MessageContentItemTypeText,
-				},
-			},
+			source: entity.SourceVkPlayLive,
+			name:   "vk",
+			img:    "/img/vk_play_live.png",
 		},
 		{
-			ID:        "test_4",
-			Source:    entity.SourceDonationAlerts,
-			User:      "DA user",
-			CreatedAt: time.Now(),
-			Content: []entity.MessageContentItem{
-				{
-					Value: content,
-					Type:  entity.MessageContentItemTypeText,
-				},
-				{
-					Value: "/img/donation_alerts.png",
-					Type:  entity.MessageContentItemTypeImage,
-				},
-				{
-					Value: "from DA",
-					Type:  entity.MessageContentItemTypeText,
+			source: entity.SourceDonationAlerts,
+			name:   "DA",
+			img:    "/img/donation_alerts.png",
+		},
+	}
+	messages := make([]entity.Message, 0, len(messagesDescs))
+	for i, onewMessagesDesc := range messagesDescs {
+		messages = append(
+			messages,
+			entity.Message{
+				ID:        fmt.Sprintf("tets_%d", i),
+				Source:    onewMessagesDesc.source,
+				User:      fmt.Sprintf("%s user", onewMessagesDesc.name),
+				CreatedAt: time.Now(),
+				Content: []entity.MessageContentItem{
+					{
+						Value: content,
+						Type:  entity.MessageContentItemTypeText,
+					},
+					{
+						Value: onewMessagesDesc.img,
+						Type:  entity.MessageContentItemTypeImage,
+					},
+					{
+						Value: fmt.Sprintf("from %s", onewMessagesDesc.name),
+						Type:  entity.MessageContentItemTypeText,
+					},
 				},
 			},
-		},
-	})
+		)
+	}
+	ui.messageQueue.PushMessages(messages)
 }
