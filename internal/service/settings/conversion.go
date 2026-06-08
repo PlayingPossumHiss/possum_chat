@@ -91,6 +91,7 @@ func connectionsFromJson(src configConnections) entity.ConfigConnections {
 	return entity.ConfigConnections{
 		Youtube:        entity.ConfigYoutube{ChannelName: src.Youtube.ChannelName},
 		Twitch:         entity.ConfigTwitch{ChannelName: src.Twitch.ChannelName},
+		Kick:           entity.ConfigKick{ChannelName: src.Kick.ChannelName},
 		VkPlayLive:     entity.ConfigVkPlayLive{ChannelName: src.VkPlayLive.ChannelName},
 		DonationAlerts: entity.ConfigDonationAlerts{Token: src.DonationAlerts.Token},
 	}
@@ -166,6 +167,7 @@ func connctionsToJson(src entity.ConfigConnections) configConnections {
 	return configConnections{
 		Youtube:        configYoutube{ChannelName: src.Youtube.ChannelName},
 		Twitch:         configTwitch{ChannelName: src.Twitch.ChannelName},
+		Kick:           configKick{ChannelName: src.Kick.ChannelName},
 		VkPlayLive:     configVkPlayLive{ChannelName: src.VkPlayLive.ChannelName},
 		DonationAlerts: configDonationAlerts{Token: src.DonationAlerts.Token},
 	}

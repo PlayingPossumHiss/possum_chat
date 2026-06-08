@@ -35,11 +35,16 @@ const (
 type ConfigConnections struct {
 	Youtube        ConfigYoutube
 	Twitch         ConfigTwitch
+	Kick           ConfigKick
 	VkPlayLive     ConfigVkPlayLive
 	DonationAlerts ConfigDonationAlerts
 }
 
 type ConfigYoutube struct {
+	ChannelName string
+}
+
+type ConfigKick struct {
 	ChannelName string
 }
 

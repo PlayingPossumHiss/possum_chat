@@ -7,4 +7,5 @@ var (
 	ErrNoData        = errors.New("no data")
 	ErrInvalidConfig = errors.New("invalid config")
 	ErrScraperStoped = errors.New("scrapes stopped")
+	ErrRequestFail   = errors.New("request fail")
 )

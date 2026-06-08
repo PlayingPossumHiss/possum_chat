@@ -36,6 +36,7 @@ const (
 type configConnections struct {
 	Youtube        configYoutube        `json:"youtube"`
 	Twitch         configTwitch         `json:"twitch"`
+	Kick           configKick           `json:"kick"`
 	VkPlayLive     configVkPlayLive     `json:"vk_play_live"`
 	DonationAlerts configDonationAlerts `json:"donation_alerts"`
 }
@@ -45,6 +46,10 @@ type configYoutube struct {
 }
 
 type configTwitch struct {
+	ChannelName string `json:"channel_name"`
+}
+
+type configKick struct {
 	ChannelName string `json:"channel_name"`
 }
 

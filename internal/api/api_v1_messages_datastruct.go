@@ -29,6 +29,7 @@ type source string
 const (
 	sourceYoutube        source = "youtube"
 	sourceTwitch         source = "twitch"
+	sourceKick           source = "kick"
 	sourceVkPlayLive     source = "vk_play_live"
 	sourceDonationAlerts source = "donation_alerts"
 )
