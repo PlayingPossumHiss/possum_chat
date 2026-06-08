@@ -41,6 +41,8 @@ func sourceToApi(src entity.Source) source {
 	switch src {
 	case entity.SourceTwitch:
 		return sourceTwitch
+	case entity.SourceKick:
+		return sourceKick
 	case entity.SourceVkPlayLive:
 		return sourceVkPlayLive
 	case entity.SourceYoutube:

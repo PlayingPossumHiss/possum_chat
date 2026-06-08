@@ -1,4 +1,4 @@
-package twitch
+package kick
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 )
 
 type Service struct {
-	twitchClient  TwitchIrcClient
+	client        Client
 	configStorage ConfigStorage
 
 	state       entity.ScraperState
@@ -25,34 +25,32 @@ type Service struct {
 }
 
 func New(
-	twitchClient TwitchIrcClient,
+	client Client,
 	configStorage ConfigStorage,
 ) *Service {
-	service := &Service{
-		twitchClient:  twitchClient,
+	return &Service{
+		client:        client,
 		configStorage: configStorage,
-		messageMx:     &sync.Mutex{},
 		stateMx:       &sync.Mutex{},
+		messageMx:     &sync.Mutex{},
 		state:         entity.ScraperStateStopped,
 	}
-
-	return service
 }
 
 func (s *Service) Run(ctx context.Context) {
-	logger.Info("start twitch scraper")
+	logger.Info("start kick scraper")
 	newCtx, cancel := context.WithCancel(ctx)
 	s.watchCancel = cancel
 	go s.watchChat(newCtx)
 }
 
 func (s *Service) Stop() {
-	logger.Info("stop twitch scraper")
+	logger.Info("stop kick scraper")
 	s.stateMx.Lock()
 	defer s.stateMx.Unlock()
 
 	s.watchCancel()
-	err := s.twitchClient.Close()
+	err := s.client.Close()
 	if err != nil {
 		logger.Error(err)
 	}
@@ -70,7 +68,7 @@ func (s *Service) watchChat(
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Warn("twitch watcher is stopped by contex cancel")
+			logger.Warn("kick watcher is stopped by contex cancel")
 
 			return
 		default:
@@ -83,6 +81,9 @@ func (s *Service) watchChat(
 				// TODO: найти (написать) библиотеку, что не копипаста с js
 				// Тут из-за архитектуры и с реконектами проблема
 				// Пока костыль, что за секунду-то поднимается клиент
+				//
+				// Сделаем вид, что это не копипаста с соседнего
+				// Я подумаю как сделать это лучше, но не сегодня
 
 				time.Sleep(time.Second)
 				s.state = entity.ScraperStateActive
@@ -91,20 +92,26 @@ func (s *Service) watchChat(
 
 			firstRun = false
 
-			channelName := s.configStorage.Config().Connections.Twitch.ChannelName
+			channelName := s.configStorage.Config().Connections.Kick.ChannelName
 			if len(channelName) == 0 {
-				err := fmt.Errorf("%w: can't get channel name for twitch", app_errors.ErrInvalidConfig)
+				err := fmt.Errorf("%w: can't get channel name for kick", app_errors.ErrInvalidConfig)
 				logger.Error(err)
 
 				continue
 			}
 
-			err := s.twitchClient.Listen(
+			roomID, err := s.client.GetRoomIDByUserName(ctx, channelName)
+			if err != nil {
+				err = fmt.Errorf("error on get kick chat id: %w", err)
+				logger.Error(err)
+			}
+
+			err = s.client.Listen(
 				s.onGetMessage,
-				channelName,
+				roomID,
 			)
 			if err != nil {
-				err = fmt.Errorf("error on listen twitch chat: %w", err)
+				err = fmt.Errorf("error on listen kick chat: %w", err)
 				logger.Error(err)
 			}
 		}

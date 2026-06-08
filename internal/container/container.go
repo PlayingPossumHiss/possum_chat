@@ -9,6 +9,7 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 	donation_alerts_client "github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/donation_alerts"
+	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/kick_chat_api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/twitch_irc_client"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_ws"
@@ -17,6 +18,7 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/donation_alerts"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/kick"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/twitch"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/vk_play_live"
 	youtube_scraper "github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/youtube"
@@ -25,6 +27,7 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/get_style"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/list_messages"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/run_watch_scrapers"
+	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/send_test_messages"
 	utils_time "github.com/PlayingPossumHiss/possum_chat/internal/utils/time"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
@@ -47,6 +50,7 @@ type Container struct {
 
 	// инфра
 	vkPlayLiveApi *vk_play_live_api.Client
+	kickApi       *kick_chat_api.Client
 
 	// шедулер
 	scheduler gocron.Scheduler
@@ -127,7 +131,7 @@ func (c *Container) startUI() error {
 		return err
 	}
 
-	messageQueue, err := c.getMessageQueueService()
+	sendTestMessageUC, err := c.getSendTestMessageUseCase()
 	if err != nil {
 		return err
 	}
@@ -140,13 +144,22 @@ func (c *Container) startUI() error {
 		languageProvider,
 		uiScrapers,
 		configService,
-		messageQueue,
+		sendTestMessageUC,
 	)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (c *Container) getSendTestMessageUseCase() (*send_test_messages.UseCase, error) {
+	messageQueue, err := c.getMessageQueueService()
+	if err != nil {
+		return nil, err
+	}
+
+	return send_test_messages.New(messageQueue), nil
 }
 
 func (c *Container) getLanguageProvider() (*language_provider.LanguageProvider, error) {
@@ -328,6 +341,11 @@ func (c *Container) getScrapers() (map[entity.Source]Scraper, error) {
 		return nil, err
 	}
 	result[entity.SourceTwitch] = twitchScraper
+	kickScraper, err := c.getKickScraper()
+	if err != nil {
+		return nil, err
+	}
+	result[entity.SourceKick] = kickScraper
 	vkScraper, err := c.getVkPlayLiveScraper()
 	if err != nil {
 		return nil, err
@@ -393,6 +411,18 @@ func (c *Container) getTwitchScraper() (*twitch.Service, error) {
 	), nil
 }
 
+func (c *Container) getKickScraper() (*kick.Service, error) {
+	configService, err := c.getConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return kick.New(
+		c.getKickApi(),
+		configService,
+	), nil
+}
+
 func (c *Container) getVkPalyLiveApi() *vk_play_live_api.Client {
 	if c.vkPlayLiveApi != nil {
 		return c.vkPlayLiveApi
@@ -401,6 +431,16 @@ func (c *Container) getVkPalyLiveApi() *vk_play_live_api.Client {
 	c.vkPlayLiveApi = vk_play_live_api.New()
 
 	return c.vkPlayLiveApi
+}
+
+func (c *Container) getKickApi() *kick_chat_api.Client {
+	if c.kickApi != nil {
+		return c.kickApi
+	}
+
+	c.kickApi = kick_chat_api.New()
+
+	return c.kickApi
 }
 
 func (c *Container) getVkPalyLiveWs() *vk_play_live_ws.Client {

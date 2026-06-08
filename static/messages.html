@@ -19,6 +19,7 @@
         </div>
         <div class="message" v-bind:class="{'scroll-message': useScroll}" v-for="message in messages">
             <img class="message-icon" v-if="message.source=='twitch'" src="/img/twitch.png">
+            <img class="message-icon" v-if="message.source=='kick'" src="/img/kick.png">
             <img class="message-icon" v-if="message.source=='youtube'" src="/img/youtube.png">
             <img class="message-icon" v-if="message.source=='vk_play_live'" src="/img/vk_play_live.png">
             <img class="message-icon" v-if="message.source=='donation_alerts'" src="/img/donation_alerts.png">

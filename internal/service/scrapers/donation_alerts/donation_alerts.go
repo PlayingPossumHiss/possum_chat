@@ -38,22 +38,12 @@ func New(
 	return service, nil
 }
 
-func (s *Service) GetConnectionConfig() string {
-	return s.configStorage.Config().Connections.DonationAlerts.Token
-}
-
-func (s *Service) ConnectionConfigUpdateOption(newValue string) entity.ConfigUpdateOption {
-	return func(c *entity.Config) {
-		c.Connections.DonationAlerts.Token = newValue
-	}
-}
-
 func (s *Service) Run(ctx context.Context) {
 	logger.Info("start donation alerts scraper")
 	s.stateMx.Lock()
 	defer s.stateMx.Unlock()
 
-	token := s.GetConnectionConfig()
+	token := s.configStorage.Config().Connections.DonationAlerts.Token
 	if len(token) == 0 {
 		err := fmt.Errorf("%w: empty token for donation alerts", app_errors.ErrInvalidConfig)
 		logger.Error(err)
@@ -84,7 +74,7 @@ func (s *Service) WatchLoop() {
 		}
 
 		time.Sleep(time.Second)
-		token := s.GetConnectionConfig()
+		token := s.configStorage.Config().Connections.DonationAlerts.Token
 		if len(token) == 0 {
 			err := fmt.Errorf("%w: empty token for donation alerts", app_errors.ErrInvalidConfig)
 			logger.Error(err)

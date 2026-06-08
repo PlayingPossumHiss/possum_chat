@@ -13,26 +13,26 @@ import (
 var connectionTabRows = 3
 
 type UI struct {
-	app              fyne.App
-	mainWindow       fyne.Window
-	configStorage    ConfigStorage
-	languageProvider LanguageProvider
-	messageQueue     MessageQueue
-	scrapers         map[entity.Source]Scraper
+	app                     fyne.App
+	mainWindow              fyne.Window
+	configStorage           ConfigStorage
+	languageProvider        LanguageProvider
+	sendTestMessagesUseCase SendTestMessagesUseCase
+	scrapers                map[entity.Source]Scraper
 }
 
 func New(
 	languageProvider LanguageProvider,
 	scrapers map[entity.Source]Scraper,
 	configStorage ConfigStorage,
-	messageQueue MessageQueue,
+	sendTestMessagesUseCase SendTestMessagesUseCase,
 ) error {
 	newUI := &UI{
-		app:              app.New(),
-		scrapers:         scrapers,
-		languageProvider: languageProvider,
-		configStorage:    configStorage,
-		messageQueue:     messageQueue,
+		app:                     app.New(),
+		scrapers:                scrapers,
+		languageProvider:        languageProvider,
+		configStorage:           configStorage,
+		sendTestMessagesUseCase: sendTestMessagesUseCase,
 	}
 
 	err := newUI.newMainWindow()

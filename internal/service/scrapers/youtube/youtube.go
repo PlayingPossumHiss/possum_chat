@@ -39,16 +39,6 @@ func New(
 	return scraper
 }
 
-func (s *Service) GetConnectionConfig() string {
-	return s.configStorage.Config().Connections.Youtube.ChannelName
-}
-
-func (s *Service) ConnectionConfigUpdateOption(newValue string) entity.ConfigUpdateOption {
-	return func(c *entity.Config) {
-		c.Connections.Youtube.ChannelName = newValue
-	}
-}
-
 func (s *Service) Run(ctx context.Context) {
 	logger.Info("start youtube scraper")
 	newCtx, cancel := context.WithCancel(ctx)
@@ -119,7 +109,7 @@ func (s *Service) initChat(ctx context.Context) error {
 	s.stateMx.Lock()
 	defer s.stateMx.Unlock()
 
-	channelName := s.GetConnectionConfig()
+	channelName := s.configStorage.Config().Connections.Youtube.ChannelName
 	if len(channelName) == 0 {
 		return fmt.Errorf("%w: can't get channel name for vk play live", app_errors.ErrInvalidConfig)
 	}

@@ -11,6 +11,4 @@ type Scraper interface {
 	Run(ctx context.Context)
 	Stop()
 	Status() entity.ScraperState
-	GetConnectionConfig() string
-	ConnectionConfigUpdateOption(string) entity.ConfigUpdateOption
 }

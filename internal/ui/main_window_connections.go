@@ -26,6 +26,7 @@ func (ui *UI) getConnectionTabContent() (*fyne.Container, error) {
 	connectionsOrder := []entity.Source{
 		entity.SourceYoutube,
 		entity.SourceTwitch,
+		entity.SourceKick,
 		entity.SourceVkPlayLive,
 		entity.SourceDonationAlerts,
 	}
@@ -86,7 +87,6 @@ func mustParseUrl(src string) *url.URL {
 }
 
 func (ui *UI) getConnectionRow(source entity.Source) ([]fyne.CanvasObject, error) {
-	scraper := ui.scrapers[source]
 	// Заголовок
 	scraperContent := binding.NewString()
 	err := scraperContent.Set(ui.getLabelText(source, false))
@@ -106,12 +106,12 @@ func (ui *UI) getConnectionRow(source entity.Source) ([]fyne.CanvasObject, error
 
 	// Строка с конфигом
 	scraperConfig := widget.NewEntry()
-	scraperConfig.SetText(scraper.GetConnectionConfig())
+	scraperConfig.SetText(ui.getConnectionConfig(source))
 	scraperConfig.Password = source.KeyIsSecret()
 	scraperConfig.SetPlaceHolder(ui.connectionPlaceholder(source))
 	scraperConfig.OnChanged = func(s string) {
 		err = ui.configStorage.UpdateConfig([]entity.ConfigUpdateOption{
-			scraper.ConnectionConfigUpdateOption(scraperConfig.Text),
+			connectionConfigUpdateOption(source, scraperConfig.Text),
 		})
 		if err != nil {
 			logger.Error(fmt.Errorf("failed to update config: %w", err))
@@ -125,11 +125,28 @@ func (ui *UI) getConnectionRow(source entity.Source) ([]fyne.CanvasObject, error
 	}, nil
 }
 
+func (ui *UI) getConnectionConfig(src entity.Source) string {
+	switch src {
+	case entity.SourceYoutube:
+		return ui.configStorage.Config().Connections.Youtube.ChannelName
+	case entity.SourceTwitch:
+		return ui.configStorage.Config().Connections.Twitch.ChannelName
+	case entity.SourceKick:
+		return ui.configStorage.Config().Connections.Kick.ChannelName
+	case entity.SourceVkPlayLive:
+		return ui.configStorage.Config().Connections.VkPlayLive.ChannelName
+	case entity.SourceDonationAlerts:
+		return ui.configStorage.Config().Connections.DonationAlerts.Token
+	}
+
+	return ""
+}
+
 func (ui *UI) connectionPlaceholder(src entity.Source) string {
 	switch src {
 	case entity.SourceDonationAlerts:
 		return ui.languageProvider.Local(entity.LanguageTextConstantDaConnPlaceholder)
-	case entity.SourceTwitch, entity.SourceVkPlayLive:
+	case entity.SourceTwitch, entity.SourceVkPlayLive, entity.SourceKick:
 		return ui.languageProvider.Local(entity.LanguageTextConstantTwitchConnPlaceholder)
 	case entity.SourceYoutube:
 		return ui.languageProvider.Local(entity.LanguageTextConstantYoutubeConnPlaceholder)
@@ -183,6 +200,8 @@ func (ui *UI) getLabelText(
 		serviceName = "Donation Alerts"
 	case entity.SourceTwitch:
 		serviceName = "Twitch"
+	case entity.SourceKick:
+		serviceName = "Kick"
 	case entity.SourceVkPlayLive:
 		serviceName = "VK Play Live"
 	case entity.SourceYoutube:
@@ -198,4 +217,31 @@ func (ui *UI) getLabelText(
 	}
 
 	return fmt.Sprintf("%s (%s)", serviceName, statusName)
+}
+
+func connectionConfigUpdateOption(source entity.Source, newValue string) entity.ConfigUpdateOption {
+	switch source {
+	case entity.SourceYoutube:
+		return func(c *entity.Config) {
+			c.Connections.Youtube.ChannelName = newValue
+		}
+	case entity.SourceDonationAlerts:
+		return func(c *entity.Config) {
+			c.Connections.DonationAlerts.Token = newValue
+		}
+	case entity.SourceTwitch:
+		return func(c *entity.Config) {
+			c.Connections.Twitch.ChannelName = newValue
+		}
+	case entity.SourceVkPlayLive:
+		return func(c *entity.Config) {
+			c.Connections.VkPlayLive.ChannelName = newValue
+		}
+	case entity.SourceKick:
+		return func(c *entity.Config) {
+			c.Connections.Kick.ChannelName = newValue
+		}
+	}
+
+	return func(c *entity.Config) {}
 }

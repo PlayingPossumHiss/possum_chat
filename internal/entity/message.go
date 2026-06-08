@@ -28,6 +28,7 @@ type Source byte
 const (
 	SourceYoutube Source = iota + 1
 	SourceTwitch
+	SourceKick
 	SourceVkPlayLive
 	SourceDonationAlerts
 )

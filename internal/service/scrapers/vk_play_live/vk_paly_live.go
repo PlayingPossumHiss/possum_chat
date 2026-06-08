@@ -45,16 +45,6 @@ func New(
 	return scraper, nil
 }
 
-func (s *Service) GetConnectionConfig() string {
-	return s.configStorage.Config().Connections.VkPlayLive.ChannelName
-}
-
-func (s *Service) ConnectionConfigUpdateOption(newValue string) entity.ConfigUpdateOption {
-	return func(c *entity.Config) {
-		c.Connections.VkPlayLive.ChannelName = newValue
-	}
-}
-
 func (s *Service) Run(ctx context.Context) {
 	logger.Info("start vk play live scraper")
 	newCtx, cancel := context.WithCancel(ctx)
@@ -99,7 +89,7 @@ func (s *Service) watchChat(ctx context.Context) {
 				time.Sleep(time.Second)
 			}
 
-			channelName := s.GetConnectionConfig()
+			channelName := s.configStorage.Config().Connections.VkPlayLive.ChannelName
 			if len(channelName) == 0 {
 				err := fmt.Errorf("%w: can't get channel name for vk play live", app_errors.ErrInvalidConfig)
 				logger.Error(err)

@@ -10,8 +10,6 @@ type Scraper interface {
 	Run(ctx context.Context)
 	Stop()
 	Status() entity.ScraperState
-	GetConnectionConfig() string
-	ConnectionConfigUpdateOption(string) entity.ConfigUpdateOption
 }
 
 type ConfigStorage interface {
@@ -23,6 +21,6 @@ type LanguageProvider interface {
 	Local(name entity.LanguageTextConstant) string
 }
 
-type MessageQueue interface {
-	PushMessages(messages []entity.Message)
+type SendTestMessagesUseCase interface {
+	SendTestMessages(messageText string)
 }
