@@ -23,9 +23,9 @@ type TwitchIrcClientMock struct {
 	beforeCloseCounter uint64
 	CloseMock          mTwitchIrcClientMockClose
 
-	funcListen          func(callback func(entity.Message), channelName string) (err error)
+	funcListen          func(channelName string) (ch1 chan entity.Message)
 	funcListenOrigin    string
-	inspectFuncListen   func(callback func(entity.Message), channelName string)
+	inspectFuncListen   func(channelName string)
 	afterListenCounter  uint64
 	beforeListenCounter uint64
 	ListenMock          mTwitchIrcClientMockListen
@@ -261,25 +261,22 @@ type TwitchIrcClientMockListenExpectation struct {
 
 // TwitchIrcClientMockListenParams contains parameters of the TwitchIrcClient.Listen
 type TwitchIrcClientMockListenParams struct {
-	callback    func(entity.Message)
 	channelName string
 }
 
 // TwitchIrcClientMockListenParamPtrs contains pointers to parameters of the TwitchIrcClient.Listen
 type TwitchIrcClientMockListenParamPtrs struct {
-	callback    *func(entity.Message)
 	channelName *string
 }
 
 // TwitchIrcClientMockListenResults contains results of the TwitchIrcClient.Listen
 type TwitchIrcClientMockListenResults struct {
-	err error
+	ch1 chan entity.Message
 }
 
 // TwitchIrcClientMockListenOrigins contains origins of expectations of the TwitchIrcClient.Listen
 type TwitchIrcClientMockListenExpectationOrigins struct {
 	origin            string
-	originCallback    string
 	originChannelName string
 }
 
@@ -294,7 +291,7 @@ func (mmListen *mTwitchIrcClientMockListen) Optional() *mTwitchIrcClientMockList
 }
 
 // Expect sets up expected params for TwitchIrcClient.Listen
-func (mmListen *mTwitchIrcClientMockListen) Expect(callback func(entity.Message), channelName string) *mTwitchIrcClientMockListen {
+func (mmListen *mTwitchIrcClientMockListen) Expect(channelName string) *mTwitchIrcClientMockListen {
 	if mmListen.mock.funcListen != nil {
 		mmListen.mock.t.Fatalf("TwitchIrcClientMock.Listen mock is already set by Set")
 	}
@@ -307,7 +304,7 @@ func (mmListen *mTwitchIrcClientMockListen) Expect(callback func(entity.Message)
 		mmListen.mock.t.Fatalf("TwitchIrcClientMock.Listen mock is already set by ExpectParams functions")
 	}
 
-	mmListen.defaultExpectation.params = &TwitchIrcClientMockListenParams{callback, channelName}
+	mmListen.defaultExpectation.params = &TwitchIrcClientMockListenParams{channelName}
 	mmListen.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmListen.expectations {
 		if minimock.Equal(e.params, mmListen.defaultExpectation.params) {
@@ -318,31 +315,8 @@ func (mmListen *mTwitchIrcClientMockListen) Expect(callback func(entity.Message)
 	return mmListen
 }
 
-// ExpectCallbackParam1 sets up expected param callback for TwitchIrcClient.Listen
-func (mmListen *mTwitchIrcClientMockListen) ExpectCallbackParam1(callback func(entity.Message)) *mTwitchIrcClientMockListen {
-	if mmListen.mock.funcListen != nil {
-		mmListen.mock.t.Fatalf("TwitchIrcClientMock.Listen mock is already set by Set")
-	}
-
-	if mmListen.defaultExpectation == nil {
-		mmListen.defaultExpectation = &TwitchIrcClientMockListenExpectation{}
-	}
-
-	if mmListen.defaultExpectation.params != nil {
-		mmListen.mock.t.Fatalf("TwitchIrcClientMock.Listen mock is already set by Expect")
-	}
-
-	if mmListen.defaultExpectation.paramPtrs == nil {
-		mmListen.defaultExpectation.paramPtrs = &TwitchIrcClientMockListenParamPtrs{}
-	}
-	mmListen.defaultExpectation.paramPtrs.callback = &callback
-	mmListen.defaultExpectation.expectationOrigins.originCallback = minimock.CallerInfo(1)
-
-	return mmListen
-}
-
-// ExpectChannelNameParam2 sets up expected param channelName for TwitchIrcClient.Listen
-func (mmListen *mTwitchIrcClientMockListen) ExpectChannelNameParam2(channelName string) *mTwitchIrcClientMockListen {
+// ExpectChannelNameParam1 sets up expected param channelName for TwitchIrcClient.Listen
+func (mmListen *mTwitchIrcClientMockListen) ExpectChannelNameParam1(channelName string) *mTwitchIrcClientMockListen {
 	if mmListen.mock.funcListen != nil {
 		mmListen.mock.t.Fatalf("TwitchIrcClientMock.Listen mock is already set by Set")
 	}
@@ -365,7 +339,7 @@ func (mmListen *mTwitchIrcClientMockListen) ExpectChannelNameParam2(channelName 
 }
 
 // Inspect accepts an inspector function that has same arguments as the TwitchIrcClient.Listen
-func (mmListen *mTwitchIrcClientMockListen) Inspect(f func(callback func(entity.Message), channelName string)) *mTwitchIrcClientMockListen {
+func (mmListen *mTwitchIrcClientMockListen) Inspect(f func(channelName string)) *mTwitchIrcClientMockListen {
 	if mmListen.mock.inspectFuncListen != nil {
 		mmListen.mock.t.Fatalf("Inspect function is already set for TwitchIrcClientMock.Listen")
 	}
@@ -376,7 +350,7 @@ func (mmListen *mTwitchIrcClientMockListen) Inspect(f func(callback func(entity.
 }
 
 // Return sets up results that will be returned by TwitchIrcClient.Listen
-func (mmListen *mTwitchIrcClientMockListen) Return(err error) *TwitchIrcClientMock {
+func (mmListen *mTwitchIrcClientMockListen) Return(ch1 chan entity.Message) *TwitchIrcClientMock {
 	if mmListen.mock.funcListen != nil {
 		mmListen.mock.t.Fatalf("TwitchIrcClientMock.Listen mock is already set by Set")
 	}
@@ -384,13 +358,13 @@ func (mmListen *mTwitchIrcClientMockListen) Return(err error) *TwitchIrcClientMo
 	if mmListen.defaultExpectation == nil {
 		mmListen.defaultExpectation = &TwitchIrcClientMockListenExpectation{mock: mmListen.mock}
 	}
-	mmListen.defaultExpectation.results = &TwitchIrcClientMockListenResults{err}
+	mmListen.defaultExpectation.results = &TwitchIrcClientMockListenResults{ch1}
 	mmListen.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
 	return mmListen.mock
 }
 
 // Set uses given function f to mock the TwitchIrcClient.Listen method
-func (mmListen *mTwitchIrcClientMockListen) Set(f func(callback func(entity.Message), channelName string) (err error)) *TwitchIrcClientMock {
+func (mmListen *mTwitchIrcClientMockListen) Set(f func(channelName string) (ch1 chan entity.Message)) *TwitchIrcClientMock {
 	if mmListen.defaultExpectation != nil {
 		mmListen.mock.t.Fatalf("Default expectation is already set for the TwitchIrcClient.Listen method")
 	}
@@ -406,14 +380,14 @@ func (mmListen *mTwitchIrcClientMockListen) Set(f func(callback func(entity.Mess
 
 // When sets expectation for the TwitchIrcClient.Listen which will trigger the result defined by the following
 // Then helper
-func (mmListen *mTwitchIrcClientMockListen) When(callback func(entity.Message), channelName string) *TwitchIrcClientMockListenExpectation {
+func (mmListen *mTwitchIrcClientMockListen) When(channelName string) *TwitchIrcClientMockListenExpectation {
 	if mmListen.mock.funcListen != nil {
 		mmListen.mock.t.Fatalf("TwitchIrcClientMock.Listen mock is already set by Set")
 	}
 
 	expectation := &TwitchIrcClientMockListenExpectation{
 		mock:               mmListen.mock,
-		params:             &TwitchIrcClientMockListenParams{callback, channelName},
+		params:             &TwitchIrcClientMockListenParams{channelName},
 		expectationOrigins: TwitchIrcClientMockListenExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmListen.expectations = append(mmListen.expectations, expectation)
@@ -421,8 +395,8 @@ func (mmListen *mTwitchIrcClientMockListen) When(callback func(entity.Message), 
 }
 
 // Then sets up TwitchIrcClient.Listen return parameters for the expectation previously defined by the When method
-func (e *TwitchIrcClientMockListenExpectation) Then(err error) *TwitchIrcClientMock {
-	e.results = &TwitchIrcClientMockListenResults{err}
+func (e *TwitchIrcClientMockListenExpectation) Then(ch1 chan entity.Message) *TwitchIrcClientMock {
+	e.results = &TwitchIrcClientMockListenResults{ch1}
 	return e.mock
 }
 
@@ -448,17 +422,17 @@ func (mmListen *mTwitchIrcClientMockListen) invocationsDone() bool {
 }
 
 // Listen implements mm_twitch.TwitchIrcClient
-func (mmListen *TwitchIrcClientMock) Listen(callback func(entity.Message), channelName string) (err error) {
+func (mmListen *TwitchIrcClientMock) Listen(channelName string) (ch1 chan entity.Message) {
 	mm_atomic.AddUint64(&mmListen.beforeListenCounter, 1)
 	defer mm_atomic.AddUint64(&mmListen.afterListenCounter, 1)
 
 	mmListen.t.Helper()
 
 	if mmListen.inspectFuncListen != nil {
-		mmListen.inspectFuncListen(callback, channelName)
+		mmListen.inspectFuncListen(channelName)
 	}
 
-	mm_params := TwitchIrcClientMockListenParams{callback, channelName}
+	mm_params := TwitchIrcClientMockListenParams{channelName}
 
 	// Record call args
 	mmListen.ListenMock.mutex.Lock()
@@ -468,7 +442,7 @@ func (mmListen *TwitchIrcClientMock) Listen(callback func(entity.Message), chann
 	for _, e := range mmListen.ListenMock.expectations {
 		if minimock.Equal(*e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.err
+			return e.results.ch1
 		}
 	}
 
@@ -477,14 +451,9 @@ func (mmListen *TwitchIrcClientMock) Listen(callback func(entity.Message), chann
 		mm_want := mmListen.ListenMock.defaultExpectation.params
 		mm_want_ptrs := mmListen.ListenMock.defaultExpectation.paramPtrs
 
-		mm_got := TwitchIrcClientMockListenParams{callback, channelName}
+		mm_got := TwitchIrcClientMockListenParams{channelName}
 
 		if mm_want_ptrs != nil {
-
-			if mm_want_ptrs.callback != nil && !minimock.Equal(*mm_want_ptrs.callback, mm_got.callback) {
-				mmListen.t.Errorf("TwitchIrcClientMock.Listen got unexpected parameter callback, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmListen.ListenMock.defaultExpectation.expectationOrigins.originCallback, *mm_want_ptrs.callback, mm_got.callback, minimock.Diff(*mm_want_ptrs.callback, mm_got.callback))
-			}
 
 			if mm_want_ptrs.channelName != nil && !minimock.Equal(*mm_want_ptrs.channelName, mm_got.channelName) {
 				mmListen.t.Errorf("TwitchIrcClientMock.Listen got unexpected parameter channelName, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
@@ -500,12 +469,12 @@ func (mmListen *TwitchIrcClientMock) Listen(callback func(entity.Message), chann
 		if mm_results == nil {
 			mmListen.t.Fatal("No results are set for the TwitchIrcClientMock.Listen")
 		}
-		return (*mm_results).err
+		return (*mm_results).ch1
 	}
 	if mmListen.funcListen != nil {
-		return mmListen.funcListen(callback, channelName)
+		return mmListen.funcListen(channelName)
 	}
-	mmListen.t.Fatalf("Unexpected call to TwitchIrcClientMock.Listen. %v %v", callback, channelName)
+	mmListen.t.Fatalf("Unexpected call to TwitchIrcClientMock.Listen. %v", channelName)
 	return
 }
 

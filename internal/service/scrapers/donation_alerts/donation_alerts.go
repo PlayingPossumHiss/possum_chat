@@ -16,8 +16,7 @@ type Service struct {
 	daClient      DonationAlertsClient
 	configStorage ConfigStorage
 
-	state   entity.ScraperState
-	stateMx *sync.Mutex
+	state entity.ScraperState
 
 	messages  []entity.Message
 	messageMx *sync.Mutex
@@ -31,7 +30,6 @@ func New(
 		daClient:      daClient,
 		configStorage: configStorage,
 		messageMx:     &sync.Mutex{},
-		stateMx:       &sync.Mutex{},
 		state:         entity.ScraperStateStopped,
 	}
 
@@ -40,40 +38,16 @@ func New(
 
 func (s *Service) Run(ctx context.Context) {
 	logger.Info("start donation alerts scraper")
-	s.stateMx.Lock()
-	defer s.stateMx.Unlock()
-
-	token := s.configStorage.Config().Connections.DonationAlerts.Token
-	if len(token) == 0 {
-		err := fmt.Errorf("%w: empty token for donation alerts", app_errors.ErrInvalidConfig)
-		logger.Error(err)
-
-		return
-	}
-	err := s.daClient.Init(
-		s.onGetMessage,
-		token,
-	)
-	if err != nil {
-		err := fmt.Errorf("failed to init donation alerts connection: %w", err)
-		logger.Error(err)
-
-		return
-	}
-
 	s.state = entity.ScraperStateActive
-	go s.WatchLoop()
+	go s.watchLoop()
 }
 
-func (s *Service) WatchLoop() {
+func (s *Service) watchLoop() {
 	for {
-		err := s.daClient.Done()
-		logger.Error(err)
 		if s.state == entity.ScraperStateStopped {
 			return
 		}
 
-		time.Sleep(time.Second)
 		token := s.configStorage.Config().Connections.DonationAlerts.Token
 		if len(token) == 0 {
 			err := fmt.Errorf("%w: empty token for donation alerts", app_errors.ErrInvalidConfig)
@@ -81,20 +55,32 @@ func (s *Service) WatchLoop() {
 
 			return
 		}
-		err = s.daClient.Init(
-			s.onGetMessage,
+		messages, err := s.daClient.Init(
 			token,
 		)
 		if err != nil {
 			logger.Error(err)
+
+			continue
 		}
+
+		for message := range messages {
+			s.messageMx.Lock()
+			s.messages = append(s.messages, message)
+			s.messageMx.Unlock()
+		}
+
+		err = s.daClient.Done()
+		if err != nil {
+			logger.Error(err)
+		}
+
+		time.Sleep(time.Second)
 	}
 }
 
 func (s *Service) Stop() {
 	logger.Info("stop donation alerts scraper")
-	s.stateMx.Lock()
-	defer s.stateMx.Unlock()
 
 	s.daClient.Close()
 	s.state = entity.ScraperStateStopped
@@ -102,12 +88,6 @@ func (s *Service) Stop() {
 
 func (s *Service) Status() entity.ScraperState {
 	return s.state
-}
-
-func (s *Service) onGetMessage(message entity.Message) {
-	s.messageMx.Lock()
-	defer s.messageMx.Unlock()
-	s.messages = append(s.messages, message)
 }
 
 func (s *Service) GetMessages() []entity.Message {

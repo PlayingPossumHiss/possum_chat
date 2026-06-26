@@ -4,7 +4,7 @@ import "time"
 
 var APIURL = "wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679?protocol=7&client=js&version=8.4.0-rc2&flash=false"
 
-type PusherSubscribe struct {
+type pusherSubscribe struct {
 	Event string `json:"event"`
 	Data  struct {
 		Channel string `json:"channel"`
@@ -12,35 +12,44 @@ type PusherSubscribe struct {
 	} `json:"data"`
 }
 
-type ChatMessageEvent struct {
+type chatMessageEvent struct {
 	Event   string `json:"event"`
 	Data    string `json:"data"`
 	Channel string `json:"channel"`
 }
 
-type ChatMessage struct {
+type chatMessage struct {
 	ID         string    `json:"id"`
 	ChatroomID int       `json:"chatroom_id"`
 	Content    string    `json:"content"`
 	Type       string    `json:"type"`
 	CreatedAt  time.Time `json:"created_at"`
-	Sender     Sender    `json:"sender"`
+	Sender     sender    `json:"sender"`
 }
 
-type Sender struct {
+type sender struct {
 	ID       int      `json:"id"`
 	Username string   `json:"username"`
 	Slug     string   `json:"slug"`
-	Identity Identity `json:"identity"`
+	Identity identity `json:"identity"`
 }
 
-type Identity struct {
+type identity struct {
 	Color  string  `json:"color"`
-	Badges []Badge `json:"badges"`
+	Badges []badge `json:"badges"`
 }
 
-type Badge struct {
+type badge struct {
 	Type  string `json:"type"`
 	Text  string `json:"text"`
 	Count int    `json:"count"`
+}
+
+type respContract struct {
+	ChatRoom struct {
+		ID int64 `json:"id"`
+	} `json:"chatroom"`
+	LiveStream struct {
+		Online int64 `json:"viewer_count"`
+	} `json:"livestream"`
 }

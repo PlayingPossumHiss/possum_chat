@@ -12,12 +12,14 @@ type Api struct {
 	port           int
 	getStyleUC     GetStyleUC
 	listMessagesUC ListMessagesUC
+	onlineGetter   OnlineGetter
 }
 
 func New(
 	port int,
 	getStyleUC GetStyleUC,
 	listMessagesUC ListMessagesUC,
+	onlineGetter OnlineGetter,
 ) *Api {
 	gin.SetMode(gin.ReleaseMode)
 	service := gin.New()
@@ -29,6 +31,7 @@ func New(
 		service:        service,
 		getStyleUC:     getStyleUC,
 		listMessagesUC: listMessagesUC,
+		onlineGetter:   onlineGetter,
 		port:           port,
 	}
 

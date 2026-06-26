@@ -24,26 +24,12 @@ type VkPlayLiveWsMock struct {
 	beforeCloseCounter uint64
 	CloseMock          mVkPlayLiveWsMockClose
 
-	funcInit          func(ctx context.Context, token string, userID string) (err error)
+	funcInit          func(ctx context.Context, token string, userID string) (v1 entity.VkStreamData, err error)
 	funcInitOrigin    string
 	inspectFuncInit   func(ctx context.Context, token string, userID string)
 	afterInitCounter  uint64
 	beforeInitCounter uint64
 	InitMock          mVkPlayLiveWsMockInit
-
-	funcReadMessage          func() (mp1 *entity.Message, err error)
-	funcReadMessageOrigin    string
-	inspectFuncReadMessage   func()
-	afterReadMessageCounter  uint64
-	beforeReadMessageCounter uint64
-	ReadMessageMock          mVkPlayLiveWsMockReadMessage
-
-	funcWritePong          func() (err error)
-	funcWritePongOrigin    string
-	inspectFuncWritePong   func()
-	afterWritePongCounter  uint64
-	beforeWritePongCounter uint64
-	WritePongMock          mVkPlayLiveWsMockWritePong
 }
 
 // NewVkPlayLiveWsMock returns a mock for mm_vk_play_live.VkPlayLiveWs
@@ -58,10 +44,6 @@ func NewVkPlayLiveWsMock(t minimock.Tester) *VkPlayLiveWsMock {
 
 	m.InitMock = mVkPlayLiveWsMockInit{mock: m}
 	m.InitMock.callArgs = []*VkPlayLiveWsMockInitParams{}
-
-	m.ReadMessageMock = mVkPlayLiveWsMockReadMessage{mock: m}
-
-	m.WritePongMock = mVkPlayLiveWsMockWritePong{mock: m}
 
 	t.Cleanup(m.MinimockFinish)
 
@@ -286,6 +268,7 @@ type VkPlayLiveWsMockInitParamPtrs struct {
 
 // VkPlayLiveWsMockInitResults contains results of the VkPlayLiveWs.Init
 type VkPlayLiveWsMockInitResults struct {
+	v1  entity.VkStreamData
 	err error
 }
 
@@ -413,7 +396,7 @@ func (mmInit *mVkPlayLiveWsMockInit) Inspect(f func(ctx context.Context, token s
 }
 
 // Return sets up results that will be returned by VkPlayLiveWs.Init
-func (mmInit *mVkPlayLiveWsMockInit) Return(err error) *VkPlayLiveWsMock {
+func (mmInit *mVkPlayLiveWsMockInit) Return(v1 entity.VkStreamData, err error) *VkPlayLiveWsMock {
 	if mmInit.mock.funcInit != nil {
 		mmInit.mock.t.Fatalf("VkPlayLiveWsMock.Init mock is already set by Set")
 	}
@@ -421,13 +404,13 @@ func (mmInit *mVkPlayLiveWsMockInit) Return(err error) *VkPlayLiveWsMock {
 	if mmInit.defaultExpectation == nil {
 		mmInit.defaultExpectation = &VkPlayLiveWsMockInitExpectation{mock: mmInit.mock}
 	}
-	mmInit.defaultExpectation.results = &VkPlayLiveWsMockInitResults{err}
+	mmInit.defaultExpectation.results = &VkPlayLiveWsMockInitResults{v1, err}
 	mmInit.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
 	return mmInit.mock
 }
 
 // Set uses given function f to mock the VkPlayLiveWs.Init method
-func (mmInit *mVkPlayLiveWsMockInit) Set(f func(ctx context.Context, token string, userID string) (err error)) *VkPlayLiveWsMock {
+func (mmInit *mVkPlayLiveWsMockInit) Set(f func(ctx context.Context, token string, userID string) (v1 entity.VkStreamData, err error)) *VkPlayLiveWsMock {
 	if mmInit.defaultExpectation != nil {
 		mmInit.mock.t.Fatalf("Default expectation is already set for the VkPlayLiveWs.Init method")
 	}
@@ -458,8 +441,8 @@ func (mmInit *mVkPlayLiveWsMockInit) When(ctx context.Context, token string, use
 }
 
 // Then sets up VkPlayLiveWs.Init return parameters for the expectation previously defined by the When method
-func (e *VkPlayLiveWsMockInitExpectation) Then(err error) *VkPlayLiveWsMock {
-	e.results = &VkPlayLiveWsMockInitResults{err}
+func (e *VkPlayLiveWsMockInitExpectation) Then(v1 entity.VkStreamData, err error) *VkPlayLiveWsMock {
+	e.results = &VkPlayLiveWsMockInitResults{v1, err}
 	return e.mock
 }
 
@@ -485,7 +468,7 @@ func (mmInit *mVkPlayLiveWsMockInit) invocationsDone() bool {
 }
 
 // Init implements mm_vk_play_live.VkPlayLiveWs
-func (mmInit *VkPlayLiveWsMock) Init(ctx context.Context, token string, userID string) (err error) {
+func (mmInit *VkPlayLiveWsMock) Init(ctx context.Context, token string, userID string) (v1 entity.VkStreamData, err error) {
 	mm_atomic.AddUint64(&mmInit.beforeInitCounter, 1)
 	defer mm_atomic.AddUint64(&mmInit.afterInitCounter, 1)
 
@@ -505,7 +488,7 @@ func (mmInit *VkPlayLiveWsMock) Init(ctx context.Context, token string, userID s
 	for _, e := range mmInit.InitMock.expectations {
 		if minimock.Equal(*e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.err
+			return e.results.v1, e.results.err
 		}
 	}
 
@@ -542,7 +525,7 @@ func (mmInit *VkPlayLiveWsMock) Init(ctx context.Context, token string, userID s
 		if mm_results == nil {
 			mmInit.t.Fatal("No results are set for the VkPlayLiveWsMock.Init")
 		}
-		return (*mm_results).err
+		return (*mm_results).v1, (*mm_results).err
 	}
 	if mmInit.funcInit != nil {
 		return mmInit.funcInit(ctx, token, userID)
@@ -619,379 +602,6 @@ func (m *VkPlayLiveWsMock) MinimockInitInspect() {
 	}
 }
 
-type mVkPlayLiveWsMockReadMessage struct {
-	optional           bool
-	mock               *VkPlayLiveWsMock
-	defaultExpectation *VkPlayLiveWsMockReadMessageExpectation
-	expectations       []*VkPlayLiveWsMockReadMessageExpectation
-
-	expectedInvocations       uint64
-	expectedInvocationsOrigin string
-}
-
-// VkPlayLiveWsMockReadMessageExpectation specifies expectation struct of the VkPlayLiveWs.ReadMessage
-type VkPlayLiveWsMockReadMessageExpectation struct {
-	mock *VkPlayLiveWsMock
-
-	results      *VkPlayLiveWsMockReadMessageResults
-	returnOrigin string
-	Counter      uint64
-}
-
-// VkPlayLiveWsMockReadMessageResults contains results of the VkPlayLiveWs.ReadMessage
-type VkPlayLiveWsMockReadMessageResults struct {
-	mp1 *entity.Message
-	err error
-}
-
-// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
-// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
-// Optional() makes method check to work in '0 or more' mode.
-// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
-// catch the problems when the expected method call is totally skipped during test run.
-func (mmReadMessage *mVkPlayLiveWsMockReadMessage) Optional() *mVkPlayLiveWsMockReadMessage {
-	mmReadMessage.optional = true
-	return mmReadMessage
-}
-
-// Expect sets up expected params for VkPlayLiveWs.ReadMessage
-func (mmReadMessage *mVkPlayLiveWsMockReadMessage) Expect() *mVkPlayLiveWsMockReadMessage {
-	if mmReadMessage.mock.funcReadMessage != nil {
-		mmReadMessage.mock.t.Fatalf("VkPlayLiveWsMock.ReadMessage mock is already set by Set")
-	}
-
-	if mmReadMessage.defaultExpectation == nil {
-		mmReadMessage.defaultExpectation = &VkPlayLiveWsMockReadMessageExpectation{}
-	}
-
-	return mmReadMessage
-}
-
-// Inspect accepts an inspector function that has same arguments as the VkPlayLiveWs.ReadMessage
-func (mmReadMessage *mVkPlayLiveWsMockReadMessage) Inspect(f func()) *mVkPlayLiveWsMockReadMessage {
-	if mmReadMessage.mock.inspectFuncReadMessage != nil {
-		mmReadMessage.mock.t.Fatalf("Inspect function is already set for VkPlayLiveWsMock.ReadMessage")
-	}
-
-	mmReadMessage.mock.inspectFuncReadMessage = f
-
-	return mmReadMessage
-}
-
-// Return sets up results that will be returned by VkPlayLiveWs.ReadMessage
-func (mmReadMessage *mVkPlayLiveWsMockReadMessage) Return(mp1 *entity.Message, err error) *VkPlayLiveWsMock {
-	if mmReadMessage.mock.funcReadMessage != nil {
-		mmReadMessage.mock.t.Fatalf("VkPlayLiveWsMock.ReadMessage mock is already set by Set")
-	}
-
-	if mmReadMessage.defaultExpectation == nil {
-		mmReadMessage.defaultExpectation = &VkPlayLiveWsMockReadMessageExpectation{mock: mmReadMessage.mock}
-	}
-	mmReadMessage.defaultExpectation.results = &VkPlayLiveWsMockReadMessageResults{mp1, err}
-	mmReadMessage.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
-	return mmReadMessage.mock
-}
-
-// Set uses given function f to mock the VkPlayLiveWs.ReadMessage method
-func (mmReadMessage *mVkPlayLiveWsMockReadMessage) Set(f func() (mp1 *entity.Message, err error)) *VkPlayLiveWsMock {
-	if mmReadMessage.defaultExpectation != nil {
-		mmReadMessage.mock.t.Fatalf("Default expectation is already set for the VkPlayLiveWs.ReadMessage method")
-	}
-
-	if len(mmReadMessage.expectations) > 0 {
-		mmReadMessage.mock.t.Fatalf("Some expectations are already set for the VkPlayLiveWs.ReadMessage method")
-	}
-
-	mmReadMessage.mock.funcReadMessage = f
-	mmReadMessage.mock.funcReadMessageOrigin = minimock.CallerInfo(1)
-	return mmReadMessage.mock
-}
-
-// Times sets number of times VkPlayLiveWs.ReadMessage should be invoked
-func (mmReadMessage *mVkPlayLiveWsMockReadMessage) Times(n uint64) *mVkPlayLiveWsMockReadMessage {
-	if n == 0 {
-		mmReadMessage.mock.t.Fatalf("Times of VkPlayLiveWsMock.ReadMessage mock can not be zero")
-	}
-	mm_atomic.StoreUint64(&mmReadMessage.expectedInvocations, n)
-	mmReadMessage.expectedInvocationsOrigin = minimock.CallerInfo(1)
-	return mmReadMessage
-}
-
-func (mmReadMessage *mVkPlayLiveWsMockReadMessage) invocationsDone() bool {
-	if len(mmReadMessage.expectations) == 0 && mmReadMessage.defaultExpectation == nil && mmReadMessage.mock.funcReadMessage == nil {
-		return true
-	}
-
-	totalInvocations := mm_atomic.LoadUint64(&mmReadMessage.mock.afterReadMessageCounter)
-	expectedInvocations := mm_atomic.LoadUint64(&mmReadMessage.expectedInvocations)
-
-	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
-}
-
-// ReadMessage implements mm_vk_play_live.VkPlayLiveWs
-func (mmReadMessage *VkPlayLiveWsMock) ReadMessage() (mp1 *entity.Message, err error) {
-	mm_atomic.AddUint64(&mmReadMessage.beforeReadMessageCounter, 1)
-	defer mm_atomic.AddUint64(&mmReadMessage.afterReadMessageCounter, 1)
-
-	mmReadMessage.t.Helper()
-
-	if mmReadMessage.inspectFuncReadMessage != nil {
-		mmReadMessage.inspectFuncReadMessage()
-	}
-
-	if mmReadMessage.ReadMessageMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmReadMessage.ReadMessageMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmReadMessage.ReadMessageMock.defaultExpectation.results
-		if mm_results == nil {
-			mmReadMessage.t.Fatal("No results are set for the VkPlayLiveWsMock.ReadMessage")
-		}
-		return (*mm_results).mp1, (*mm_results).err
-	}
-	if mmReadMessage.funcReadMessage != nil {
-		return mmReadMessage.funcReadMessage()
-	}
-	mmReadMessage.t.Fatalf("Unexpected call to VkPlayLiveWsMock.ReadMessage.")
-	return
-}
-
-// ReadMessageAfterCounter returns a count of finished VkPlayLiveWsMock.ReadMessage invocations
-func (mmReadMessage *VkPlayLiveWsMock) ReadMessageAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmReadMessage.afterReadMessageCounter)
-}
-
-// ReadMessageBeforeCounter returns a count of VkPlayLiveWsMock.ReadMessage invocations
-func (mmReadMessage *VkPlayLiveWsMock) ReadMessageBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmReadMessage.beforeReadMessageCounter)
-}
-
-// MinimockReadMessageDone returns true if the count of the ReadMessage invocations corresponds
-// the number of defined expectations
-func (m *VkPlayLiveWsMock) MinimockReadMessageDone() bool {
-	if m.ReadMessageMock.optional {
-		// Optional methods provide '0 or more' call count restriction.
-		return true
-	}
-
-	for _, e := range m.ReadMessageMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	return m.ReadMessageMock.invocationsDone()
-}
-
-// MinimockReadMessageInspect logs each unmet expectation
-func (m *VkPlayLiveWsMock) MinimockReadMessageInspect() {
-	for _, e := range m.ReadMessageMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to VkPlayLiveWsMock.ReadMessage")
-		}
-	}
-
-	afterReadMessageCounter := mm_atomic.LoadUint64(&m.afterReadMessageCounter)
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ReadMessageMock.defaultExpectation != nil && afterReadMessageCounter < 1 {
-		m.t.Errorf("Expected call to VkPlayLiveWsMock.ReadMessage at\n%s", m.ReadMessageMock.defaultExpectation.returnOrigin)
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcReadMessage != nil && afterReadMessageCounter < 1 {
-		m.t.Errorf("Expected call to VkPlayLiveWsMock.ReadMessage at\n%s", m.funcReadMessageOrigin)
-	}
-
-	if !m.ReadMessageMock.invocationsDone() && afterReadMessageCounter > 0 {
-		m.t.Errorf("Expected %d calls to VkPlayLiveWsMock.ReadMessage at\n%s but found %d calls",
-			mm_atomic.LoadUint64(&m.ReadMessageMock.expectedInvocations), m.ReadMessageMock.expectedInvocationsOrigin, afterReadMessageCounter)
-	}
-}
-
-type mVkPlayLiveWsMockWritePong struct {
-	optional           bool
-	mock               *VkPlayLiveWsMock
-	defaultExpectation *VkPlayLiveWsMockWritePongExpectation
-	expectations       []*VkPlayLiveWsMockWritePongExpectation
-
-	expectedInvocations       uint64
-	expectedInvocationsOrigin string
-}
-
-// VkPlayLiveWsMockWritePongExpectation specifies expectation struct of the VkPlayLiveWs.WritePong
-type VkPlayLiveWsMockWritePongExpectation struct {
-	mock *VkPlayLiveWsMock
-
-	results      *VkPlayLiveWsMockWritePongResults
-	returnOrigin string
-	Counter      uint64
-}
-
-// VkPlayLiveWsMockWritePongResults contains results of the VkPlayLiveWs.WritePong
-type VkPlayLiveWsMockWritePongResults struct {
-	err error
-}
-
-// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
-// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
-// Optional() makes method check to work in '0 or more' mode.
-// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
-// catch the problems when the expected method call is totally skipped during test run.
-func (mmWritePong *mVkPlayLiveWsMockWritePong) Optional() *mVkPlayLiveWsMockWritePong {
-	mmWritePong.optional = true
-	return mmWritePong
-}
-
-// Expect sets up expected params for VkPlayLiveWs.WritePong
-func (mmWritePong *mVkPlayLiveWsMockWritePong) Expect() *mVkPlayLiveWsMockWritePong {
-	if mmWritePong.mock.funcWritePong != nil {
-		mmWritePong.mock.t.Fatalf("VkPlayLiveWsMock.WritePong mock is already set by Set")
-	}
-
-	if mmWritePong.defaultExpectation == nil {
-		mmWritePong.defaultExpectation = &VkPlayLiveWsMockWritePongExpectation{}
-	}
-
-	return mmWritePong
-}
-
-// Inspect accepts an inspector function that has same arguments as the VkPlayLiveWs.WritePong
-func (mmWritePong *mVkPlayLiveWsMockWritePong) Inspect(f func()) *mVkPlayLiveWsMockWritePong {
-	if mmWritePong.mock.inspectFuncWritePong != nil {
-		mmWritePong.mock.t.Fatalf("Inspect function is already set for VkPlayLiveWsMock.WritePong")
-	}
-
-	mmWritePong.mock.inspectFuncWritePong = f
-
-	return mmWritePong
-}
-
-// Return sets up results that will be returned by VkPlayLiveWs.WritePong
-func (mmWritePong *mVkPlayLiveWsMockWritePong) Return(err error) *VkPlayLiveWsMock {
-	if mmWritePong.mock.funcWritePong != nil {
-		mmWritePong.mock.t.Fatalf("VkPlayLiveWsMock.WritePong mock is already set by Set")
-	}
-
-	if mmWritePong.defaultExpectation == nil {
-		mmWritePong.defaultExpectation = &VkPlayLiveWsMockWritePongExpectation{mock: mmWritePong.mock}
-	}
-	mmWritePong.defaultExpectation.results = &VkPlayLiveWsMockWritePongResults{err}
-	mmWritePong.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
-	return mmWritePong.mock
-}
-
-// Set uses given function f to mock the VkPlayLiveWs.WritePong method
-func (mmWritePong *mVkPlayLiveWsMockWritePong) Set(f func() (err error)) *VkPlayLiveWsMock {
-	if mmWritePong.defaultExpectation != nil {
-		mmWritePong.mock.t.Fatalf("Default expectation is already set for the VkPlayLiveWs.WritePong method")
-	}
-
-	if len(mmWritePong.expectations) > 0 {
-		mmWritePong.mock.t.Fatalf("Some expectations are already set for the VkPlayLiveWs.WritePong method")
-	}
-
-	mmWritePong.mock.funcWritePong = f
-	mmWritePong.mock.funcWritePongOrigin = minimock.CallerInfo(1)
-	return mmWritePong.mock
-}
-
-// Times sets number of times VkPlayLiveWs.WritePong should be invoked
-func (mmWritePong *mVkPlayLiveWsMockWritePong) Times(n uint64) *mVkPlayLiveWsMockWritePong {
-	if n == 0 {
-		mmWritePong.mock.t.Fatalf("Times of VkPlayLiveWsMock.WritePong mock can not be zero")
-	}
-	mm_atomic.StoreUint64(&mmWritePong.expectedInvocations, n)
-	mmWritePong.expectedInvocationsOrigin = minimock.CallerInfo(1)
-	return mmWritePong
-}
-
-func (mmWritePong *mVkPlayLiveWsMockWritePong) invocationsDone() bool {
-	if len(mmWritePong.expectations) == 0 && mmWritePong.defaultExpectation == nil && mmWritePong.mock.funcWritePong == nil {
-		return true
-	}
-
-	totalInvocations := mm_atomic.LoadUint64(&mmWritePong.mock.afterWritePongCounter)
-	expectedInvocations := mm_atomic.LoadUint64(&mmWritePong.expectedInvocations)
-
-	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
-}
-
-// WritePong implements mm_vk_play_live.VkPlayLiveWs
-func (mmWritePong *VkPlayLiveWsMock) WritePong() (err error) {
-	mm_atomic.AddUint64(&mmWritePong.beforeWritePongCounter, 1)
-	defer mm_atomic.AddUint64(&mmWritePong.afterWritePongCounter, 1)
-
-	mmWritePong.t.Helper()
-
-	if mmWritePong.inspectFuncWritePong != nil {
-		mmWritePong.inspectFuncWritePong()
-	}
-
-	if mmWritePong.WritePongMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmWritePong.WritePongMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmWritePong.WritePongMock.defaultExpectation.results
-		if mm_results == nil {
-			mmWritePong.t.Fatal("No results are set for the VkPlayLiveWsMock.WritePong")
-		}
-		return (*mm_results).err
-	}
-	if mmWritePong.funcWritePong != nil {
-		return mmWritePong.funcWritePong()
-	}
-	mmWritePong.t.Fatalf("Unexpected call to VkPlayLiveWsMock.WritePong.")
-	return
-}
-
-// WritePongAfterCounter returns a count of finished VkPlayLiveWsMock.WritePong invocations
-func (mmWritePong *VkPlayLiveWsMock) WritePongAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmWritePong.afterWritePongCounter)
-}
-
-// WritePongBeforeCounter returns a count of VkPlayLiveWsMock.WritePong invocations
-func (mmWritePong *VkPlayLiveWsMock) WritePongBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmWritePong.beforeWritePongCounter)
-}
-
-// MinimockWritePongDone returns true if the count of the WritePong invocations corresponds
-// the number of defined expectations
-func (m *VkPlayLiveWsMock) MinimockWritePongDone() bool {
-	if m.WritePongMock.optional {
-		// Optional methods provide '0 or more' call count restriction.
-		return true
-	}
-
-	for _, e := range m.WritePongMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	return m.WritePongMock.invocationsDone()
-}
-
-// MinimockWritePongInspect logs each unmet expectation
-func (m *VkPlayLiveWsMock) MinimockWritePongInspect() {
-	for _, e := range m.WritePongMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to VkPlayLiveWsMock.WritePong")
-		}
-	}
-
-	afterWritePongCounter := mm_atomic.LoadUint64(&m.afterWritePongCounter)
-	// if default expectation was set then invocations count should be greater than zero
-	if m.WritePongMock.defaultExpectation != nil && afterWritePongCounter < 1 {
-		m.t.Errorf("Expected call to VkPlayLiveWsMock.WritePong at\n%s", m.WritePongMock.defaultExpectation.returnOrigin)
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcWritePong != nil && afterWritePongCounter < 1 {
-		m.t.Errorf("Expected call to VkPlayLiveWsMock.WritePong at\n%s", m.funcWritePongOrigin)
-	}
-
-	if !m.WritePongMock.invocationsDone() && afterWritePongCounter > 0 {
-		m.t.Errorf("Expected %d calls to VkPlayLiveWsMock.WritePong at\n%s but found %d calls",
-			mm_atomic.LoadUint64(&m.WritePongMock.expectedInvocations), m.WritePongMock.expectedInvocationsOrigin, afterWritePongCounter)
-	}
-}
-
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *VkPlayLiveWsMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
@@ -999,10 +609,6 @@ func (m *VkPlayLiveWsMock) MinimockFinish() {
 			m.MinimockCloseInspect()
 
 			m.MinimockInitInspect()
-
-			m.MinimockReadMessageInspect()
-
-			m.MinimockWritePongInspect()
 		}
 	})
 }
@@ -1027,7 +633,5 @@ func (m *VkPlayLiveWsMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockCloseDone() &&
-		m.MinimockInitDone() &&
-		m.MinimockReadMessageDone() &&
-		m.MinimockWritePongDone()
+		m.MinimockInitDone()
 }

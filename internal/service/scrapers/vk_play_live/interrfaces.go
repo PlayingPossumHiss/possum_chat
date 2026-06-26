@@ -16,9 +16,7 @@ type VkPlayLiveWs interface {
 		ctx context.Context,
 		token string,
 		userID string,
-	) error
-	ReadMessage() (*entity.Message, error)
-	WritePong() error
+	) (entity.VkStreamData, error)
 	Close()
 }
 

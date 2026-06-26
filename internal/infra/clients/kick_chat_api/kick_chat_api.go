@@ -28,6 +28,24 @@ func New() *Client {
 }
 
 func (c *Client) GetRoomIDByUserName(ctx context.Context, userName string) (int64, error) {
+	userResponse, err := c.getChannelInfo(ctx, userName)
+	if err != nil {
+		return 0, err
+	}
+
+	return userResponse.ChatRoom.ID, nil
+}
+
+func (c *Client) GetOnline(ctx context.Context, userName string) (int64, error) {
+	userResponse, err := c.getChannelInfo(ctx, userName)
+	if err != nil {
+		return 0, err
+	}
+
+	return userResponse.LiveStream.Online, nil
+}
+
+func (c *Client) getChannelInfo(ctx context.Context, userName string) (*respContract, error) {
 	bodyBytes, err := c.do(
 		ctx,
 		http.MethodGet,
@@ -37,13 +55,7 @@ func (c *Client) GetRoomIDByUserName(ctx context.Context, userName string) (int6
 	if err != nil {
 		err = fmt.Errorf("failed to get user id for kick: %w", err)
 
-		return 0, err
-	}
-
-	type respContract struct {
-		ChatRoom struct {
-			ID int64 `json:"id"`
-		} `json:"chatroom"`
+		return nil, err
 	}
 
 	userResponse := &respContract{}
@@ -51,19 +63,18 @@ func (c *Client) GetRoomIDByUserName(ctx context.Context, userName string) (int6
 	if err != nil {
 		err = fmt.Errorf("failed to parse user id for kick: %w", err)
 
-		return 0, err
+		return nil, err
 	}
 
-	return userResponse.ChatRoom.ID, nil
+	return userResponse, nil
 }
 
 func (c *Client) Listen(
-	callback func(entity.Message),
 	roomID int64,
-) error {
+) (chan entity.Message, error) {
 	wsConnection, resp, err := websocket.DefaultDialer.Dial(APIURL, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	resp.Body.Close()
 
@@ -73,27 +84,35 @@ func (c *Client) Listen(
 
 	err = c.joinChannelByID()
 	if err != nil {
-		return err
+		return nil, err
 	}
+	result := make(chan entity.Message)
 
-	return c.listenForMessages(callback)
+	go func() {
+		listenErr := c.listenForMessages(result)
+		if listenErr != nil {
+			logger.Error(listenErr)
+		}
+	}()
+
+	return result, nil
 }
 
 func (c *Client) Close() error {
 	c.quit <- true
+	close(c.quit)
 
 	return c.ws.Close()
 }
 
 func (c *Client) listenForMessages(
-	callback func(entity.Message),
+	result chan entity.Message,
 ) error {
-	ch := make(chan ChatMessage)
 	stopCh := c.quit
 	for {
 		select {
 		case <-stopCh:
-			close(ch)
+			close(result)
 
 			return nil
 		default:
@@ -102,13 +121,13 @@ func (c *Client) listenForMessages(
 				return fmt.Errorf("error reading kick message: %w", err)
 			}
 
-			var chatMessageEvent ChatMessageEvent
+			var chatMessageEvent chatMessageEvent
 			errMarshalEvent := json.Unmarshal(msg, &chatMessageEvent)
 			if errMarshalEvent != nil {
 				continue
 			}
 
-			var chatMessage ChatMessage
+			var chatMessage chatMessage
 			errMarshalMessage := json.Unmarshal([]byte(chatMessageEvent.Data), &chatMessage)
 			if errMarshalMessage != nil {
 				continue
@@ -118,7 +137,7 @@ func (c *Client) listenForMessages(
 				continue
 			}
 
-			callback(entity.Message{
+			result <- entity.Message{
 				ID:        fmt.Sprintf("kick_%s", chatMessage.ID),
 				Source:    entity.SourceKick,
 				User:      chatMessage.Sender.Username,
@@ -129,13 +148,13 @@ func (c *Client) listenForMessages(
 						Value: chatMessage.Content,
 					},
 				},
-			})
+			}
 		}
 	}
 }
 
 func (c *Client) joinChannelByID() error {
-	pusherSubscribe := PusherSubscribe{
+	pusherSubscribe := pusherSubscribe{
 		Event: "pusher:subscribe",
 		Data: struct {
 			Channel string `json:"channel"`

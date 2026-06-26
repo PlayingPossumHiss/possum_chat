@@ -33,6 +33,13 @@ func (a *Api) apiV1Messages(ctx *gin.Context) {
 			ID:        msg.ID,
 		})
 	}
+	onlineFromScrapers := a.onlineGetter.GetOnline()
+	for source, onlineOfSource := range onlineFromScrapers {
+		resp.Online = append(resp.Online, online{
+			Count:  onlineOfSource,
+			Source: sourceToApi(source),
+		})
+	}
 
 	ctx.JSON(http.StatusOK, resp)
 }

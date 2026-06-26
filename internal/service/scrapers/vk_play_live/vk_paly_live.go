@@ -2,7 +2,6 @@ package vk_play_live
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -25,6 +24,7 @@ type Service struct {
 	watchCancel context.CancelFunc
 
 	messages  []entity.Message
+	online    int64
 	messageMx *sync.Mutex
 }
 
@@ -43,6 +43,11 @@ func New(
 	}
 
 	return scraper, nil
+}
+
+func (s *Service) GetOnline() int64 {
+	// TODO: проверить первоночальное заполнение
+	return s.online
 }
 
 func (s *Service) Run(ctx context.Context) {
@@ -127,7 +132,7 @@ func (s *Service) scrap(
 		return err
 	}
 
-	err = s.vkPlayLiveWs.Init(ctx, token, s.userID)
+	channels, err := s.vkPlayLiveWs.Init(ctx, token, s.userID)
 	if err != nil {
 		return err
 	}
@@ -138,32 +143,26 @@ func (s *Service) scrap(
 		s.vkPlayLiveWs.Close()
 	}()
 
-	return s.doScrapCycle(ctx)
-}
-
-func (s *Service) doScrapCycle(ctx context.Context) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			chatMessage, err := s.vkPlayLiveWs.ReadMessage()
-			if errors.Is(err, app_errors.ErrIsPing) {
-				err = s.vkPlayLiveWs.WritePong()
-				if err != nil {
-					return err
-				}
-
-				continue
-			} else if err != nil {
-				return err
-			}
-			if chatMessage == nil {
-				continue
-			}
+	wg := sync.WaitGroup{} //nolint
+	wg.Go(func() {
+		for message := range channels.MessageCh {
 			s.messageMx.Lock()
-			s.messages = append(s.messages, *chatMessage)
+			s.messages = append(s.messages, message)
 			s.messageMx.Unlock()
 		}
-	}
+	})
+	wg.Go(func() {
+		for newOnline := range channels.Online {
+			s.online = newOnline
+		}
+	})
+	wg.Go(func() {
+		for wsError := range channels.Error {
+			err = wsError
+		}
+	})
+
+	wg.Wait()
+
+	return err
 }

@@ -22,6 +22,9 @@ type Service struct {
 
 	messages  []entity.Message
 	messageMx *sync.Mutex
+
+	online    int64
+	streamKey string
 }
 
 func New(
@@ -45,6 +48,7 @@ func (s *Service) Run(ctx context.Context) {
 	s.watchCancel = cancel
 	s.state = entity.ScraperStateStarting
 	go s.watchChat(newCtx)
+	go s.watchOnline(newCtx)
 }
 
 func (s *Service) Stop() {
@@ -67,6 +71,36 @@ func (s *Service) GetMessages() []entity.Message {
 	s.messages = nil
 
 	return result
+}
+
+func (s *Service) GetOnline() int64 {
+	return s.online
+}
+
+func (s *Service) watchOnline(
+	ctx context.Context,
+) {
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Warn("youtube online watcher is stopped by contex cancel")
+
+			return
+		default:
+			if s.streamKey == "" {
+				time.Sleep(time.Second)
+
+				continue
+			}
+
+			online, err := s.youtubeClient.GetOnline(ctx, s.streamKey)
+			if err != nil {
+				logger.Error(fmt.Errorf("error on get youtube online, %w", err))
+			}
+			s.online = online
+			time.Sleep(time.Minute)
+		}
+	}
 }
 
 func (s *Service) watchChat(ctx context.Context) {
@@ -120,6 +154,7 @@ func (s *Service) initChat(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	s.streamKey = streamKey
 
 	err = s.youtubeClient.Init(streamKey)
 	if err != nil {
