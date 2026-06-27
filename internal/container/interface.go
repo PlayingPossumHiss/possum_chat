@@ -12,3 +12,8 @@ type Scraper interface {
 	Stop()
 	Status() entity.ScraperState
 }
+
+type OnlineScrapers interface {
+	GetOnline() int64
+	Status() entity.ScraperState
+}

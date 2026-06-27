@@ -15,7 +15,10 @@ type message struct {
 					Author    struct {
 						Name string `json:"displayName"`
 					} `json:"author"`
-					Data []messageData `json:"data"`
+					Data   []messageData `json:"data"`
+					Stream struct {
+						Viewers int64 `json:"viewers"`
+					} `json:"stream"`
 				} `json:"data"`
 			} `json:"data"`
 		} `json:"pub"`

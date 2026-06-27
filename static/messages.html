@@ -17,6 +17,24 @@
             <span v-if="errorCount!=0">🔴{{errorCount}}</span>
             <span v-if="warnCount!=0">🟠{{warnCount}}</span>
         </div>
+        <div class="online">
+            <span v-if="online.twitch">
+                <img class="online-icon" src="/img/twitch.png">
+                {{online.twitch}}
+            </span>
+            <span v-if="online.kick">
+                <img class="online-icon" src="/img/kick.png">
+                {{online.kick}}
+            </span>
+            <span v-if="online.youtube">
+                <img class="online-icon" src="/img/youtube.png">
+                {{online.youtube}}
+            </span>
+            <span v-if="online.vk_play_live">
+                <img class="online-icon" src="/img/vk_play_live.png">
+                {{online.vk_play_live}}
+            </span>
+        </div>
         <div class="message" v-bind:class="{'scroll-message': useScroll}" v-for="message in messages">
             <img class="message-icon" v-if="message.source=='twitch'" src="/img/twitch.png">
             <img class="message-icon" v-if="message.source=='kick'" src="/img/kick.png">

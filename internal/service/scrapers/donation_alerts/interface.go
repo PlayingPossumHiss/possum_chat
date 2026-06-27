@@ -4,9 +4,8 @@ import "github.com/PlayingPossumHiss/possum_chat/internal/entity"
 
 type DonationAlertsClient interface {
 	Init(
-		callback func(entity.Message),
 		token string,
-	) error
+	) (chan entity.Message, error)
 	Close()
 	Done() error
 }

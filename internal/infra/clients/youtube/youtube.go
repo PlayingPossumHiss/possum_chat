@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -131,54 +133,51 @@ func parseMessage(src string) []entity.MessageContentItem {
 	return result
 }
 
-func (c *Client) GetLastTranslationID(ctx context.Context, userName string) (string, error) {
-	const defaultDedlineSeconds = 5
-	defaultDedlineCtx, cancel := context.WithTimeout(ctx, defaultDedlineSeconds*time.Second)
-	defer cancel()
-
-	request, err := http.NewRequestWithContext(
-		defaultDedlineCtx,
-		http.MethodGet,
-		fmt.Sprintf("https://www.youtube.com/@%s/streams", userName),
-		nil,
+func (c *Client) GetOnline(ctx context.Context, liveID string) (int64, error) {
+	initialDataRaw, err := c.getInitDataFrom(
+		ctx,
+		fmt.Sprintf("https://www.youtube.com/watch?v=%s", liveID),
 	)
 	if err != nil {
-		err = fmt.Errorf("failed to create request for get last live id for youtube: %w", err)
-
-		return "", err
+		return 0, fmt.Errorf("get online translation error %w", err)
 	}
 
-	response, err := http.DefaultClient.Do(request)
+	initialData := &liveListInitialData{}
+	err = json.Unmarshal(initialDataRaw, initialData)
 	if err != nil {
-		err = fmt.Errorf("failed to do request for get last live id for youtube: %w", err)
+		err = fmt.Errorf("failed to parse response of get online for youtube: %w", err)
 
-		return "", err
+		return 0, err
 	}
-	defer func() {
-		dErr := response.Body.Close()
-		if dErr != nil {
-			logger.Error(dErr)
+
+	twoColumnWatchNextResultsResults := initialData.Contents.TwoColumnWatchNextResults.Results.Results.Contents
+	if len(twoColumnWatchNextResultsResults) == 0 {
+		return 0, nil
+	}
+
+	online, err := strconv.ParseInt(
+		twoColumnWatchNextResultsResults[0].VideoPrimaryInfoRenderer.ViewCount.VideoViewCountRenderer.OriginalViewCount,
+		10, 64,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("error on parse youtube online %w", err)
+	}
+
+	return online, nil
+}
+
+func (c *Client) GetLastTranslationID(ctx context.Context, userName string) (string, error) {
+	initialDataRaw, err := c.getInitDataFrom(
+		ctx,
+		fmt.Sprintf("https://www.youtube.com/@%s/streams", userName),
+	)
+	if err != nil {
+		if errors.Is(err, app_errors.ErrNoData) {
+			return userName, nil
 		}
-	}()
 
-	if response.StatusCode != http.StatusOK {
-		// Ну раз не 200, то видимо это и есть ключ трансляции
-		return userName, nil
+		return "", fmt.Errorf("get last translation error %w", err)
 	}
-
-	bodyBytes, err := io.ReadAll(response.Body)
-	if err != nil {
-		err = fmt.Errorf("failed to read response of get last live id for youtube: %w", err)
-
-		return "", err
-	}
-
-	// Вырезать нужный кусок резуляркой - костыль
-	// но я хочу поскорее это докатить и вообще
-	// работает - не трож
-	initialDataArr := regexSearch(initialDataRegex, bodyBytes)
-	initialDataRaw := bytes.Trim(initialDataArr[0], "ytInitialData = ")
-	initialDataRaw = bytes.Trim(initialDataRaw, ";</script")
 
 	initialData := &liveListInitialData{}
 	err = json.Unmarshal(initialDataRaw, initialData)
@@ -226,4 +225,54 @@ func regexSearch(regex string, str []byte) [][]byte {
 	matches := r.FindAll(str, -1)
 
 	return matches
+}
+
+func (c *Client) getInitDataFrom(ctx context.Context, url string) ([]byte, error) {
+	const defaultDedlineSeconds = 5
+	defaultDedlineCtx, cancel := context.WithTimeout(ctx, defaultDedlineSeconds*time.Second)
+	defer cancel()
+
+	request, err := http.NewRequestWithContext(
+		defaultDedlineCtx,
+		http.MethodGet,
+		url,
+		nil,
+	)
+	if err != nil {
+		err = fmt.Errorf("failed to create request for youtube: %w", err)
+
+		return nil, err
+	}
+
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		err = fmt.Errorf("failed to do request for youtube: %w", err)
+
+		return nil, err
+	}
+	defer func() {
+		dErr := response.Body.Close()
+		if dErr != nil {
+			logger.Error(dErr)
+		}
+	}()
+
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to do request for youtube: %w", app_errors.ErrNoData)
+	}
+
+	bodyBytes, err := io.ReadAll(response.Body)
+	if err != nil {
+		err = fmt.Errorf("failed to read response for youtube: %w", err)
+
+		return nil, err
+	}
+
+	// Вырезать нужный кусок резуляркой - костыль
+	// но я хочу поскорее это докатить и вообще
+	// работает - не трож
+	initialDataArr := regexSearch(initialDataRegex, bodyBytes)
+	initialDataRaw := bytes.Trim(initialDataArr[0], "ytInitialData = ")
+
+	return bytes.Trim(initialDataRaw, ";</script"), nil
 }

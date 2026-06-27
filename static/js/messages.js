@@ -1,6 +1,12 @@
 let app
 let urlParams = extractParams()
 let messages = [];
+let online = {
+    twitch: undefined,
+    kick: undefined,
+    youtube: undefined,
+    vk_play_live: undefined,
+};
 
 document.addEventListener("DOMContentLoaded", function() {
     createApp();
@@ -27,6 +33,7 @@ function createApp() {
            useScroll: urlParams.useScroll,
            errorCount: 0,
            warnCount: 0,
+           online: online,
         },
     });
     setInterval(function() {
@@ -37,6 +44,31 @@ function createApp() {
         refreshMessages(url, function(xhr){
             messages = xhr.response.messages.reverse();
             app.messages = messages;
+            newOnline = {
+                twitch: undefined,
+                kick: undefined,
+                youtube: undefined,
+                vk_play_live: undefined,
+            };
+            if (xhr.response.online) {
+                xhr.response.online.forEach(element => {
+                    switch (element.source) {
+                    case "twitch":
+                        newOnline.twitch = element.count
+                        break;
+                    case "kick":
+                        newOnline.kick = element.count
+                        break;
+                    case "youtube":
+                        newOnline.youtube = element.count
+                        break;
+                    case "vk_play_live":
+                        newOnline.vk_play_live = element.count
+                        break;
+                    }
+                });
+            }
+            app.online = newOnline;
         });
     }, 50);
     if (urlParams.useScroll) {

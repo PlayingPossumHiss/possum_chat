@@ -38,16 +38,16 @@ func (c *Client) Done() error {
 }
 
 func (c *Client) Init(
-	callback func(entity.Message),
 	token string,
-) error {
+) (chan entity.Message, error) {
 	conn, err := socket_io.Dial(
 		socket_io.GetUrl(daHost, daPort, true),
 		transport.GetDefaultWebsocketTransport(),
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
+
 	c.conn = conn
 	c.errChan = make(chan error)
 
@@ -57,15 +57,19 @@ func (c *Client) Init(
 	}
 	err = c.conn.Emit("add-user", addUserMessage)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	result := make(chan entity.Message)
 
-	err = c.conn.On("donation", c.onDonation(callback))
+	err = c.conn.On("donation", c.onDonation(result))
 	if err != nil {
-		return err
+		close(result)
+
+		return nil, err
 	}
 
 	err = c.conn.On(socket_io.OnDisconnection, func(h *socket_io.Channel) {
+		close(result)
 		c.errChan <- fmt.Errorf(
 			"donation alerts connection is closed: %w",
 			app_errors.ErrScraperStoped,
@@ -73,14 +77,16 @@ func (c *Client) Init(
 		close(c.errChan)
 	})
 	if err != nil {
-		return err
+		close(result)
+
+		return nil, err
 	}
 
-	return nil
+	return result, nil
 }
 
 func (c *Client) onDonation(
-	callback func(entity.Message),
+	result chan entity.Message,
 ) func(h *socket_io.Channel, donationMsg donation) {
 	return func(h *socket_io.Channel, donationMsg donation) {
 		logger.Debug(fmt.Sprintf("message from donation alerts: %s", donationMsg.Message))
@@ -88,7 +94,7 @@ func (c *Client) onDonation(
 		if donationMsg.Message == "" {
 			return
 		}
-		callback(entity.Message{
+		result <- entity.Message{
 			ID:        "donation_alerts_" + strconv.Itoa(int(donationMsg.ID)),
 			Source:    entity.SourceDonationAlerts,
 			User:      donationMsg.Username,
@@ -104,6 +110,6 @@ func (c *Client) onDonation(
 					),
 				},
 			},
-		})
+		}
 	}
 }

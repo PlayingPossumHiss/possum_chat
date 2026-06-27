@@ -79,16 +79,6 @@ func (s *Service) watchChat(
 			}
 			s.stateMx.Lock()
 
-			go func() {
-				// TODO: найти (написать) библиотеку, что не копипаста с js
-				// Тут из-за архитектуры и с реконектами проблема
-				// Пока костыль, что за секунду-то поднимается клиент
-
-				time.Sleep(time.Second)
-				s.state = entity.ScraperStateActive
-				s.stateMx.Unlock()
-			}()
-
 			firstRun = false
 
 			channelName := s.configStorage.Config().Connections.Twitch.ChannelName
@@ -99,22 +89,19 @@ func (s *Service) watchChat(
 				continue
 			}
 
-			err := s.twitchClient.Listen(
-				s.onGetMessage,
+			messages := s.twitchClient.Listen(
 				channelName,
 			)
-			if err != nil {
-				err = fmt.Errorf("error on listen twitch chat: %w", err)
-				logger.Error(err)
+			s.state = entity.ScraperStateActive
+			s.stateMx.Unlock()
+
+			for message := range messages {
+				s.messageMx.Lock()
+				s.messages = append(s.messages, message)
+				s.messageMx.Unlock()
 			}
 		}
 	}
-}
-
-func (s *Service) onGetMessage(message entity.Message) {
-	s.messageMx.Lock()
-	defer s.messageMx.Unlock()
-	s.messages = append(s.messages, message)
 }
 
 func (s *Service) GetMessages() []entity.Message {
@@ -124,4 +111,9 @@ func (s *Service) GetMessages() []entity.Message {
 	s.messages = nil
 
 	return result
+}
+
+func (s *Service) GetOnline() int64 {
+	// TODO: реализовать
+	return 0
 }

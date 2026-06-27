@@ -17,6 +17,19 @@
     left: 0;
 }
 
+.online {
+    padding: 0.5rem;
+    font-weight: bold;
+    transform: rotate(180deg);
+}
+
+.online-icon {
+    height: 1.5rem;
+    vertical-align: middle;
+    padding-left: 0.1rem;
+    padding-right: 0.1rem;
+}
+
 .scroll-messages {
     position: none;
     transform: none;

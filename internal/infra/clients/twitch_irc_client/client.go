@@ -26,13 +26,13 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) Listen(
-	callback func(entity.Message),
 	channelName string,
-) error {
+) chan entity.Message {
+	result := make(chan entity.Message)
 	c.wsConnect.OnPrivateMessage(func(message twitch.PrivateMessage) {
 		logger.Debug(fmt.Sprintf("message from youtube: %s", message.Raw))
 
-		callback(entity.Message{
+		result <- entity.Message{
 			ID:     fmt.Sprintf("twitch_%s", message.ID),
 			Source: entity.SourceTwitch,
 			User:   message.User.DisplayName,
@@ -43,19 +43,20 @@ func (c *Client) Listen(
 				},
 			},
 			CreatedAt: time.Now(),
-		})
+		}
 	})
 
 	c.wsConnect.Join(channelName)
 
-	// TODO: Сюда надо добавить реконект
-	// https://github.com/PlayingPossumHiss/possum_chat/issues/26
-	err := c.wsConnect.Connect()
-	if err != nil {
-		err = fmt.Errorf("failed to connect to twitch ws chat: %w", err)
+	go func() {
+		defer close(result)
+		err := c.wsConnect.Connect()
+		if err != nil {
+			err = fmt.Errorf("failed to connect to twitch ws chat: %w", err)
 
-		return err
-	}
+			logger.Error(err)
+		}
+	}()
 
-	return nil
+	return result
 }

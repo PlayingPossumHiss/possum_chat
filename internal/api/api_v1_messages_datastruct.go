@@ -2,6 +2,12 @@ package api
 
 type apiV1MessagesResponse struct {
 	Messages []message `json:"messages"`
+	Online   []online  `json:"online"`
+}
+
+type online struct {
+	Count  int64  `json:"count"`
+	Source source `json:"source"`
 }
 
 type message struct {

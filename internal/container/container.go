@@ -8,12 +8,8 @@ import (
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
-	donation_alerts_client "github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/donation_alerts"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/kick_chat_api"
-	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/twitch_irc_client"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_api"
-	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_ws"
-	youtube_client "github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/youtube"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/language_provider"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue"
@@ -24,6 +20,7 @@ import (
 	youtube_scraper "github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/youtube"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/settings"
 	"github.com/PlayingPossumHiss/possum_chat/internal/ui"
+	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/get_online"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/get_style"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/list_messages"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/run_watch_scrapers"
@@ -44,6 +41,13 @@ type Container struct {
 	watchSubscribersRunner *run_watch_scrapers.UseCase
 	messagesLister         *list_messages.UseCase
 	styleGetter            *get_style.UseCase
+
+	// скрейперы
+	ytScraper     *youtube_scraper.Service
+	twitchScraper *twitch.Service
+	vkScraper     *vk_play_live.Service
+	kickScraper   *kick.Service
+	daScraper     *donation_alerts.Service
 
 	// апишка (своя)
 	selfApi *api.Api
@@ -219,13 +223,46 @@ func (c *Container) getSelfApi() (*api.Api, error) {
 		return nil, err
 	}
 
+	onlineScrapers, err := c.getOnlineScraper()
+	if err != nil {
+		return nil, err
+	}
+
 	c.selfApi = api.New(
 		config.Port,
 		styleGetter,
 		messageLister,
+		onlineScrapers,
 	)
 
 	return c.selfApi, nil
+}
+
+func (c *Container) getOnlineScraper() (*get_online.OnlineGetter, error) {
+	onlineScrapers := map[entity.Source]get_online.Scraper{}
+
+	ytScraper, err := c.getYoutubeScraper()
+	if err != nil {
+		return nil, err
+	}
+	onlineScrapers[entity.SourceYoutube] = ytScraper
+	twitchScraper, err := c.getTwitchScraper()
+	if err != nil {
+		return nil, err
+	}
+	onlineScrapers[entity.SourceTwitch] = twitchScraper
+	kickScraper, err := c.getKickScraper()
+	if err != nil {
+		return nil, err
+	}
+	onlineScrapers[entity.SourceKick] = kickScraper
+	vkScraper, err := c.getVkPlayLiveScraper()
+	if err != nil {
+		return nil, err
+	}
+	onlineScrapers[entity.SourceVkPlayLive] = vkScraper
+
+	return get_online.New(onlineScrapers), nil
 }
 
 func (c *Container) getStyleGetter() (*get_style.UseCase, error) {
@@ -360,105 +397,4 @@ func (c *Container) getScrapers() (map[entity.Source]Scraper, error) {
 	c.scrapers = result
 
 	return c.scrapers, nil
-}
-
-func (c *Container) getYoutubeScraper() (*youtube_scraper.Service, error) {
-	configService, err := c.getConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	return youtube_scraper.New(
-		configService,
-		c.getYoutubeClient(),
-	), nil
-}
-
-func (c *Container) getVkPlayLiveScraper() (*vk_play_live.Service, error) {
-	configService, err := c.getConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	return vk_play_live.New(
-		configService,
-		c.getVkPalyLiveApi(),
-		c.getVkPalyLiveWs(),
-	)
-}
-
-func (c *Container) getDonationAlertsScraper() (*donation_alerts.Service, error) {
-	configService, err := c.getConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	return donation_alerts.New(
-		c.getDonationAlertsClient(),
-		configService,
-	)
-}
-
-func (c *Container) getTwitchScraper() (*twitch.Service, error) {
-	configService, err := c.getConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	return twitch.New(
-		c.getTwitchClient(),
-		configService,
-	), nil
-}
-
-func (c *Container) getKickScraper() (*kick.Service, error) {
-	configService, err := c.getConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	return kick.New(
-		c.getKickApi(),
-		configService,
-	), nil
-}
-
-func (c *Container) getVkPalyLiveApi() *vk_play_live_api.Client {
-	if c.vkPlayLiveApi != nil {
-		return c.vkPlayLiveApi
-	}
-
-	c.vkPlayLiveApi = vk_play_live_api.New()
-
-	return c.vkPlayLiveApi
-}
-
-func (c *Container) getKickApi() *kick_chat_api.Client {
-	if c.kickApi != nil {
-		return c.kickApi
-	}
-
-	c.kickApi = kick_chat_api.New()
-
-	return c.kickApi
-}
-
-func (c *Container) getVkPalyLiveWs() *vk_play_live_ws.Client {
-	// тут отдельный коннект на каждое соединение
-	return vk_play_live_ws.New()
-}
-
-func (c *Container) getYoutubeClient() *youtube_client.Client {
-	// тут отдельный коннект на каждое соединение
-	return youtube_client.New()
-}
-
-func (c *Container) getTwitchClient() *twitch_irc_client.Client {
-	// тут отдельный коннект на каждое соединение
-	return twitch_irc_client.New()
-}
-
-func (c *Container) getDonationAlertsClient() *donation_alerts_client.Client {
-	// тут отдельный коннект на каждое соединение
-	return donation_alerts_client.New(&utils_time.DefaultClock{})
 }

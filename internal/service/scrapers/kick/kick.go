@@ -22,6 +22,8 @@ type Service struct {
 
 	messages  []entity.Message
 	messageMx *sync.Mutex
+
+	online int64
 }
 
 func New(
@@ -42,6 +44,7 @@ func (s *Service) Run(ctx context.Context) {
 	newCtx, cancel := context.WithCancel(ctx)
 	s.watchCancel = cancel
 	go s.watchChat(newCtx)
+	go s.watchOnline(newCtx)
 }
 
 func (s *Service) Stop() {
@@ -61,6 +64,27 @@ func (s *Service) Status() entity.ScraperState {
 	return s.state
 }
 
+func (s *Service) watchOnline(
+	ctx context.Context,
+) {
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Warn("kick online watcher is stopped by contex cancel")
+
+			return
+		default:
+			channelName := s.configStorage.Config().Connections.Kick.ChannelName
+			online, err := s.client.GetOnline(ctx, channelName)
+			if err != nil {
+				logger.Error(fmt.Errorf("error on get kick online %w", err))
+			}
+			s.online = online
+			time.Sleep(time.Minute)
+		}
+	}
+}
+
 func (s *Service) watchChat(
 	ctx context.Context,
 ) {
@@ -68,7 +92,7 @@ func (s *Service) watchChat(
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Warn("kick watcher is stopped by contex cancel")
+			logger.Warn("kick message watcher is stopped by contex cancel")
 
 			return
 		default:
@@ -76,19 +100,6 @@ func (s *Service) watchChat(
 				time.Sleep(time.Second)
 			}
 			s.stateMx.Lock()
-
-			go func() {
-				// TODO: найти (написать) библиотеку, что не копипаста с js
-				// Тут из-за архитектуры и с реконектами проблема
-				// Пока костыль, что за секунду-то поднимается клиент
-				//
-				// Сделаем вид, что это не копипаста с соседнего
-				// Я подумаю как сделать это лучше, но не сегодня
-
-				time.Sleep(time.Second)
-				s.state = entity.ScraperStateActive
-				s.stateMx.Unlock()
-			}()
 
 			firstRun = false
 
@@ -106,22 +117,24 @@ func (s *Service) watchChat(
 				logger.Error(err)
 			}
 
-			err = s.client.Listen(
-				s.onGetMessage,
+			messages, err := s.client.Listen(
 				roomID,
 			)
 			if err != nil {
 				err = fmt.Errorf("error on listen kick chat: %w", err)
 				logger.Error(err)
+
+				continue
+			}
+			s.state = entity.ScraperStateActive
+			s.stateMx.Unlock()
+			for message := range messages {
+				s.messageMx.Lock()
+				s.messages = append(s.messages, message)
+				s.messageMx.Unlock()
 			}
 		}
 	}
-}
-
-func (s *Service) onGetMessage(message entity.Message) {
-	s.messageMx.Lock()
-	defer s.messageMx.Unlock()
-	s.messages = append(s.messages, message)
 }
 
 func (s *Service) GetMessages() []entity.Message {
@@ -131,4 +144,8 @@ func (s *Service) GetMessages() []entity.Message {
 	s.messages = nil
 
 	return result
+}
+
+func (s *Service) GetOnline() int64 {
+	return s.online
 }

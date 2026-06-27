@@ -14,3 +14,7 @@ type GetStyleUC interface {
 type ListMessagesUC interface {
 	ListMessages(forLast *time.Duration) []entity.Message
 }
+
+type OnlineGetter interface {
+	GetOnline() map[entity.Source]int64
+}

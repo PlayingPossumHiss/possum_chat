@@ -8,10 +8,10 @@ import (
 
 type Client interface {
 	GetRoomIDByUserName(ctx context.Context, userName string) (int64, error)
+	GetOnline(ctx context.Context, userName string) (int64, error)
 	Listen(
-		callback func(entity.Message),
 		roomID int64,
-	) error
+	) (chan entity.Message, error)
 	Close() error
 }
 

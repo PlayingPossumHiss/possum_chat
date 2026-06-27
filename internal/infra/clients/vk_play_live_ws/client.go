@@ -3,6 +3,7 @@ package vk_play_live_ws
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -28,7 +29,7 @@ func (c *Client) Init(
 	ctx context.Context,
 	token string,
 	userID string,
-) error {
+) (entity.VkStreamData, error) {
 	c.token = token
 	c.userID = userID
 	dialer := websocket.DefaultDialer
@@ -43,7 +44,7 @@ func (c *Client) Init(
 	if err != nil {
 		err = fmt.Errorf("failed to create ws request for vk play live: %w", err)
 
-		return err
+		return entity.VkStreamData{}, err
 	}
 
 	c.client = client
@@ -53,13 +54,61 @@ func (c *Client) Init(
 
 		err = fmt.Errorf("failed to connect to chat for vk play live: %w", err)
 
-		return err
+		return entity.VkStreamData{}, err
 	}
 
-	return nil
+	result := entity.VkStreamData{
+		MessageCh: make(chan entity.Message),
+		Online:    make(chan int64),
+		Error:     make(chan error),
+	}
+
+	go c.doScrapCycle(ctx, result)
+
+	return result, nil
+}
+
+func (c *Client) doScrapCycle(
+	ctx context.Context,
+	result entity.VkStreamData,
+) {
+	defer func() {
+		close(result.Error)
+		close(result.MessageCh)
+		close(result.Online)
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			result.Error <- ctx.Err()
+
+			return
+		default:
+			err := c.readMessage(result)
+			if errors.Is(err, app_errors.ErrIsPing) {
+				err = c.writePong()
+				if err != nil {
+					result.Error <- err
+
+					return
+				}
+
+				continue
+			} else if err != nil {
+				result.Error <- err
+
+				return
+			}
+		}
+	}
 }
 
 func (c *Client) Close() {
+	if c.client == nil {
+		return
+	}
+
 	err := c.client.Close()
 	if err != nil {
 		err = fmt.Errorf("failed close ws connect for vk play live: %w", err)
@@ -93,28 +142,37 @@ func (c *Client) connectToChat() error {
 
 		return err
 	}
+	err = c.client.WriteMessage(
+		websocket.TextMessage,
+		[]byte(fmt.Sprintf(`{"subscribe":{"channel":"channel-info:%s"},"id":3}`, c.userID)),
+	)
+	if err != nil {
+		err = fmt.Errorf("failed to write subscribe to channel viewers request for vk play live: %w", err)
+
+		return err
+	}
 
 	return nil
 }
 
-func (c *Client) ReadMessage() (*entity.Message, error) {
+func (c *Client) readMessage(result entity.VkStreamData) error {
 	_, rawMsg, err := c.client.ReadMessage()
 	if err != nil {
 		err = fmt.Errorf("failed to read from ws chat for vk play live: %w", err)
 
-		return nil, err
+		return err
 	}
 
 	if slices.Equal(rawMsg, []byte("{}")) {
-		return nil, app_errors.ErrIsPing
+		return app_errors.ErrIsPing
 	}
 
 	logger.Debug(fmt.Sprintf("message from vk paly live: %s", string(rawMsg)))
 
-	return getMessageFromBytes(rawMsg)
+	return getMessageFromBytes(result, rawMsg)
 }
 
-func (c *Client) WritePong() error {
+func (c *Client) writePong() error {
 	err := c.client.WriteMessage(websocket.TextMessage, []byte("{}"))
 	if err != nil {
 		err = fmt.Errorf("failed to send ws pong for vk play live: %w", err)
@@ -125,32 +183,39 @@ func (c *Client) WritePong() error {
 	return nil
 }
 
-func getMessageFromBytes(rawMsg []byte) (*entity.Message, error) {
+func getMessageFromBytes(result entity.VkStreamData, rawMsg []byte) error {
 	msg := message{}
 	err := json.Unmarshal(rawMsg, &msg)
 	if err != nil {
 		err = fmt.Errorf("failed parse message for vk play live: %w", err)
 
-		return nil, err
-	}
-	if msg.Push.Pub.Data.Type != "message" {
-		return nil, nil
-	}
-	chatMessage := &entity.Message{
-		ID:        fmt.Sprintf("vk_play_live_%d", msg.Push.Pub.Data.Data.ID),
-		Source:    entity.SourceVkPlayLive,
-		User:      msg.Push.Pub.Data.Data.Author.Name,
-		CreatedAt: time.Now(),
-		Content:   getMessageContent(msg.Push.Pub.Data.Data.Data),
+		return err
 	}
 
-	if len(chatMessage.Content) == 0 {
-		logger.Warn("can't parse message for vk play")
+	switch msg.Push.Pub.Data.Type {
+	case "message":
+		chatMessage := entity.Message{
+			ID:        fmt.Sprintf("vk_play_live_%d", msg.Push.Pub.Data.Data.ID),
+			Source:    entity.SourceVkPlayLive,
+			User:      msg.Push.Pub.Data.Data.Author.Name,
+			CreatedAt: time.Now(),
+			Content:   getMessageContent(msg.Push.Pub.Data.Data.Data),
+		}
 
-		return nil, nil
+		if len(chatMessage.Content) == 0 {
+			logger.Warn("can't parse message for vk play")
+
+			return nil
+		}
+
+		result.MessageCh <- chatMessage
+	case "stream_slot_online_status":
+		result.Online <- msg.Push.Pub.Data.Data.Stream.Viewers
+	default:
+		logger.Warn(fmt.Sprintf("unknown vk message %s", string(rawMsg)))
 	}
 
-	return chatMessage, nil
+	return nil
 }
 
 func getMessageContent(messageData []messageData) []entity.MessageContentItem {
