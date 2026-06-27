@@ -28,5 +28,6 @@ func (og *OnlineGetter) GetOnline() map[entity.Source]int64 {
 
 		result[source] = scraper.GetOnline()
 	}
+
 	return result
 }

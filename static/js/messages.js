@@ -50,22 +50,24 @@ function createApp() {
                 youtube: undefined,
                 vk_play_live: undefined,
             };
-            xhr.response.online.forEach(element => {
-                switch (element.source) {
-                case "twitch":
-                    newOnline.twitch = element.count
-                    break;
-                case "kick":
-                    newOnline.kick = element.count
-                    break;
-                case "youtube":
-                    newOnline.youtube = element.count
-                    break;
-                case "vk_play_live":
-                    newOnline.vk_play_live = element.count
-                    break;
-                }
-            });
+            if (xhr.response.online) {
+                xhr.response.online.forEach(element => {
+                    switch (element.source) {
+                    case "twitch":
+                        newOnline.twitch = element.count
+                        break;
+                    case "kick":
+                        newOnline.kick = element.count
+                        break;
+                    case "youtube":
+                        newOnline.youtube = element.count
+                        break;
+                    case "vk_play_live":
+                        newOnline.vk_play_live = element.count
+                        break;
+                    }
+                });
+            }
             app.online = newOnline;
         });
     }, 50);

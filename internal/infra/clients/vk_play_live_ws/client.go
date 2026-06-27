@@ -212,7 +212,7 @@ func getMessageFromBytes(result entity.VkStreamData, rawMsg []byte) error {
 	case "stream_slot_online_status":
 		result.Online <- msg.Push.Pub.Data.Data.Stream.Viewers
 	default:
-		fmt.Println(string(rawMsg))
+		logger.Warn(fmt.Sprintf("unknown vk message %s", string(rawMsg)))
 	}
 
 	return nil
