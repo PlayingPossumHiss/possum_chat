@@ -9,6 +9,7 @@ import (
 
 func (a *Api) cssMainStyleCss(ctx *gin.Context) {
 	ctx.Writer.Header().Set("Content-Type", "text/css")
+	ctx.Writer.Header().Set("Cache-Control", "max-age=5")
 	content, err := a.getStyleUC.GetMainStyle()
 	if err != nil {
 		logger.Error(err)

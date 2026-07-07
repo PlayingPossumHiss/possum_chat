@@ -17,6 +17,8 @@
     padding: 0.5rem;
     font-weight: bold;
     transform: rotate(180deg);
+    text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+    color: white;
 }
 
 .online-icon {
@@ -26,8 +28,7 @@
     padding-right: 0.1rem;
 }
 
-.scroll-messages {
-    position: none;
+.scrollable {
     transform: none;
 }
 

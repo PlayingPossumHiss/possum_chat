@@ -21,6 +21,9 @@
     padding: 0.5rem;
     font-weight: bold;
     transform: rotate(180deg);
+    border: none;
+    border-radius: 1rem;
+    background-color: rgba(255, 255, 255, 0.5);
 }
 
 .online-icon {
@@ -35,7 +38,7 @@
     transform: none;
 }
 
-.scroll-message {
+.scrollable {
     transform: none;
 }
 
