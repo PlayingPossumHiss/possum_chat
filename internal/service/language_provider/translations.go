@@ -58,6 +58,10 @@ var (
 			entity.ConfigLangEn: "Language (need restart)",
 			entity.ConfigLangRu: "Язык (нужен перезапуск)",
 		},
+		entity.LanguageTextConstantSettingsShowOnline: {
+			entity.ConfigLangEn: "Show online",
+			entity.ConfigLangRu: "Отображать онлайн",
+		},
 		entity.LanguageTextConstantAppVersion: {
 			entity.ConfigLangEn: "Version",
 			entity.ConfigLangRu: "Версия",

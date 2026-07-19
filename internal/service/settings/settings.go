@@ -122,6 +122,11 @@ func upgradeConfig(src config) config {
 		src.Version = "1.2"
 	}
 
+	if src.Version == "1.2" {
+		src.View.ShowUserCount = true
+		src.Version = "1.3"
+	}
+
 	return src
 }
 

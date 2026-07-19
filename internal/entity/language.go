@@ -17,6 +17,7 @@ const (
 	LanguageTextConstantSettingsPort                LanguageTextConstant = "SETTINGS_PORT"
 	LanguageTextConstantSettingsLang                LanguageTextConstant = "SETTINGS_LANG"
 	LanguageTextConstantAppVersion                  LanguageTextConstant = "APP_VERSION"
+	LanguageTextConstantSettingsShowOnline          LanguageTextConstant = "SETTINGS_SHOW_ONLINE"
 	LanguageTextConstantTestMessageButton           LanguageTextConstant = "TEST_MESSAGE_BUTTON"
 	LanguageTextConstantTestMessageContent          LanguageTextConstant = "TEST_MESSAGE_CONTENT"
 	LanguageTextConstantMainStyleField              LanguageTextConstant = "MAIN_STYLE_FIELD"

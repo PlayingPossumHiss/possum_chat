@@ -7,20 +7,31 @@ type Scraper interface {
 	Status() entity.ScraperState
 }
 
+type ConfigStorage interface {
+	Config() entity.Config
+}
+
 type OnlineGetter struct {
-	scrapers map[entity.Source]Scraper
+	scrapers      map[entity.Source]Scraper
+	configStorage ConfigStorage
 }
 
 func New(
 	scrapers map[entity.Source]Scraper,
+	configStorage ConfigStorage,
 ) *OnlineGetter {
 	return &OnlineGetter{
-		scrapers: scrapers,
+		scrapers:      scrapers,
+		configStorage: configStorage,
 	}
 }
 
 func (og *OnlineGetter) GetOnline() map[entity.Source]int64 {
 	result := make(map[entity.Source]int64)
+	if !og.configStorage.Config().View.ShowUserCount {
+		return result
+	}
+
 	for source, scraper := range og.scrapers {
 		if scraper.Status() != entity.ScraperStateActive {
 			continue

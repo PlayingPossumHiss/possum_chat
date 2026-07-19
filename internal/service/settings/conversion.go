@@ -119,6 +119,7 @@ func viewFromJson(src configView) (entity.ConfigView, error) {
 		CssMainStyle:        cssMainStyle,
 		TimeToHideMessage:   timeToHideMessage,
 		TimeToDeleteMessage: timeToDeleteMessage,
+		ShowUserCount:       src.ShowUserCount,
 	}, nil
 }
 
@@ -145,6 +146,7 @@ func configToJson(src entity.Config) config {
 			CssMainStyle:        cssMainStyleToJson(src.View.CssMainStyle),
 			TimeToHideMessage:   src.View.TimeToHideMessage.String(),
 			TimeToDeleteMessage: src.View.TimeToDeleteMessage.String(),
+			ShowUserCount:       src.View.ShowUserCount,
 		},
 		UI:      configUI{Lang: langToJson(src.UI.Lang)},
 		Port:    src.Port,
