@@ -262,7 +262,15 @@ func (c *Container) getOnlineScraper() (*get_online.OnlineGetter, error) {
 	}
 	onlineScrapers[entity.SourceVkPlayLive] = vkScraper
 
-	return get_online.New(onlineScrapers), nil
+	configService, err := c.getConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return get_online.New(
+		onlineScrapers,
+		configService,
+	), nil
 }
 
 func (c *Container) getStyleGetter() (*get_style.UseCase, error) {

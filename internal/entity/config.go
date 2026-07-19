@@ -66,6 +66,7 @@ type ConfigView struct {
 	CssMainStyle        ConfigMainStyle
 	TimeToHideMessage   time.Duration
 	TimeToDeleteMessage time.Duration
+	ShowUserCount       bool
 }
 
 type ConfigLogging struct {

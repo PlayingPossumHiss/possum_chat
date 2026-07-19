@@ -10,7 +10,7 @@ const (
 	configPath = "./config.json"
 )
 
-var currentVersion = "1.2"
+var currentVersion = "1.3"
 
 type config struct {
 	Connections configConnections `json:"connections"`
@@ -66,6 +66,7 @@ type configView struct {
 	CssMainStyle        configMainStyle `json:"main_style"`
 	TimeToHideMessage   string          `json:"time_to_hide_message"`
 	TimeToDeleteMessage string          `json:"time_to_delete_message"`
+	ShowUserCount       bool            `json:"show_user_count"`
 }
 
 type configMainStyle string

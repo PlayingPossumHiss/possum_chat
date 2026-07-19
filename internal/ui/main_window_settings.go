@@ -14,7 +14,7 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
 
-const version = "1bd0f07"
+const version = "1.2.3"
 
 func (ui *UI) getSettingsTabContent() *fyne.Container {
 	const itemsInLine = 2
@@ -39,6 +39,11 @@ func (ui *UI) getSettingsTabContent() *fyne.Container {
 	settingsContent = append(
 		settingsContent,
 		ui.getLangSettingsView()...,
+	)
+
+	settingsContent = append(
+		settingsContent,
+		ui.getShowOnlineSettingsView()...,
 	)
 
 	settingsContent = append(
@@ -116,6 +121,25 @@ func (ui *UI) bindTimeToDeleteSettingsViewHandler(timeToDeleteField *widget.Entr
 		if err != nil {
 			logger.Error(fmt.Errorf("failed to update config: %w", err))
 		}
+	}
+}
+
+func (ui *UI) getShowOnlineSettingsView() []fyne.CanvasObject {
+	showOnlineChecker := widget.NewCheck(
+		"",
+		func(newValue bool) {
+			ui.configStorage.UpdateConfig([]entity.ConfigUpdateOption{
+				func(c *entity.Config) {
+					c.View.ShowUserCount = newValue
+				},
+			})
+		},
+	)
+	showOnlineChecker.SetChecked(ui.configStorage.Config().View.ShowUserCount)
+
+	return []fyne.CanvasObject{
+		widget.NewLabel(ui.languageProvider.Local(entity.LanguageTextConstantSettingsShowOnline)),
+		showOnlineChecker,
 	}
 }
 
