@@ -43,7 +43,13 @@ func (s *Service) Run(ctx context.Context) {
 }
 
 func (s *Service) watchLoop() {
+	firstTry := true
 	for {
+		if !firstTry {
+			time.Sleep(time.Second)
+		}
+		firstTry = false
+
 		if s.state == entity.ScraperStateStopped {
 			return
 		}
@@ -74,8 +80,6 @@ func (s *Service) watchLoop() {
 		if err != nil {
 			logger.Error(err)
 		}
-
-		time.Sleep(time.Second)
 	}
 }
 
