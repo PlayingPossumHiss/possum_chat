@@ -3,6 +3,7 @@
 package mocks
 
 import (
+	"context"
 	"sync"
 	mm_atomic "sync/atomic"
 	mm_time "time"
@@ -23,6 +24,13 @@ type TwitchIrcClientMock struct {
 	beforeCloseCounter uint64
 	CloseMock          mTwitchIrcClientMockClose
 
+	funcGetOnline          func(ctx context.Context, channelName string) (i1 int64, err error)
+	funcGetOnlineOrigin    string
+	inspectFuncGetOnline   func(ctx context.Context, channelName string)
+	afterGetOnlineCounter  uint64
+	beforeGetOnlineCounter uint64
+	GetOnlineMock          mTwitchIrcClientMockGetOnline
+
 	funcListen          func(channelName string) (ch1 chan entity.Message)
 	funcListenOrigin    string
 	inspectFuncListen   func(channelName string)
@@ -40,6 +48,9 @@ func NewTwitchIrcClientMock(t minimock.Tester) *TwitchIrcClientMock {
 	}
 
 	m.CloseMock = mTwitchIrcClientMockClose{mock: m}
+
+	m.GetOnlineMock = mTwitchIrcClientMockGetOnline{mock: m}
+	m.GetOnlineMock.callArgs = []*TwitchIrcClientMockGetOnlineParams{}
 
 	m.ListenMock = mTwitchIrcClientMockListen{mock: m}
 	m.ListenMock.callArgs = []*TwitchIrcClientMockListenParams{}
@@ -232,6 +243,349 @@ func (m *TwitchIrcClientMock) MinimockCloseInspect() {
 	if !m.CloseMock.invocationsDone() && afterCloseCounter > 0 {
 		m.t.Errorf("Expected %d calls to TwitchIrcClientMock.Close at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.CloseMock.expectedInvocations), m.CloseMock.expectedInvocationsOrigin, afterCloseCounter)
+	}
+}
+
+type mTwitchIrcClientMockGetOnline struct {
+	optional           bool
+	mock               *TwitchIrcClientMock
+	defaultExpectation *TwitchIrcClientMockGetOnlineExpectation
+	expectations       []*TwitchIrcClientMockGetOnlineExpectation
+
+	callArgs []*TwitchIrcClientMockGetOnlineParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// TwitchIrcClientMockGetOnlineExpectation specifies expectation struct of the TwitchIrcClient.GetOnline
+type TwitchIrcClientMockGetOnlineExpectation struct {
+	mock               *TwitchIrcClientMock
+	params             *TwitchIrcClientMockGetOnlineParams
+	paramPtrs          *TwitchIrcClientMockGetOnlineParamPtrs
+	expectationOrigins TwitchIrcClientMockGetOnlineExpectationOrigins
+	results            *TwitchIrcClientMockGetOnlineResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// TwitchIrcClientMockGetOnlineParams contains parameters of the TwitchIrcClient.GetOnline
+type TwitchIrcClientMockGetOnlineParams struct {
+	ctx         context.Context
+	channelName string
+}
+
+// TwitchIrcClientMockGetOnlineParamPtrs contains pointers to parameters of the TwitchIrcClient.GetOnline
+type TwitchIrcClientMockGetOnlineParamPtrs struct {
+	ctx         *context.Context
+	channelName *string
+}
+
+// TwitchIrcClientMockGetOnlineResults contains results of the TwitchIrcClient.GetOnline
+type TwitchIrcClientMockGetOnlineResults struct {
+	i1  int64
+	err error
+}
+
+// TwitchIrcClientMockGetOnlineOrigins contains origins of expectations of the TwitchIrcClient.GetOnline
+type TwitchIrcClientMockGetOnlineExpectationOrigins struct {
+	origin            string
+	originCtx         string
+	originChannelName string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmGetOnline *mTwitchIrcClientMockGetOnline) Optional() *mTwitchIrcClientMockGetOnline {
+	mmGetOnline.optional = true
+	return mmGetOnline
+}
+
+// Expect sets up expected params for TwitchIrcClient.GetOnline
+func (mmGetOnline *mTwitchIrcClientMockGetOnline) Expect(ctx context.Context, channelName string) *mTwitchIrcClientMockGetOnline {
+	if mmGetOnline.mock.funcGetOnline != nil {
+		mmGetOnline.mock.t.Fatalf("TwitchIrcClientMock.GetOnline mock is already set by Set")
+	}
+
+	if mmGetOnline.defaultExpectation == nil {
+		mmGetOnline.defaultExpectation = &TwitchIrcClientMockGetOnlineExpectation{}
+	}
+
+	if mmGetOnline.defaultExpectation.paramPtrs != nil {
+		mmGetOnline.mock.t.Fatalf("TwitchIrcClientMock.GetOnline mock is already set by ExpectParams functions")
+	}
+
+	mmGetOnline.defaultExpectation.params = &TwitchIrcClientMockGetOnlineParams{ctx, channelName}
+	mmGetOnline.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmGetOnline.expectations {
+		if minimock.Equal(e.params, mmGetOnline.defaultExpectation.params) {
+			mmGetOnline.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetOnline.defaultExpectation.params)
+		}
+	}
+
+	return mmGetOnline
+}
+
+// ExpectCtxParam1 sets up expected param ctx for TwitchIrcClient.GetOnline
+func (mmGetOnline *mTwitchIrcClientMockGetOnline) ExpectCtxParam1(ctx context.Context) *mTwitchIrcClientMockGetOnline {
+	if mmGetOnline.mock.funcGetOnline != nil {
+		mmGetOnline.mock.t.Fatalf("TwitchIrcClientMock.GetOnline mock is already set by Set")
+	}
+
+	if mmGetOnline.defaultExpectation == nil {
+		mmGetOnline.defaultExpectation = &TwitchIrcClientMockGetOnlineExpectation{}
+	}
+
+	if mmGetOnline.defaultExpectation.params != nil {
+		mmGetOnline.mock.t.Fatalf("TwitchIrcClientMock.GetOnline mock is already set by Expect")
+	}
+
+	if mmGetOnline.defaultExpectation.paramPtrs == nil {
+		mmGetOnline.defaultExpectation.paramPtrs = &TwitchIrcClientMockGetOnlineParamPtrs{}
+	}
+	mmGetOnline.defaultExpectation.paramPtrs.ctx = &ctx
+	mmGetOnline.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmGetOnline
+}
+
+// ExpectChannelNameParam2 sets up expected param channelName for TwitchIrcClient.GetOnline
+func (mmGetOnline *mTwitchIrcClientMockGetOnline) ExpectChannelNameParam2(channelName string) *mTwitchIrcClientMockGetOnline {
+	if mmGetOnline.mock.funcGetOnline != nil {
+		mmGetOnline.mock.t.Fatalf("TwitchIrcClientMock.GetOnline mock is already set by Set")
+	}
+
+	if mmGetOnline.defaultExpectation == nil {
+		mmGetOnline.defaultExpectation = &TwitchIrcClientMockGetOnlineExpectation{}
+	}
+
+	if mmGetOnline.defaultExpectation.params != nil {
+		mmGetOnline.mock.t.Fatalf("TwitchIrcClientMock.GetOnline mock is already set by Expect")
+	}
+
+	if mmGetOnline.defaultExpectation.paramPtrs == nil {
+		mmGetOnline.defaultExpectation.paramPtrs = &TwitchIrcClientMockGetOnlineParamPtrs{}
+	}
+	mmGetOnline.defaultExpectation.paramPtrs.channelName = &channelName
+	mmGetOnline.defaultExpectation.expectationOrigins.originChannelName = minimock.CallerInfo(1)
+
+	return mmGetOnline
+}
+
+// Inspect accepts an inspector function that has same arguments as the TwitchIrcClient.GetOnline
+func (mmGetOnline *mTwitchIrcClientMockGetOnline) Inspect(f func(ctx context.Context, channelName string)) *mTwitchIrcClientMockGetOnline {
+	if mmGetOnline.mock.inspectFuncGetOnline != nil {
+		mmGetOnline.mock.t.Fatalf("Inspect function is already set for TwitchIrcClientMock.GetOnline")
+	}
+
+	mmGetOnline.mock.inspectFuncGetOnline = f
+
+	return mmGetOnline
+}
+
+// Return sets up results that will be returned by TwitchIrcClient.GetOnline
+func (mmGetOnline *mTwitchIrcClientMockGetOnline) Return(i1 int64, err error) *TwitchIrcClientMock {
+	if mmGetOnline.mock.funcGetOnline != nil {
+		mmGetOnline.mock.t.Fatalf("TwitchIrcClientMock.GetOnline mock is already set by Set")
+	}
+
+	if mmGetOnline.defaultExpectation == nil {
+		mmGetOnline.defaultExpectation = &TwitchIrcClientMockGetOnlineExpectation{mock: mmGetOnline.mock}
+	}
+	mmGetOnline.defaultExpectation.results = &TwitchIrcClientMockGetOnlineResults{i1, err}
+	mmGetOnline.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmGetOnline.mock
+}
+
+// Set uses given function f to mock the TwitchIrcClient.GetOnline method
+func (mmGetOnline *mTwitchIrcClientMockGetOnline) Set(f func(ctx context.Context, channelName string) (i1 int64, err error)) *TwitchIrcClientMock {
+	if mmGetOnline.defaultExpectation != nil {
+		mmGetOnline.mock.t.Fatalf("Default expectation is already set for the TwitchIrcClient.GetOnline method")
+	}
+
+	if len(mmGetOnline.expectations) > 0 {
+		mmGetOnline.mock.t.Fatalf("Some expectations are already set for the TwitchIrcClient.GetOnline method")
+	}
+
+	mmGetOnline.mock.funcGetOnline = f
+	mmGetOnline.mock.funcGetOnlineOrigin = minimock.CallerInfo(1)
+	return mmGetOnline.mock
+}
+
+// When sets expectation for the TwitchIrcClient.GetOnline which will trigger the result defined by the following
+// Then helper
+func (mmGetOnline *mTwitchIrcClientMockGetOnline) When(ctx context.Context, channelName string) *TwitchIrcClientMockGetOnlineExpectation {
+	if mmGetOnline.mock.funcGetOnline != nil {
+		mmGetOnline.mock.t.Fatalf("TwitchIrcClientMock.GetOnline mock is already set by Set")
+	}
+
+	expectation := &TwitchIrcClientMockGetOnlineExpectation{
+		mock:               mmGetOnline.mock,
+		params:             &TwitchIrcClientMockGetOnlineParams{ctx, channelName},
+		expectationOrigins: TwitchIrcClientMockGetOnlineExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmGetOnline.expectations = append(mmGetOnline.expectations, expectation)
+	return expectation
+}
+
+// Then sets up TwitchIrcClient.GetOnline return parameters for the expectation previously defined by the When method
+func (e *TwitchIrcClientMockGetOnlineExpectation) Then(i1 int64, err error) *TwitchIrcClientMock {
+	e.results = &TwitchIrcClientMockGetOnlineResults{i1, err}
+	return e.mock
+}
+
+// Times sets number of times TwitchIrcClient.GetOnline should be invoked
+func (mmGetOnline *mTwitchIrcClientMockGetOnline) Times(n uint64) *mTwitchIrcClientMockGetOnline {
+	if n == 0 {
+		mmGetOnline.mock.t.Fatalf("Times of TwitchIrcClientMock.GetOnline mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmGetOnline.expectedInvocations, n)
+	mmGetOnline.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmGetOnline
+}
+
+func (mmGetOnline *mTwitchIrcClientMockGetOnline) invocationsDone() bool {
+	if len(mmGetOnline.expectations) == 0 && mmGetOnline.defaultExpectation == nil && mmGetOnline.mock.funcGetOnline == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmGetOnline.mock.afterGetOnlineCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmGetOnline.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// GetOnline implements mm_twitch.TwitchIrcClient
+func (mmGetOnline *TwitchIrcClientMock) GetOnline(ctx context.Context, channelName string) (i1 int64, err error) {
+	mm_atomic.AddUint64(&mmGetOnline.beforeGetOnlineCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetOnline.afterGetOnlineCounter, 1)
+
+	mmGetOnline.t.Helper()
+
+	if mmGetOnline.inspectFuncGetOnline != nil {
+		mmGetOnline.inspectFuncGetOnline(ctx, channelName)
+	}
+
+	mm_params := TwitchIrcClientMockGetOnlineParams{ctx, channelName}
+
+	// Record call args
+	mmGetOnline.GetOnlineMock.mutex.Lock()
+	mmGetOnline.GetOnlineMock.callArgs = append(mmGetOnline.GetOnlineMock.callArgs, &mm_params)
+	mmGetOnline.GetOnlineMock.mutex.Unlock()
+
+	for _, e := range mmGetOnline.GetOnlineMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1, e.results.err
+		}
+	}
+
+	if mmGetOnline.GetOnlineMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetOnline.GetOnlineMock.defaultExpectation.Counter, 1)
+		mm_want := mmGetOnline.GetOnlineMock.defaultExpectation.params
+		mm_want_ptrs := mmGetOnline.GetOnlineMock.defaultExpectation.paramPtrs
+
+		mm_got := TwitchIrcClientMockGetOnlineParams{ctx, channelName}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmGetOnline.t.Errorf("TwitchIrcClientMock.GetOnline got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmGetOnline.GetOnlineMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.channelName != nil && !minimock.Equal(*mm_want_ptrs.channelName, mm_got.channelName) {
+				mmGetOnline.t.Errorf("TwitchIrcClientMock.GetOnline got unexpected parameter channelName, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmGetOnline.GetOnlineMock.defaultExpectation.expectationOrigins.originChannelName, *mm_want_ptrs.channelName, mm_got.channelName, minimock.Diff(*mm_want_ptrs.channelName, mm_got.channelName))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmGetOnline.t.Errorf("TwitchIrcClientMock.GetOnline got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmGetOnline.GetOnlineMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmGetOnline.GetOnlineMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetOnline.t.Fatal("No results are set for the TwitchIrcClientMock.GetOnline")
+		}
+		return (*mm_results).i1, (*mm_results).err
+	}
+	if mmGetOnline.funcGetOnline != nil {
+		return mmGetOnline.funcGetOnline(ctx, channelName)
+	}
+	mmGetOnline.t.Fatalf("Unexpected call to TwitchIrcClientMock.GetOnline. %v %v", ctx, channelName)
+	return
+}
+
+// GetOnlineAfterCounter returns a count of finished TwitchIrcClientMock.GetOnline invocations
+func (mmGetOnline *TwitchIrcClientMock) GetOnlineAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetOnline.afterGetOnlineCounter)
+}
+
+// GetOnlineBeforeCounter returns a count of TwitchIrcClientMock.GetOnline invocations
+func (mmGetOnline *TwitchIrcClientMock) GetOnlineBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetOnline.beforeGetOnlineCounter)
+}
+
+// Calls returns a list of arguments used in each call to TwitchIrcClientMock.GetOnline.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmGetOnline *mTwitchIrcClientMockGetOnline) Calls() []*TwitchIrcClientMockGetOnlineParams {
+	mmGetOnline.mutex.RLock()
+
+	argCopy := make([]*TwitchIrcClientMockGetOnlineParams, len(mmGetOnline.callArgs))
+	copy(argCopy, mmGetOnline.callArgs)
+
+	mmGetOnline.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockGetOnlineDone returns true if the count of the GetOnline invocations corresponds
+// the number of defined expectations
+func (m *TwitchIrcClientMock) MinimockGetOnlineDone() bool {
+	if m.GetOnlineMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.GetOnlineMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.GetOnlineMock.invocationsDone()
+}
+
+// MinimockGetOnlineInspect logs each unmet expectation
+func (m *TwitchIrcClientMock) MinimockGetOnlineInspect() {
+	for _, e := range m.GetOnlineMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to TwitchIrcClientMock.GetOnline at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterGetOnlineCounter := mm_atomic.LoadUint64(&m.afterGetOnlineCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetOnlineMock.defaultExpectation != nil && afterGetOnlineCounter < 1 {
+		if m.GetOnlineMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to TwitchIrcClientMock.GetOnline at\n%s", m.GetOnlineMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to TwitchIrcClientMock.GetOnline at\n%s with params: %#v", m.GetOnlineMock.defaultExpectation.expectationOrigins.origin, *m.GetOnlineMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetOnline != nil && afterGetOnlineCounter < 1 {
+		m.t.Errorf("Expected call to TwitchIrcClientMock.GetOnline at\n%s", m.funcGetOnlineOrigin)
+	}
+
+	if !m.GetOnlineMock.invocationsDone() && afterGetOnlineCounter > 0 {
+		m.t.Errorf("Expected %d calls to TwitchIrcClientMock.GetOnline at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.GetOnlineMock.expectedInvocations), m.GetOnlineMock.expectedInvocationsOrigin, afterGetOnlineCounter)
 	}
 }
 
@@ -552,6 +906,8 @@ func (m *TwitchIrcClientMock) MinimockFinish() {
 		if !m.minimockDone() {
 			m.MinimockCloseInspect()
 
+			m.MinimockGetOnlineInspect()
+
 			m.MinimockListenInspect()
 		}
 	})
@@ -577,5 +933,6 @@ func (m *TwitchIrcClientMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockCloseDone() &&
+		m.MinimockGetOnlineDone() &&
 		m.MinimockListenDone()
 }
