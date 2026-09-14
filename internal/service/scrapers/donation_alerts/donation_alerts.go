@@ -39,10 +39,10 @@ func New(
 func (s *Service) Run(ctx context.Context) {
 	logger.Info("start donation alerts scraper")
 	s.state = entity.ScraperStateActive
-	go s.watchLoop()
+	go s.watchLoop(ctx)
 }
 
-func (s *Service) watchLoop() {
+func (s *Service) watchLoop(ctx context.Context) {
 	firstTry := true
 	for {
 		if !firstTry {
@@ -62,6 +62,7 @@ func (s *Service) watchLoop() {
 			return
 		}
 		messages, err := s.daClient.Init(
+			ctx,
 			token,
 		)
 		if err != nil {

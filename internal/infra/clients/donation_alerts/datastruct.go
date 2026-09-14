@@ -1,63 +1,102 @@
 package donation_alerts
 
-import (
-	"encoding/json"
-	"fmt"
-	"strconv"
+import "encoding/json"
 
-	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
-)
+// envFrontResponse ответ от /api/v1/env/front
+type envFrontResponse struct {
+	Data struct {
+		Centrifugo struct {
+			Endpoint          string `json:"endpoint"`
+			SubscribeEndpoint string `json:"subscribe_endpoint"`
+		} `json:"centrifugo"`
+	} `json:"data"`
+}
 
-type addUserRequest struct {
+// widgetTokenResponse ответ от /api/v1/token/widget
+type widgetTokenResponse struct {
+	Data struct {
+		Token string `json:"token"`
+	} `json:"data"`
+}
+
+// userWidgetResponse ответ от /api/v1/user/widget
+type userWidgetResponse struct {
+	Data struct {
+		ID                    int64  `json:"id"`
+		SocketConnectionToken string `json:"socket_connection_token"`
+	} `json:"data"`
+}
+
+// subscribeRequest тело запроса к /api/v1/centrifuge/subscribe
+type subscribeRequest struct {
+	Client   string   `json:"client"`
+	Channels []string `json:"channels"`
+}
+
+// subscribeResponse ответ от /api/v1/centrifuge/subscribe
+type subscribeResponse struct {
+	Channels []subscribeChannel `json:"channels"`
+}
+
+type subscribeChannel struct {
+	Channel string `json:"channel"`
+	Token   string `json:"token"`
+}
+
+// alert данные о донате из публикации в канале $alerts:donation_*
+type alert struct {
+	ID       int64       `json:"id"`
+	Username string      `json:"username"`
+	Amount   json.Number `json:"amount"`
+	Currency string      `json:"currency"`
+	Message  string      `json:"message"`
+}
+
+// centrifugoCommand исходящее сообщение по старому протоколу Centrifugo
+type centrifugoCommand struct {
+	ID     uint64 `json:"id"`
+	Method *int   `json:"method,omitempty"`
+	Params any    `json:"params,omitempty"`
+}
+
+// centrifugoConnectParams параметры команды connect
+type centrifugoConnectParams struct {
 	Token string `json:"token"`
-	Type  string `json:"type"`
+	Name  string `json:"name"`
 }
 
-type donation struct {
-	ID              int64
-	AmountFormatted string
-	Currency        string
-	Message         string
-	Username        string
+// centrifugoSubscribeParams параметры команды subscribe
+type centrifugoSubscribeParams struct {
+	Channel string `json:"channel"`
+	Token   string `json:"token"`
 }
 
-func (target *donation) UnmarshalJSON(data []byte) error {
-	type donationJson struct {
-		ID              int64  `json:"id"`
-		AmountFormatted string `json:"amount_formatted"`
-		Currency        string `json:"currency"`
-		Message         string `json:"message"`
-		Username        string `json:"username"`
-	}
+// centrifugoReply входящее сообщение
+type centrifugoReply struct {
+	ID     uint64           `json:"id"`
+	Result json.RawMessage  `json:"result"`
+	Error  *centrifugoError `json:"error"`
+}
 
-	unquotedData, err := strconv.Unquote(string(data))
-	if err != nil {
-		logger.Error(fmt.Sprintf(
-			"failed Unquote donation alerts message %s: %s",
-			string(data),
-			err.Error(),
-		))
+type centrifugoError struct {
+	Code    uint32 `json:"code"`
+	Message string `json:"message"`
+}
 
-		return err
-	}
+// centrifugoConnectResult результат команды connect
+type centrifugoConnectResult struct {
+	Client  string `json:"client"`
+	Version string `json:"version"`
+}
 
-	rawData := &donationJson{}
-	err = json.Unmarshal([]byte(unquotedData), rawData)
-	if err != nil {
-		logger.Error(fmt.Sprintf(
-			"failed Unmarshal donation alerts message %s: %s",
-			unquotedData,
-			err.Error(),
-		))
+// centrifugoPush пуша из канала
+type centrifugoPush struct {
+	Channel string          `json:"channel"`
+	Type    int             `json:"type"`
+	Data    json.RawMessage `json:"data"`
+}
 
-		return err
-	}
-
-	target.AmountFormatted = rawData.AmountFormatted
-	target.Currency = rawData.Currency
-	target.ID = rawData.ID
-	target.Message = rawData.Message
-	target.Username = rawData.Username
-
-	return nil
+// centrifugoPublication публикация (push type = publication)
+type centrifugoPublication struct {
+	Data json.RawMessage `json:"data"`
 }
