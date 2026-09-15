@@ -2,8 +2,9 @@ package twitch_client
 
 // GQL endpoint и web client-id, которые использует сам сайт twitch.tv
 const (
-	gqlURL      = "https://gql.twitch.tv/gql"
-	gqlClientID = "kimne78kx3ncx6brgo4mv6wki5h1ko"
+	gqlURL = "https://gql.twitch.tv/gql"
+
+	channelURL = "https://www.twitch.tv/%s"
 
 	getOnlineQuery = `query GetOnline($login: String!) {
 		user(login: $login) {

@@ -80,7 +80,11 @@ func (s *Service) watchOnline(
 			return
 		default:
 			channelName := s.configStorage.Config().Connections.Twitch.ChannelName
-			online, err := s.twitchClient.GetOnline(ctx, channelName)
+			clientID, err := s.twitchClient.GetClientID(ctx, channelName)
+			if err != nil {
+				logger.Error(fmt.Errorf("error on get twitch client ID: %w", err))
+			}
+			online, err := s.twitchClient.GetOnline(ctx, clientID, channelName)
 			if err != nil {
 				logger.Error(fmt.Errorf("error on get twitch online %w", err))
 			}

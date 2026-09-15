@@ -14,7 +14,8 @@ type TwitchIrcClient interface {
 }
 
 type TwitchClient interface {
-	GetOnline(ctx context.Context, channelName string) (int64, error)
+	GetOnline(ctx context.Context, clientID string, channelName string) (int64, error)
+	GetClientID(ctx context.Context, channelName string) (string, error)
 }
 
 type ConfigStorage interface {

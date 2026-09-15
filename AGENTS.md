@@ -31,7 +31,7 @@ Manual DI composition root in `internal/container/` (`Container` with lazy singl
 
 Settings live in `internal/service/settings`; config is loaded/validated/migrated there.
 
-Main goal of this service is to collect messages from different streaming services and push it in united queue `internal/service/message_queue` that is used for provide all messages in API and UI
+Main goal of this service is to collect messages from different streaming services and push it in united queue `internal/service/message_queue` that is used for provide all messages in API and UI. Also it provide gathering current viewer count by `GetOnline() int64`
 
 ## Gotchas
 
