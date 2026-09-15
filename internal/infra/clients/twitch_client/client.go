@@ -22,10 +22,14 @@ func New() *Client {
 	return &Client{}
 }
 
+func (c *Client) GetClientID(ctx context.Context, channelName string) (string, error) {
+	return "", nil
+}
+
 // GetOnline возвращает текущее число зрителей трансляции канала.
 // Значение берётся из того же GraphQL-запроса, которым сайт twitch.tv
 // заполняет блок со зрителями на странице канала.
-func (c *Client) GetOnline(ctx context.Context, channelName string) (int64, error) {
+func (c *Client) GetOnline(ctx context.Context, clientID string, channelName string) (int64, error) {
 	requestBody, err := json.Marshal(gqlRequest{
 		Query:     getOnlineQuery,
 		Variables: map[string]any{"login": channelName},
@@ -34,7 +38,7 @@ func (c *Client) GetOnline(ctx context.Context, channelName string) (int64, erro
 		return 0, fmt.Errorf("failed to marshal twitch online request: %w", err)
 	}
 
-	bodyBytes, err := c.do(ctx, requestBody)
+	bodyBytes, err := c.do(ctx, clientID, requestBody)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get twitch online: %w", err)
 	}
@@ -52,7 +56,7 @@ func (c *Client) GetOnline(ctx context.Context, channelName string) (int64, erro
 	return response.Data.User.Stream.ViewersCount, nil
 }
 
-func (c *Client) do(ctx context.Context, body []byte) ([]byte, error) {
+func (c *Client) do(ctx context.Context, clientID string, body []byte) ([]byte, error) {
 	deadlineCtx, cancel := context.WithTimeout(ctx, defaultDeadlineSeconds*time.Second)
 	defer cancel()
 
@@ -66,7 +70,7 @@ func (c *Client) do(ctx context.Context, body []byte) ([]byte, error) {
 		return nil, fmt.Errorf("failed to create twitch api request: %w", err)
 	}
 
-	request.Header.Add("Client-Id", gqlClientID)
+	request.Header.Add("Client-Id", clientID)
 	request.Header.Add("Content-Type", "application/json")
 	request.Header.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:151.0) Gecko/20100101 Firefox/151.0")
 
