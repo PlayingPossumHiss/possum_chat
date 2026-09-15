@@ -4,6 +4,8 @@ package twitch_client
 const (
 	gqlURL = "https://gql.twitch.tv/gql"
 
+	channelURL = "https://www.twitch.tv/%s"
+
 	getOnlineQuery = `query GetOnline($login: String!) {
 		user(login: $login) {
 			stream {

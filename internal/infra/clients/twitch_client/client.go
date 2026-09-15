@@ -15,6 +15,10 @@ import (
 
 const defaultDeadlineSeconds = 5
 
+// clientIDAttr — атрибут в разметке страницы канала, в котором twitch.tv
+// отдаёт web client-id, используемый для GraphQL-запросов.
+const clientIDAttr = `clientId="`
+
 type Client struct {
 }
 
@@ -23,7 +27,80 @@ func New() *Client {
 }
 
 func (c *Client) GetClientID(ctx context.Context, channelName string) (string, error) {
-	return "", nil
+	bodyBytes, err := c.getChannelPage(ctx, channelName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get twitch channel page: %w", err)
+	}
+
+	clientID, err := extractClientID(bodyBytes)
+	if err != nil {
+		return "", fmt.Errorf("failed to extract twitch client id: %w", err)
+	}
+
+	return clientID, nil
+}
+
+// getChannelPage загружает HTML страницы канала, на которой twitch.tv
+// публикует свой web client-id.
+func (c *Client) getChannelPage(ctx context.Context, channelName string) ([]byte, error) {
+	deadlineCtx, cancel := context.WithTimeout(ctx, defaultDeadlineSeconds*time.Second)
+	defer cancel()
+
+	request, err := http.NewRequestWithContext(
+		deadlineCtx,
+		http.MethodGet,
+		fmt.Sprintf(channelURL, channelName),
+		nil,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create twitch channel page request: %w", err)
+	}
+
+	request.Header.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:151.0) Gecko/20100101 Firefox/151.0")
+
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to do twitch channel page request: %w", err)
+	}
+	defer func() {
+		dErr := response.Body.Close()
+		if dErr != nil {
+			logger.Error(dErr)
+		}
+	}()
+
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf(
+			"%w: error on twitch channel page request: code %d",
+			app_errors.ErrRequestFail,
+			response.StatusCode,
+		)
+	}
+
+	bodyBytes, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read twitch channel page response: %w", err)
+	}
+
+	return bodyBytes, nil
+}
+
+// extractClientID вытаскивает значение web client-id из атрибута clientId="...".
+func extractClientID(body []byte) (string, error) {
+	index := bytes.Index(body, []byte(clientIDAttr))
+	if index == -1 {
+		return "", fmt.Errorf("%w: clientId attribute not found on twitch page", app_errors.ErrNoData)
+	}
+
+	start := index + len(clientIDAttr)
+	body = body[start:]
+
+	end := bytes.IndexByte(body, '"')
+	if end == -1 {
+		return "", fmt.Errorf("%w: malformed clientId attribute on twitch page", app_errors.ErrNoData)
+	}
+
+	return string(body[:end]), nil
 }
 
 // GetOnline возвращает текущее число зрителей трансляции канала.
