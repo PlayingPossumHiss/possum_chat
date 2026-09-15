@@ -13,8 +13,9 @@ import (
 )
 
 type Service struct {
-	twitchClient  TwitchIrcClient
-	configStorage ConfigStorage
+	twitchIrcClient TwitchIrcClient
+	twitchClient    TwitchClient
+	configStorage   ConfigStorage
 
 	state       entity.ScraperState
 	stateMx     *sync.Mutex
@@ -22,18 +23,22 @@ type Service struct {
 
 	messages  []entity.Message
 	messageMx *sync.Mutex
+
+	online int64
 }
 
 func New(
-	twitchClient TwitchIrcClient,
+	twitchIrcClient TwitchIrcClient,
+	twitchClient TwitchClient,
 	configStorage ConfigStorage,
 ) *Service {
 	service := &Service{
-		twitchClient:  twitchClient,
-		configStorage: configStorage,
-		messageMx:     &sync.Mutex{},
-		stateMx:       &sync.Mutex{},
-		state:         entity.ScraperStateStopped,
+		twitchClient:    twitchClient,
+		twitchIrcClient: twitchIrcClient,
+		configStorage:   configStorage,
+		messageMx:       &sync.Mutex{},
+		stateMx:         &sync.Mutex{},
+		state:           entity.ScraperStateStopped,
 	}
 
 	return service
@@ -44,6 +49,7 @@ func (s *Service) Run(ctx context.Context) {
 	newCtx, cancel := context.WithCancel(ctx)
 	s.watchCancel = cancel
 	go s.watchChat(newCtx)
+	go s.watchOnline(newCtx)
 }
 
 func (s *Service) Stop() {
@@ -52,7 +58,7 @@ func (s *Service) Stop() {
 	defer s.stateMx.Unlock()
 
 	s.watchCancel()
-	err := s.twitchClient.Close()
+	err := s.twitchIrcClient.Close()
 	if err != nil {
 		logger.Error(err)
 	}
@@ -61,6 +67,27 @@ func (s *Service) Stop() {
 
 func (s *Service) Status() entity.ScraperState {
 	return s.state
+}
+
+func (s *Service) watchOnline(
+	ctx context.Context,
+) {
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Warn("twitch online watcher is stopped by contex cancel")
+
+			return
+		default:
+			channelName := s.configStorage.Config().Connections.Twitch.ChannelName
+			online, err := s.twitchClient.GetOnline(ctx, channelName)
+			if err != nil {
+				logger.Error(fmt.Errorf("error on get twitch online %w", err))
+			}
+			s.online = online
+			time.Sleep(time.Minute)
+		}
+	}
 }
 
 func (s *Service) watchChat(
@@ -89,7 +116,7 @@ func (s *Service) watchChat(
 				continue
 			}
 
-			messages := s.twitchClient.Listen(
+			messages := s.twitchIrcClient.Listen(
 				channelName,
 			)
 			s.state = entity.ScraperStateActive
@@ -114,6 +141,5 @@ func (s *Service) GetMessages() []entity.Message {
 }
 
 func (s *Service) GetOnline() int64 {
-	// TODO: реализовать
-	return 0
+	return s.online
 }

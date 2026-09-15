@@ -3,6 +3,7 @@ package container
 import (
 	donation_alerts_client "github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/donation_alerts"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/kick_chat_api"
+	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/twitch_client"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/twitch_irc_client"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_ws"
@@ -89,6 +90,7 @@ func (c *Container) getTwitchScraper() (*twitch.Service, error) {
 	}
 
 	c.twitchScraper = twitch.New(
+		c.getTwitchIrcClient(),
 		c.getTwitchClient(),
 		configService,
 	)
@@ -144,9 +146,14 @@ func (c *Container) getYoutubeClient() *youtube_client.Client {
 	return youtube_client.New()
 }
 
-func (c *Container) getTwitchClient() *twitch_irc_client.Client {
+func (c *Container) getTwitchIrcClient() *twitch_irc_client.Client {
 	// тут отдельный коннект на каждое соединение
 	return twitch_irc_client.New()
+}
+
+func (c *Container) getTwitchClient() *twitch_client.Client {
+	// тут отдельный коннект на каждое соединение
+	return twitch_client.New()
 }
 
 func (c *Container) getDonationAlertsClient() *donation_alerts_client.Client {
