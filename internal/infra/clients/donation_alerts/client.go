@@ -30,6 +30,9 @@ const (
 )
 
 func (c *Client) Close() {
+	if c.conn == nil {
+		return
+	}
 	c.conn.Close()
 }
 

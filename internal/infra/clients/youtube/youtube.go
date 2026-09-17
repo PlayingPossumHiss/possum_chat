@@ -272,6 +272,9 @@ func (c *Client) getInitDataFrom(ctx context.Context, url string) ([]byte, error
 	// но я хочу поскорее это докатить и вообще
 	// работает - не трож
 	initialDataArr := regexSearch(initialDataRegex, bodyBytes)
+	if len(initialDataArr) == 0 {
+		return nil, fmt.Errorf("failed to find ytInitialData on youtube page: %w", app_errors.ErrNoData)
+	}
 	initialDataRaw := bytes.Trim(initialDataArr[0], "ytInitialData = ")
 
 	return bytes.Trim(initialDataRaw, ";</script"), nil

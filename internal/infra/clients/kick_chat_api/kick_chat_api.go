@@ -99,8 +99,16 @@ func (c *Client) Listen(
 }
 
 func (c *Client) Close() error {
-	c.quit <- true
-	close(c.quit)
+	if c.quit != nil {
+		select {
+		case c.quit <- true:
+		default:
+		}
+	}
+
+	if c.ws == nil {
+		return nil
+	}
 
 	return c.ws.Close()
 }

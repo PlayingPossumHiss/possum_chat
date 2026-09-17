@@ -14,7 +14,7 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
 
-const version = "5b94611"
+const version = "8d5fc47"
 
 func (ui *UI) getSettingsTabContent() *fyne.Container {
 	const itemsInLine = 2
@@ -128,11 +128,14 @@ func (ui *UI) getShowOnlineSettingsView() []fyne.CanvasObject {
 	showOnlineChecker := widget.NewCheck(
 		"",
 		func(newValue bool) {
-			ui.configStorage.UpdateConfig([]entity.ConfigUpdateOption{
+			err := ui.configStorage.UpdateConfig([]entity.ConfigUpdateOption{
 				func(c *entity.Config) {
 					c.View.ShowUserCount = newValue
 				},
 			})
+			if err != nil {
+				logger.Error(fmt.Errorf("error on update show online config %w", err))
+			}
 		},
 	)
 	showOnlineChecker.SetChecked(ui.configStorage.Config().View.ShowUserCount)

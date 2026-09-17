@@ -48,6 +48,9 @@ func (s *Service) Run(ctx context.Context) {
 	logger.Info("start twitch scraper")
 	newCtx, cancel := context.WithCancel(ctx)
 	s.watchCancel = cancel
+	s.stateMx.Lock()
+	s.state = entity.ScraperStateStarting
+	s.stateMx.Unlock()
 	go s.watchChat(newCtx)
 	go s.watchOnline(newCtx)
 }
@@ -57,7 +60,9 @@ func (s *Service) Stop() {
 	s.stateMx.Lock()
 	defer s.stateMx.Unlock()
 
-	s.watchCancel()
+	if s.watchCancel != nil {
+		s.watchCancel()
+	}
 	err := s.twitchIrcClient.Close()
 	if err != nil {
 		logger.Error(err)
@@ -108,7 +113,6 @@ func (s *Service) watchChat(
 			if !firstRun {
 				time.Sleep(time.Second)
 			}
-			s.stateMx.Lock()
 
 			firstRun = false
 
@@ -120,6 +124,7 @@ func (s *Service) watchChat(
 				continue
 			}
 
+			s.stateMx.Lock()
 			messages := s.twitchIrcClient.Listen(
 				channelName,
 			)
