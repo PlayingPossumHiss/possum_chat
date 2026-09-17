@@ -128,11 +128,14 @@ func (ui *UI) getShowOnlineSettingsView() []fyne.CanvasObject {
 	showOnlineChecker := widget.NewCheck(
 		"",
 		func(newValue bool) {
-			ui.configStorage.UpdateConfig([]entity.ConfigUpdateOption{
+			err := ui.configStorage.UpdateConfig([]entity.ConfigUpdateOption{
 				func(c *entity.Config) {
 					c.View.ShowUserCount = newValue
 				},
 			})
+			if err != nil {
+				logger.Error(fmt.Errorf("error on update show online config %w", err))
+			}
 		},
 	)
 	showOnlineChecker.SetChecked(ui.configStorage.Config().View.ShowUserCount)

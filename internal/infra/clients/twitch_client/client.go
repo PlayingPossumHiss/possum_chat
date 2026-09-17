@@ -19,8 +19,7 @@ const defaultDeadlineSeconds = 5
 // отдаёт web client-id, используемый для GraphQL-запросов.
 const clientIDAttr = `clientId="`
 
-type Client struct {
-}
+type Client struct{}
 
 func New() *Client {
 	return &Client{}

@@ -29,9 +29,11 @@ Manual DI composition root in `internal/container/` (`Container` with lazy singl
 - `internal/infra/clients/<source>` — external API/WS clients (one per source)
 - `internal/service/scrapers/<source>` — scrapers wrapping the clients
 
-Settings live in `internal/service/settings`; config is loaded/validated/migrated there.
+Settings live in `internal/service/settings`; config is loaded/validated/migrated there. All settings can be canged by UI
 
 Main goal of this service is to collect messages from different streaming services and push it in united queue `internal/service/message_queue` that is used for provide all messages in API and UI. Also it provide gathering current viewer count by `GetOnline() int64`
+
+We want to see messages from MessageQueue on page `http://127.0.0.1:8081/messages.html` page. The most recent messages must be on the bottom and if there no enough space we show only the new ones. Also we have place for online count on the bottom. We get new messages by call `/api/v1/messages` in `static/js/messages.js`. `/api/v1/messages` is defined in `internal/api/api_v1_messages.go`
 
 ## Gotchas
 

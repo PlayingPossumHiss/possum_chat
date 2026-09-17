@@ -18,7 +18,8 @@ test:
 	go test ./...
 
 lint:
-	golangci-lint run --fix
+	curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b ./bin v2.13.2
+	./bin/golangci-lint run --fix
 
 build-app:
 	rm -f ./possum_chat.tar.gz

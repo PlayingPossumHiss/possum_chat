@@ -18,11 +18,14 @@
 }
 
 .online {
-    padding: 0.5rem;
     font-weight: bold;
+    padding-top: 0.5rem;
     transform: rotate(180deg);
-    border: none;
+}
+
+.online-content {
     border-radius: 1rem;
+    padding: 0.5rem;
     background-color: rgba(255, 255, 255, 0.5);
 }
 
