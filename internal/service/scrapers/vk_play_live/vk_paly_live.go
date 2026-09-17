@@ -54,6 +54,9 @@ func (s *Service) Run(ctx context.Context) {
 	logger.Info("start vk play live scraper")
 	newCtx, cancel := context.WithCancel(ctx)
 	s.watchCancel = cancel
+	s.stateMx.Lock()
+	s.state = entity.ScraperStateStarting
+	s.stateMx.Unlock()
 	go s.watchChat(newCtx)
 }
 
@@ -62,7 +65,9 @@ func (s *Service) Stop() {
 	s.stateMx.Lock()
 	defer s.stateMx.Unlock()
 
-	s.watchCancel()
+	if s.watchCancel != nil {
+		s.watchCancel()
+	}
 	s.state = entity.ScraperStateStopped
 }
 

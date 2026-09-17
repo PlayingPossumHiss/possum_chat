@@ -46,7 +46,9 @@ func (s *Service) Run(ctx context.Context) {
 	logger.Info("start youtube scraper")
 	newCtx, cancel := context.WithCancel(ctx)
 	s.watchCancel = cancel
+	s.stateMx.Lock()
 	s.state = entity.ScraperStateStarting
+	s.stateMx.Unlock()
 	go s.watchChat(newCtx)
 	go s.watchOnline(newCtx)
 }
@@ -56,7 +58,9 @@ func (s *Service) Stop() {
 	s.stateMx.Lock()
 	defer s.stateMx.Unlock()
 
-	s.watchCancel()
+	if s.watchCancel != nil {
+		s.watchCancel()
+	}
 	s.state = entity.ScraperStateStopped
 }
 
@@ -145,7 +149,7 @@ func (s *Service) initChat(ctx context.Context) error {
 
 	channelName := s.configStorage.Config().Connections.Youtube.ChannelName
 	if len(channelName) == 0 {
-		return fmt.Errorf("%w: can't get channel name for vk play live", app_errors.ErrInvalidConfig)
+		return fmt.Errorf("%w: can't get channel name for youtube", app_errors.ErrInvalidConfig)
 	}
 	streamKey, err := s.youtubeClient.GetLastTranslationID(
 		ctx,
