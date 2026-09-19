@@ -14,7 +14,7 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
 
-const version = "8d5fc47"
+const version = "1.2.4"
 
 func (ui *UI) getSettingsTabContent() *fyne.Container {
 	const itemsInLine = 2
