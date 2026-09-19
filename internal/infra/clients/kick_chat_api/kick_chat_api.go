@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
@@ -150,15 +152,63 @@ func (c *Client) listenForMessages(
 				Source:    entity.SourceKick,
 				User:      chatMessage.Sender.Username,
 				CreatedAt: chatMessage.CreatedAt,
-				Content: []entity.MessageContentItem{
-					{
-						Type:  entity.MessageContentItemTypeText,
-						Value: chatMessage.Content,
-					},
-				},
+				Content:   getMessageContent(chatMessage.Content),
 			}
 		}
 	}
+}
+
+func getMessageContent(src string) []entity.MessageContentItem {
+	const emoteUrlTemplate = "https://files.kick.com/emotes/%s/fullsize"
+	emoteTemplate := regexp.MustCompile(`\[emote:[0-9]+:[0-9a-zA-Z]+\]`)
+
+	emotesIndexes := emoteTemplate.FindAllStringIndex(src, -1)
+	if len(emotesIndexes) == 0 {
+		return []entity.MessageContentItem{
+			{
+				Type:  entity.MessageContentItemTypeText,
+				Value: src,
+			},
+		}
+	}
+
+	start := 0
+	result := make([]entity.MessageContentItem, 0, 1+len(emotesIndexes)*2)
+	for _, emotesIndex := range emotesIndexes {
+		newStart := emotesIndex[0]
+		newEnd := emotesIndex[1]
+
+		if newStart != start {
+			result = append(result, entity.MessageContentItem{
+				Type:  entity.MessageContentItemTypeText,
+				Value: src[start:newStart],
+			})
+		}
+
+		emoteRaw := src[newStart:newEnd]
+		emoteUnits := strings.Split(emoteRaw[1:len(emoteRaw)-1], ":")
+		if len(emoteUnits) != 3 {
+			logger.Warn(fmt.Sprintf("unexpected emote format for kick %s", emoteRaw))
+
+			continue
+		}
+
+		result = append(result, entity.MessageContentItem{
+			Type:  entity.MessageContentItemTypeImage,
+			Value: fmt.Sprintf(emoteUrlTemplate, emoteUnits[1]),
+		})
+
+		start = newEnd
+	}
+
+	if start != len(src) {
+		result = append(result, entity.MessageContentItem{
+			Type:  entity.MessageContentItemTypeText,
+			Value: src[start:],
+		})
+	}
+
+	return result
 }
 
 func (c *Client) joinChannelByID() error {

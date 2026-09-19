@@ -28,7 +28,6 @@ func (ui *UI) getConnectionTabContent() (*fyne.Container, error) {
 		entity.SourceTwitch,
 		entity.SourceKick,
 		entity.SourceVkPlayLive,
-		entity.SourceDonationAlerts,
 	}
 	for _, source := range connectionsOrder {
 		rowItems, err := ui.getConnectionRow(source)
