@@ -32,11 +32,11 @@ Entrypoint is `cmd/main.go`. Run via `go run ./cmd/main.go` or the built binary.
 Manual DI composition root in `internal/container/` (`Container` with lazy singleton getters — `getXxx()` methods). Wire new services/use-cases there.
 
 - `internal/entity` — shared structs & enums (message, config, scraper state, language constants)
-- `internal/service` — business services (settings, message_queue, logger, language_provider, scrapers)
+- `internal/service` — business services (settings, message_queue, logger, language_provider, app_updater, scrapers)
 - `internal/use_case` — use cases
 - `internal/api` — gin HTTP handlers (self API + widget)
 - `internal/ui` — Fyne desktop UI
-- `internal/infra/clients/<source>` — external API/WS clients (one per source)
+- `internal/infra/clients/<source>` — external API/WS clients (one per source: youtube, twitch, kick, vk_play_live, donation_alerts, github)
 - `internal/service/scrapers/<source>` — scrapers wrapping the clients
 - `internal/utils/time` — `Clock` interface (`Now() time.Time`) injected for deterministic tests
 
@@ -149,7 +149,7 @@ Job errors are logged via `AfterJobRunsWithError` listener.
 ## Configuration
 
 - File: `./config.json` (relative to the working directory). JSON key for logging is misspelled `"loging"` (kept intentionally).
-- `internal/service/settings/datastruct.go` holds the wire `config` struct (JSON tags), `currentVersion`, `configPath`, and `defaultConfig`.
+- `internal/service/settings/datastruct.go` holds the wire `config` struct (JSON tags), `currentVersion`, `configPath`, `appVerssion` (hardcoded app version, see [App update](#app-update-self-update)), and `defaultConfig`.
 - `internal/service/settings/conversion.go` maps JSON ⇄ `entity.Config` and validates (returns `app_errors.ErrInvalidConfig` on bad values).
 - `settings.Service.UpdateConfig([]entity.ConfigUpdateOption)` applies functional options, persists to disk, then updates the in-memory copy (mutex-protected). The UI edits config through this path.
 
@@ -196,9 +196,20 @@ Three tabs in `internal/ui/`:
 
 1. **Connections** (`main_window_connections.go`) — per-source toggle button + key entry (Donation Alerts key is a password field via `Source.KeyIsSecret()`), plus links to the OBS widget, the scrollable message panel, and the repo.
 2. **CSS** (`main_window_css.go`) — custom CSS editor (`View.CssStyle`), main-style picker (`simple_block` / `simple_no_bg`), and a "send test message" button (injects one fake message per source via `send_test_messages.UseCase`).
-3. **Settings** (`main_window_settings.go`) — time-to-hide (seconds), time-to-delete (minutes), port, language, show-online checkbox, version.
+3. **Settings** (`main_window_settings.go`) — time-to-hide (seconds), time-to-delete (minutes), port, language, show-online checkbox, and app version + update button.
 
-App version shown in Settings is a hardcoded const `version = "5b94611"` in `main_window_settings.go`.
+The version display and the check-for-updates / update flow are described in [App update](#app-update-self-update).
+
+## App update (self-update)
+
+- Current version is the hardcoded const `appVerssion` in `internal/service/settings/datastruct.go` (currently a commit hash, e.g. `de8f880`). `configFromJson` in `conversion.go` copies it into `entity.Config.AppVersion`, so it is **not** persisted in `config.json` and not written back by `configToJson`.
+- `internal/infra/clients/github.Client.LatestVersion(ctx)` does `GET https://api.github.com/repos/PlayingPossumHiss/possum_chat/releases` (1 s timeout) and returns the newest release as `entity.SourceVersion{Version: tag_name, DownloadURL: browser_download_url}`, where `DownloadURL` is the `possum_chat.tar.gz` asset. Returns `(nil, nil)` when there are no releases or no `possum_chat.tar.gz` asset.
+- `internal/service/app_updater.Service` wraps a `GithubClient` interface (`interfaces.go`):
+  - `LatestVersion(ctx)` → delegates to the client.
+  - `Update(ctx, version)` (mutex-protected) downloads the archive to `./possum_chat.tar.gz`, untars it into `./tmp`, then `swapRelease` deletes same-named files in the working directory and copies the new `possum_chat` binary + `static/` over them (`os.CopyFS`), then removes `./tmp`.
+- The Settings tab (`main_window_settings.go`) reads `configStorage.Config().AppVersion`, calls `appUpdater.LatestVersion(ctx)` on open, and when the GitHub version differs (plain string `!=`, not semver) shows a "Latest version" label plus an "Update" button. Clicking Update runs `appUpdater.Update`, hides the label/button and pops a modal "Update is done. Restart the app".
+- Wired in `internal/container/container.go`: `getAppUpdater()` → `app_updater.New(github.New())`, passed into `ui.New(...)` (interface `AppUpdater` in `internal/ui/interface.go`).
+- New language constants `APP_LATEST_VERSION`, `UPDATE_APP_BUTTON`, `UPDATE_DONE` (`entity/language.go`, `language_provider/translations.go`).
 
 ## Gotchas
 
@@ -208,6 +219,7 @@ App version shown in Settings is a hardcoded const `version = "5b94611"` in `mai
 - **Config migration**: new fields go through `upgradeConfig()` (see above), not just `entity`.
 - **Port & language changes require an app restart**; after a CSS/style change, refresh the browser tab.
 - **Widget needs internet** for Vue 2 (loaded from jsdelivr CDN).
+- **Self-update needs internet** (GitHub API + archive download) and overwrites the running `possum_chat` binary and `static/` in place; the operator must restart the app afterwards.
 - **Strict lint**: `.golangci.yml` (v2) enables a large linter set, including `mnd` (magic numbers). Magic numbers need a `//nolint` comment (see `internal/service/settings/datastruct.go`). `testpackage` requires external test packages; `paralleltest`/`tparallel` require `t.Parallel()`.
 - **Comments and test descriptions are in Russian** — follow that convention. The product README (`README.md`) is also in Russian.
 

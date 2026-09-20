@@ -38,20 +38,28 @@ func (c *Client) LatestVersion(ctx context.Context) (*entity.SourceVersion, erro
 	}
 	defer resp.Body.Close()
 
-	var releases []release
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error on get app version in github: unexpected status %d", resp.StatusCode) //nolint:err113
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error on read request body for app version in github: %w", err)
 	}
-	json.Unmarshal(body, &releases)
+
+	var releases []release
+	if err := json.Unmarshal(body, &releases); err != nil {
+		return nil, fmt.Errorf("error on unmarshal releases for app version in github: %w", err)
+	}
 	if len(releases) == 0 {
 		return nil, nil
 	}
 
 	var versionURL string
-	for _, attachment := range releases[0].Asserts {
+	for _, attachment := range releases[0].Assets {
 		if attachment.Name == "possum_chat.tar.gz" {
 			versionURL = attachment.DownloadURL
+
 			break
 		}
 	}
