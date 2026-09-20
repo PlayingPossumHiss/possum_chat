@@ -8,8 +8,10 @@ import (
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/github"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/kick_chat_api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_api"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/app_updater"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/language_provider"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue"
@@ -149,12 +151,17 @@ func (c *Container) startUI() error {
 		uiScrapers,
 		configService,
 		sendTestMessageUC,
+		c.getAppUpdater(),
 	)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (c *Container) getAppUpdater() *app_updater.Service {
+	return app_updater.New(github.New())
 }
 
 func (c *Container) getSendTestMessageUseCase() (*send_test_messages.UseCase, error) {

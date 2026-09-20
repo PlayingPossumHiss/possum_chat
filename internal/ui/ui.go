@@ -18,6 +18,7 @@ type UI struct {
 	configStorage           ConfigStorage
 	languageProvider        LanguageProvider
 	sendTestMessagesUseCase SendTestMessagesUseCase
+	appUpdater              AppUpdater
 	scrapers                map[entity.Source]Scraper
 }
 
@@ -26,6 +27,7 @@ func New(
 	scrapers map[entity.Source]Scraper,
 	configStorage ConfigStorage,
 	sendTestMessagesUseCase SendTestMessagesUseCase,
+	appUpdater AppUpdater,
 ) error {
 	newUI := &UI{
 		app:                     app.New(),
@@ -33,6 +35,7 @@ func New(
 		languageProvider:        languageProvider,
 		configStorage:           configStorage,
 		sendTestMessagesUseCase: sendTestMessagesUseCase,
+		appUpdater:              appUpdater,
 	}
 
 	err := newUI.newMainWindow()

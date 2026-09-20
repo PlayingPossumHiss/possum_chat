@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -13,8 +14,6 @@ import (
 	app_errors "github.com/PlayingPossumHiss/possum_chat/internal/errors"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 )
-
-const version = "1.2.4"
 
 func (ui *UI) getSettingsTabContent() *fyne.Container {
 	const itemsInLine = 2
@@ -46,11 +45,54 @@ func (ui *UI) getSettingsTabContent() *fyne.Container {
 		ui.getShowOnlineSettingsView()...,
 	)
 
+	version := ui.configStorage.Config().AppVersion
 	settingsContent = append(
 		settingsContent,
 		widget.NewLabel(ui.languageProvider.Local(entity.LanguageTextConstantAppVersion)),
 		widget.NewLabel(version),
 	)
+
+	latestVersion, err := ui.appUpdater.LatestVersion(context.Background())
+	if err != nil {
+		logger.Error(fmt.Errorf("error on get latest app version: %w", err))
+	}
+	if latestVersion != nil && latestVersion.Version != version {
+		var updateElements []fyne.CanvasObject
+		updateElements = []fyne.CanvasObject{
+			widget.NewLabel(
+				fmt.Sprintf(
+					"%s: %s",
+					ui.languageProvider.Local(entity.LanguageTextConstantAppLatestVersion),
+					latestVersion.Version,
+				),
+			),
+			widget.NewButton(
+				ui.languageProvider.Local(entity.LanguageTextConstantUpdateAppButton),
+				func() {
+					err = ui.appUpdater.Update(context.Background(), *latestVersion)
+					if err != nil {
+						logger.Error(fmt.Errorf("error on update app: %w", err))
+					} else {
+						for _, element := range updateElements {
+							element.Hide()
+						}
+						widget.ShowModalPopUp(
+							container.New(
+								layout.NewCenterLayout(),
+								widget.NewLabel(ui.languageProvider.Local(entity.LanguageTextConstantUpdateDone)),
+							),
+							ui.mainWindow.Canvas(),
+						)
+					}
+				},
+			),
+		}
+
+		settingsContent = append(
+			settingsContent,
+			updateElements...,
+		)
+	}
 
 	grid := container.NewVBox(
 		container.New(

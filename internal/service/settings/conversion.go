@@ -36,6 +36,7 @@ func configFromJson(src config) (entity.Config, error) {
 		View:        view,
 		UI:          entity.ConfigUI{Lang: lang},
 		Port:        src.Port,
+		AppVersion:  appVerssion,
 	}, nil
 }
 
