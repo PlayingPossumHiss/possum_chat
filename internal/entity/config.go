@@ -9,6 +9,7 @@ type Config struct {
 	View        ConfigView
 	UI          ConfigUI
 	Port        int
+	AppVersion  string
 }
 
 type ConfigUpdateOption func(*Config)

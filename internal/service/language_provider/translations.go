@@ -66,6 +66,18 @@ var (
 			entity.ConfigLangEn: "Version",
 			entity.ConfigLangRu: "Версия",
 		},
+		entity.LanguageTextConstantAppLatestVersion: {
+			entity.ConfigLangEn: "Latest version",
+			entity.ConfigLangRu: "Актуальная версия",
+		},
+		entity.LanguageTextConstantUpdateAppButton: {
+			entity.ConfigLangEn: "Update",
+			entity.ConfigLangRu: "Обновить",
+		},
+		entity.LanguageTextConstantUpdateDone: {
+			entity.ConfigLangEn: "Update is done. Restart the app",
+			entity.ConfigLangRu: "Обновление завершено успешно, перезапустите приложение",
+		},
 		entity.LanguageTextConstantTestMessageButton: {
 			entity.ConfigLangEn: "Test",
 			entity.ConfigLangRu: "Тест",

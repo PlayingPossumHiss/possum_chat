@@ -24,3 +24,8 @@ type LanguageProvider interface {
 type SendTestMessagesUseCase interface {
 	SendTestMessages(messageText string)
 }
+
+type AppUpdater interface {
+	LatestVersion(ctx context.Context) (*entity.SourceVersion, error)
+	Update(ctx context.Context, version entity.SourceVersion) error
+}
