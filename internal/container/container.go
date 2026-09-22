@@ -12,6 +12,7 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/kick_chat_api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/app_updater"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/hooks/vote"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/language_provider"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue"
@@ -38,6 +39,7 @@ type Container struct {
 	messageQueueService *message_queue.Service
 	scrapers            map[entity.Source]Scraper
 	languageProvider    *language_provider.LanguageProvider
+	voter               *vote.Service
 
 	// юзкейсы
 	watchSubscribersRunner *run_watch_scrapers.UseCase
@@ -345,8 +347,16 @@ func (c *Container) getMessageQueueService() (*message_queue.Service, error) {
 		return nil, err
 	}
 
+	voter, err := c.getVoter()
+	if err != nil {
+		return nil, err
+	}
+
 	c.messageQueueService = message_queue.New(
 		configService,
+		[]entity.Hook{
+			voter,
+		},
 		&utils_time.DefaultClock{},
 	)
 
@@ -360,6 +370,22 @@ func (c *Container) getMessageQueueService() (*message_queue.Service, error) {
 	}
 
 	return c.messageQueueService, nil
+}
+
+func (c *Container) getVoter() (*vote.Service, error) {
+	if c.voter != nil {
+		return c.voter, nil
+	}
+
+	config, err := c.getConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	voter := vote.New(config)
+	c.voter = voter
+
+	return c.voter, nil
 }
 
 func (c *Container) getConfig() (*settings.Service, error) {

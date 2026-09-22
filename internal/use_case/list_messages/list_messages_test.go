@@ -34,6 +34,7 @@ func TestUseCase_ListMessages(t *testing.T) {
 			clock := m_clock.NewClockMock(mc)
 			queueService := message_queue.New(
 				configStorage,
+				nil,
 				clock,
 			)
 			useCase := list_messages.New(queueService)
