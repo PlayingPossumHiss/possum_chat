@@ -2,11 +2,13 @@ package message_queue
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"sync"
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	utils_time "github.com/PlayingPossumHiss/possum_chat/internal/utils/time"
 )
 
@@ -16,16 +18,19 @@ type Service struct {
 	configStorage ConfigStorage
 	clock         utils_time.Clock
 	messages      []entity.Message
+	hooks         []entity.Hook
 }
 
 // New конструктор
 func New(
 	configStorage ConfigStorage,
+	hooks []entity.Hook,
 	clock utils_time.Clock,
 ) *Service {
 	service := &Service{
 		mutex:         &sync.Mutex{},
 		configStorage: configStorage,
+		hooks:         hooks,
 		clock:         clock,
 	}
 
@@ -42,6 +47,17 @@ func (s *Service) PushMessages(messages []entity.Message) {
 		// мысл разделить время создания и добавления в очередь
 		message.CreatedAt = s.clock.Now()
 		s.messages = append(s.messages, message)
+
+		go func() {
+			for _, hook := range s.hooks {
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+				defer cancel()
+				err := hook.Handle(ctx, message)
+				if err != nil {
+					logger.Error(fmt.Errorf("error on handle hook for message: %w", err))
+				}
+			}
+		}()
 	}
 }
 

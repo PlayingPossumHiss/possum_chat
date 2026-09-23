@@ -12,7 +12,7 @@ const (
 
 var currentVersion = "1.3"
 
-const appVerssion = "de8f880"
+const appVerssion = "5c6eade"
 
 type config struct {
 	Connections configConnections `json:"connections"`

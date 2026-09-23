@@ -71,6 +71,13 @@ func (ui *UI) getLinkButtons() []fyne.CanvasObject {
 			ui.languageProvider.Local(entity.LanguageTextConstantMyGithub),
 			mustParseUrl("https://github.com/PlayingPossumHiss/possum_chat"),
 		),
+		widget.NewHyperlink(
+			ui.languageProvider.Local(entity.LanguageTextConstantWidgetFullScrean),
+			mustParseUrl(fmt.Sprintf(
+				"http://127.0.0.1:%d/widget.html",
+				ui.configStorage.Config().Port),
+			),
+		),
 	)
 
 	return linksViews

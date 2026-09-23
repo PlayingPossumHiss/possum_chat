@@ -11,6 +11,7 @@ Module path: `github.com/PlayingPossumHiss/possum_chat` (Go 1.27).
 3. Each scraper connects to its source, buffers incoming chat messages, and (where supported) tracks the current viewer count.
 4. A background job (`ask_watchers_for_messages`) drains every scraper's buffer every 30 ms and pushes the messages into a single in-memory `message_queue`.
 5. The widget page polls `/api/v1/messages` and renders the merged chat plus per-source online counts.
+6. The streamer can run a chat poll (`--vote variant1;variant2`); viewers vote by number and the results render on a separate `/widget.html` page (see [Voting](#voting)).
 
 ## Commands
 
@@ -32,7 +33,7 @@ Entrypoint is `cmd/main.go`. Run via `go run ./cmd/main.go` or the built binary.
 Manual DI composition root in `internal/container/` (`Container` with lazy singleton getters — `getXxx()` methods). Wire new services/use-cases there.
 
 - `internal/entity` — shared structs & enums (message, config, scraper state, language constants)
-- `internal/service` — business services (settings, message_queue, logger, language_provider, app_updater, scrapers)
+- `internal/service` — business services (settings, message_queue, logger, language_provider, app_updater, scrapers, hooks/vote)
 - `internal/use_case` — use cases
 - `internal/api` — gin HTTP handlers (self API + widget)
 - `internal/ui` — Fyne desktop UI
@@ -53,13 +54,13 @@ source (YouTube/Twitch/Kick/VK Play Live/Donation Alerts)
                               ▼
                      message_queue.Service  (single in-memory queue)
                               │
-              ┌───────────────┼────────────────┐
-              ▼               ▼                ▼
-      list_messages       get_online       send_test_messages
-      UseCase             UseCase          UseCase (GUI test button)
-              │               │
-              ▼               ▼
-      GET /api/v1/messages (gin)  ──►  static/messages.html + messages.js (widget)
+   ┌──────────────────┬───────────────────┬──────────────────┐
+   ▼                  ▼                   ▼                  ▼
+ list_messages      get_online         send_test_messages  hooks (vote.Service)
+ UseCase            UseCase            UseCase (GUI test)  → /api/v1/widget_content
+       │               │
+       ▼               ▼
+     GET /api/v1/messages (gin)  ──►  static/messages.html + messages.js (widget)
 ```
 
 - Scrapers keep an internal `messages []entity.Message` buffer. `GetMessages()` returns a clone and resets the buffer to nil (drain semantics).
@@ -68,6 +69,8 @@ source (YouTube/Twitch/Kick/VK Play Live/Donation Alerts)
 - `list_messages.UseCase.ListMessages()` sorts ascending by `CreatedAt` before returning (this is what the API serves).
 - `message_queue.CleanOldMessages()` deletes messages older than `View.TimeToDeleteMessage` (no-op when it is `0`).
 - Online count: `get_online.UseCase.GetOnline()` returns `map[entity.Source]int64`, but only when `View.ShowUserCount` is true and the scraper `Status() == ScraperStateActive`.
+- `message_queue.PushMessages()` also passes every pushed message to each registered `entity.Hook` (`Handle(ctx, message) error`), asynchronously — one goroutine per message, each hook call wrapped in a 1 s timeout context. Hooks are wired in `container.getMessageQueueService()`.
+- The vote hook (`internal/service/hooks/vote.Service`) implements `entity.Hook` and intercepts `--vote` commands plus counts viewer votes (see [Voting](#voting)).
 
 ### Message model
 
@@ -81,11 +84,15 @@ All served by gin in `internal/api/api.go` (release mode). Routes:
 |---|---|---|
 | `GET /messages.html` | static | widget page |
 | `GET /js/messages.js` | static | widget JS |
+| `GET /widget.html` | static | poll widget page |
+| `GET /js/widget.js` | static | poll widget JS |
+| `GET /css/widget.css` | static | poll widget style |
 | `GET /img/*` | static | source icons |
 | `GET /css/messages.css` | `cssMainStyleCss` | main style, read from `./static/css/simple_block.css` or `simple_no_bg.css` |
 | `GET /css/custom_style.css` | `cssCustomStyleCss` | custom CSS from `View.CssStyle` |
 | `GET /api/v1/messages` | `apiV1Messages` | messages + online counts |
 | `GET /api/v1/logging_status` | `apiV1LoggingStatus` | `{error_count, warn_count}` |
+| `GET /api/v1/widget_content` | `apiV1WidgetContent` | current poll results (see [Voting](#voting)) |
 
 `GET /api/v1/messages` query param: `for_last` — a Go duration string (`time.ParseDuration`); overrides the hide window so the panel can show older messages.
 
@@ -111,15 +118,39 @@ Response shape:
 }
 ```
 
+`GET /api/v1/widget_content` response — `vote` is `[]` while no poll is active:
+
+```json
+{
+  "vote": [
+    {"text": "variant1", "count": 3},
+    {"text": "variant2", "count": 1}
+  ]
+}
+```
+
 ### Widget
 
 - `http://127.0.0.1:8081/messages.html` — OBS overlay (default). Newest message at the bottom; when space runs out only recent ones remain. Online count block at the bottom.
 - `http://127.0.0.1:8081/messages.html?for_last=1h` — show all messages from the last hour.
 - `http://127.0.0.1:8081/messages.html?for_last=1h&use_scroll=true` — scrollable list for the streamer's second monitor; also shows error/warn badges from `/api/v1/logging_status`.
+- `http://127.0.0.1:8081/widget.html` — poll widget: renders the current `--vote` results (hidden while no poll is active). Polls `/api/v1/widget_content` every 250 ms.
 
 `static/js/messages.js` polls `/api/v1/messages` every **50 ms**, reverses the array in JS, and updates a Vue 2 app. `use_scroll=true` additionally polls `/api/v1/logging_status` every 1 s. The "newest at bottom" behavior comes from the CSS `transform: rotate(180deg)` trick plus the JS `.reverse()`.
 
 The page loads Vue 2 from a CDN (`cdn.jsdelivr.net/npm/vue@2.7.16`), so the widget needs internet access (unless cached).
+
+## Voting (`--vote`)
+
+Chat-driven polls. The streamer starts/ends them from their own chat, viewers vote by number, and the results render on `/widget.html`.
+
+- **Start**: the streamer posts `--vote variant1;variant2` — variants are split on `;`.
+- **Vote**: a viewer posts a message that is a single number (`1`, `2`, …); an optional leading `#` or `№` and surrounding spaces are trimmed.
+- **End**: the streamer posts `--vote` (no arguments) — clears the poll.
+- Only the streamer's own messages can start/end a poll. `vote.Service.isValidElectionRequest` matches `message.User` case-insensitively (`EqualFold`) against the configured `channel_name` per source; supported for Kick, Twitch, YouTube and VK Play Live (Donation Alerts returns `false`).
+- Each user votes once per poll: `vote.Service` dedupes by `(User, Source)` in the `voted` map.
+- State lives in `internal/service/hooks/vote.Service` (`candidates []entity.VoteResult`), mutex-protected; `ElectionResult()` returns a copy under the lock.
+- The service is wired as an `entity.Hook` in `container.getMessageQueueService()` and also injected into `api.New` as the `Voter` interface for `/api/v1/widget_content`.
 
 ## Sources
 
@@ -194,7 +225,7 @@ When adding a field: add it to `entity.Config*` **and** to the `config` struct +
 
 Three tabs in `internal/ui/`:
 
-1. **Connections** (`main_window_connections.go`) — per-source toggle button + key entry (Donation Alerts key is a password field via `Source.KeyIsSecret()`), plus links to the OBS widget, the scrollable message panel, and the repo.
+1. **Connections** (`main_window_connections.go`) — per-source toggle button + key entry (Donation Alerts key is a password field via `Source.KeyIsSecret()`), plus links to the OBS widget, the poll widget, the scrollable message panel, and the repo.
 2. **CSS** (`main_window_css.go`) — custom CSS editor (`View.CssStyle`), main-style picker (`simple_block` / `simple_no_bg`), and a "send test message" button (injects one fake message per source via `send_test_messages.UseCase`).
 3. **Settings** (`main_window_settings.go`) — time-to-hide (seconds), time-to-delete (minutes), port, language, show-online checkbox, and app version + update button.
 

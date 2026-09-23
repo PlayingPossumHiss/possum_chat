@@ -94,6 +94,10 @@ var (
 			entity.ConfigLangEn: "OBS widget",
 			entity.ConfigLangRu: "Виджет OBS",
 		},
+		entity.LanguageTextConstantWidgetFullScrean: {
+			entity.ConfigLangEn: "fullscrean widget",
+			entity.ConfigLangRu: "Полноэкранный виджет",
+		},
 		entity.LanguageTextConstantMessagePanel: {
 			entity.ConfigLangEn: "All messages",
 			entity.ConfigLangRu: "Все сообщения",

@@ -47,6 +47,7 @@ func TestUseCase_Run(t *testing.T) {
 			clock.NowMock.Expect().Return(time.Date(2026, 03, 28, 15, 33, 0, 0, time.UTC))
 			queueService := message_queue.New(
 				configStorage,
+				nil,
 				clock,
 			)
 
