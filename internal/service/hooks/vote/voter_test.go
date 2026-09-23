@@ -159,3 +159,61 @@ func TestService_ElectionResult(t *testing.T) {
 		"4th result check",
 	)
 }
+
+func TestService_TryHandleAsVote_OutOfRange(t *testing.T) {
+	t.Parallel()
+
+	storageMock := mocks.NewConfigStorageMock(t)
+	storageMock.ConfigMock.Return(entity.Config{
+		Connections: entity.ConfigConnections{
+			Youtube: entity.ConfigYoutube{ChannelName: "possum"},
+		},
+	})
+
+	ctx := context.Background()
+	voteService := vote.New(storageMock)
+
+	err := voteService.Handle(ctx, entity.Message{
+		User:   "possum",
+		Source: entity.SourceYoutube,
+		Content: []entity.MessageContentItem{
+			{
+				Type:  entity.MessageContentItemTypeText,
+				Value: "--vote one;two",
+			},
+		},
+	})
+	assert.NoError(t, err)
+
+	for _, rawVote := range []string{"0", "-1", "3", "one"} {
+		err = voteService.Handle(ctx, entity.Message{
+			User:   "viewer",
+			Source: entity.SourceYoutube,
+			Content: []entity.MessageContentItem{
+				{
+					Type:  entity.MessageContentItemTypeText,
+					Value: rawVote,
+				},
+			},
+		})
+		assert.NoError(t, err)
+	}
+
+	err = voteService.Handle(ctx, entity.Message{
+		User:   "viewer",
+		Source: entity.SourceYoutube,
+		Content: []entity.MessageContentItem{
+			{
+				Type:  entity.MessageContentItemTypeText,
+				Value: "1",
+			},
+		},
+	})
+	assert.NoError(t, err)
+
+	result := voteService.ElectionResult()
+	assert.Equal(t, []entity.VoteResult{
+		{Text: "one", Counter: 1},
+		{Text: "two"},
+	}, result)
+}

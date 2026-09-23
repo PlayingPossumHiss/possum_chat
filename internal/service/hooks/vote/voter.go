@@ -31,7 +31,17 @@ type voterKey struct {
 }
 
 func (s *Service) ElectionResult() []entity.VoteResult {
-	return s.candidates
+	s.mx.Lock()
+	defer s.mx.Unlock()
+
+	if s.candidates == nil {
+		return nil
+	}
+
+	result := make([]entity.VoteResult, len(s.candidates))
+	copy(result, s.candidates)
+
+	return result
 }
 
 func (s *Service) Handle(_ context.Context, message entity.Message) error {
@@ -52,28 +62,28 @@ func (s *Service) tryHandleAsVote(message entity.Message) {
 		return
 	}
 
-	voteRaw := strings.Trim(message.Content[0].Value, "#№")
+	voteRaw := strings.TrimSpace(strings.Trim(message.Content[0].Value, "#№"))
 	vote, err := strconv.Atoi(voteRaw)
 	if err != nil {
 		return
 	}
 
-	if len(s.candidates) < vote {
+	if vote <= 0 || vote > len(s.candidates) {
 		return
 	}
 
-	_, voted := s.voted[voterKey{
+	key := voterKey{
 		user:   message.User,
 		source: message.Source,
-	}]
-	if voted {
+	}
+	if s.voted == nil {
+		s.voted = map[voterKey]struct{}{}
+	}
+	if _, voted := s.voted[key]; voted {
 		return
 	}
 
-	s.voted[voterKey{
-		user:   message.User,
-		source: message.Source,
-	}] = struct{}{}
+	s.voted[key] = struct{}{}
 	s.candidates[vote-1].Counter++
 }
 
@@ -92,9 +102,9 @@ func (s *Service) handleAsElection(message entity.Message) bool {
 	variants := strings.Split(strings.TrimPrefix(message.Content[0].Value, "--vote "), ";")
 	s.voted = map[voterKey]struct{}{}
 	s.candidates = make([]entity.VoteResult, 0, len(variants))
-	for _, variatn := range variants {
+	for _, variant := range variants {
 		s.candidates = append(s.candidates, entity.VoteResult{
-			Text: variatn,
+			Text: variant,
 		})
 	}
 
@@ -110,7 +120,8 @@ func (s *Service) isValidElectionRequest(message entity.Message) bool {
 		return false
 	}
 
-	if !strings.HasPrefix(message.Content[0].Value, "--vote") {
+	value := strings.TrimSpace(message.Content[0].Value)
+	if value != "--vote" && !strings.HasPrefix(value, "--vote ") {
 		return false
 	}
 
@@ -121,7 +132,9 @@ func (s *Service) isValidElectionRequest(message entity.Message) bool {
 		return strings.EqualFold(message.User, s.configStorage.Config().Connections.Twitch.ChannelName)
 	case entity.SourceYoutube:
 		return strings.EqualFold(message.User, s.configStorage.Config().Connections.Youtube.ChannelName)
+	case entity.SourceVkPlayLive:
+		return strings.EqualFold(message.User, s.configStorage.Config().Connections.VkPlayLive.ChannelName)
+	default:
+		return false
 	}
-
-	return false
 }

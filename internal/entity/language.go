@@ -25,6 +25,7 @@ const (
 	LanguageTextConstantTestMessageContent          LanguageTextConstant = "TEST_MESSAGE_CONTENT"
 	LanguageTextConstantMainStyleField              LanguageTextConstant = "MAIN_STYLE_FIELD"
 	LanguageTextConstantWidgetOBS                   LanguageTextConstant = "WIGET_OBS"
+	LanguageTextConstantWidgetFullScrean            LanguageTextConstant = "WIDGET_FULL_SCREAN"
 	LanguageTextConstantMessagePanel                LanguageTextConstant = "MESSAGE_PANEL"
 	LanguageTextConstantMyGithub                    LanguageTextConstant = "MY_GITHUB"
 	LanguageTextConstantYoutubeConnPlaceholder      LanguageTextConstant = "YOUTUBE_CONN_PLACEHOLDER"
