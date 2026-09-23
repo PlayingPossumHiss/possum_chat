@@ -82,14 +82,14 @@ func (s *Service) handleAsElection(message entity.Message) bool {
 		return false
 	}
 
-	if message.Content[0].Value == "/vote" {
+	if message.Content[0].Value == "--vote" {
 		s.voted = nil
 		s.candidates = nil
 
 		return true
 	}
 
-	variants := strings.Split(strings.TrimPrefix(message.Content[0].Value, "/vote "), ";")
+	variants := strings.Split(strings.TrimPrefix(message.Content[0].Value, "--vote "), ";")
 	s.voted = map[voterKey]struct{}{}
 	s.candidates = make([]entity.VoteResult, 0, len(variants))
 	for _, variatn := range variants {
@@ -110,17 +110,17 @@ func (s *Service) isValidElectionRequest(message entity.Message) bool {
 		return false
 	}
 
-	if !strings.HasPrefix(message.Content[0].Value, "/vote") {
+	if !strings.HasPrefix(message.Content[0].Value, "--vote") {
 		return false
 	}
 
 	switch message.Source {
 	case entity.SourceKick:
-		return message.User == s.configStorage.Config().Connections.Kick.ChannelName
+		return strings.EqualFold(message.User, s.configStorage.Config().Connections.Kick.ChannelName)
 	case entity.SourceTwitch:
-		return message.User == s.configStorage.Config().Connections.Twitch.ChannelName
+		return strings.EqualFold(message.User, s.configStorage.Config().Connections.Twitch.ChannelName)
 	case entity.SourceYoutube:
-		return message.User == s.configStorage.Config().Connections.Youtube.ChannelName
+		return strings.EqualFold(message.User, s.configStorage.Config().Connections.Youtube.ChannelName)
 	}
 
 	return false

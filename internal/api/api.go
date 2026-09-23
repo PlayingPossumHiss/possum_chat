@@ -13,6 +13,7 @@ type Api struct {
 	getStyleUC     GetStyleUC
 	listMessagesUC ListMessagesUC
 	onlineGetter   OnlineGetter
+	voter          Voter
 }
 
 func New(
@@ -20,11 +21,12 @@ func New(
 	getStyleUC GetStyleUC,
 	listMessagesUC ListMessagesUC,
 	onlineGetter OnlineGetter,
+	voter Voter,
 ) *Api {
 	gin.SetMode(gin.ReleaseMode)
 	service := gin.New()
 	service.Use(
-		gin.LoggerWithWriter(gin.DefaultWriter, "/api/v1/messages", "/api/v1/logging_status"),
+		gin.LoggerWithWriter(gin.DefaultWriter, "/api/v1/messages", "/api/v1/logging_status", "/api/v1/widget_content"),
 		gin.Recovery(),
 	)
 	api := &Api{
@@ -32,16 +34,21 @@ func New(
 		getStyleUC:     getStyleUC,
 		listMessagesUC: listMessagesUC,
 		onlineGetter:   onlineGetter,
+		voter:          voter,
 		port:           port,
 	}
 
 	service.GET("/css/custom_style.css", api.cssCustomStyleCss)
 	service.GET("/api/v1/messages", api.apiV1Messages)
 	service.GET("/api/v1/logging_status", api.apiV1LoggingStatus)
+	service.GET("/api/v1/widget_content", api.apiV1WidgetContent)
 	service.GET("css/messages.css", api.cssMainStyleCss)
 
 	service.StaticFile("js/messages.js", "./static/js/messages.js")
 	service.StaticFile("messages.html", "./static/messages.html")
+	service.StaticFile("js/widget.js", "./static/js/widget.js")
+	service.StaticFile("css/widget.css", "./static/css/widget.css")
+	service.StaticFile("widget.html", "./static/widget.html")
 	service.Static("/img", "./static/img")
 
 	return api

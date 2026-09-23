@@ -237,11 +237,17 @@ func (c *Container) getSelfApi() (*api.Api, error) {
 		return nil, err
 	}
 
+	voter, err := c.getVoter()
+	if err != nil {
+		return nil, err
+	}
+
 	c.selfApi = api.New(
 		config.Port,
 		styleGetter,
 		messageLister,
 		onlineScrapers,
+		voter,
 	)
 
 	return c.selfApi, nil

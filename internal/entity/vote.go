@@ -2,5 +2,5 @@ package entity
 
 type VoteResult struct {
 	Text    string
-	Counter int
+	Counter int64
 }

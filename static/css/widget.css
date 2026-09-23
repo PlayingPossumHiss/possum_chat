@@ -1,0 +1,16 @@
+.vote {
+    background-color: rgba(255,255,255,0.5);
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    display: inline-block;
+    right: 0.5rem;
+    top: 0.5rem;
+    font-weight: bold;
+    font-size: 2rem;
+    position: fixed;
+    border: solid;
+}
+
+.hidden {
+    display: none;
+}

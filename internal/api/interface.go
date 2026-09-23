@@ -18,3 +18,7 @@ type ListMessagesUC interface {
 type OnlineGetter interface {
 	GetOnline() map[entity.Source]int64
 }
+
+type Voter interface {
+	ElectionResult() []entity.VoteResult
+}

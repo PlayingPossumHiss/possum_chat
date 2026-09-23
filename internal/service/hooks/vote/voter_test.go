@@ -29,7 +29,7 @@ func TestService_ElectionResult(t *testing.T) {
 		Content: []entity.MessageContentItem{
 			{
 				Type:  entity.MessageContentItemTypeText,
-				Value: "/vote one;two",
+				Value: "--vote one;two",
 			},
 		},
 	})
@@ -61,7 +61,7 @@ func TestService_ElectionResult(t *testing.T) {
 		Content: []entity.MessageContentItem{
 			{
 				Type:  entity.MessageContentItemTypeText,
-				Value: "/vote one;two;tree",
+				Value: "--vote one;two;tree",
 			},
 		},
 	})
@@ -145,7 +145,7 @@ func TestService_ElectionResult(t *testing.T) {
 		Content: []entity.MessageContentItem{
 			{
 				Type:  entity.MessageContentItemTypeText,
-				Value: "/vote",
+				Value: "--vote",
 			},
 		},
 	})
