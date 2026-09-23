@@ -11,7 +11,7 @@ import (
 
 type Service struct {
 	configStorage ConfigStorage
-	candidates    []candidate
+	candidates    []entity.VoteResult
 	voted         map[voterKey]struct{}
 	mx            *sync.Mutex
 }
@@ -30,9 +30,8 @@ type voterKey struct {
 	source entity.Source
 }
 
-type candidate struct {
-	text    string
-	counter int
+func (s *Service) ElectionResult() []entity.VoteResult {
+	return s.candidates
 }
 
 func (s *Service) Handle(_ context.Context, message entity.Message) error {
@@ -63,7 +62,19 @@ func (s *Service) tryHandleAsVote(message entity.Message) {
 		return
 	}
 
-	s.candidates[vote-1].counter++
+	_, voted := s.voted[voterKey{
+		user:   message.User,
+		source: message.Source,
+	}]
+	if voted {
+		return
+	}
+
+	s.voted[voterKey{
+		user:   message.User,
+		source: message.Source,
+	}] = struct{}{}
+	s.candidates[vote-1].Counter++
 }
 
 func (s *Service) handleAsElection(message entity.Message) bool {
@@ -78,12 +89,12 @@ func (s *Service) handleAsElection(message entity.Message) bool {
 		return true
 	}
 
-	variants := strings.Split(message.Content[0].Value, "")
+	variants := strings.Split(strings.TrimPrefix(message.Content[0].Value, "/vote "), ";")
 	s.voted = map[voterKey]struct{}{}
-	s.candidates = make([]candidate, 0, len(variants))
+	s.candidates = make([]entity.VoteResult, 0, len(variants))
 	for _, variatn := range variants {
-		s.candidates = append(s.candidates, candidate{
-			text: variatn,
+		s.candidates = append(s.candidates, entity.VoteResult{
+			Text: variatn,
 		})
 	}
 
