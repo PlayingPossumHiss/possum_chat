@@ -13,10 +13,13 @@
 </head>
 <body>
     <div id="app">
-        <div class="vote" v-bind:class="{'hidden': vote.length == 0}">
+        <div class="vote message_box" v-bind:class="{'hidden': vote.length == 0}">
             <div class="candidate" v-for="candidate in vote">
                 {{candidate.text}}: {{candidate.count}}
             </div>
+        </div>
+        <div class="text no_bg_text" v-bind:class="{'hidden': text.length == 0}">
+            {{text}}
         </div>
     </div>
 </body>

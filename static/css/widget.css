@@ -1,10 +1,28 @@
 .vote {
+    right: 0.5rem;
+    top: 0.5rem;
+}
+
+.text {
+    right: 0.5rem;
+    bottom: 0.5rem;
+}
+
+.no_bg_text {
+    color: white;
+    text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+    padding: 0.5rem;
+    display: inline-block;
+    font-weight: bold;
+    font-size: 4rem;
+    position: fixed;
+}
+
+.message_box {
     background-color: rgba(255,255,255,0.5);
     padding: 0.5rem;
     border-radius: 0.5rem;
     display: inline-block;
-    right: 0.5rem;
-    top: 0.5rem;
     font-weight: bold;
     font-size: 2rem;
     position: fixed;

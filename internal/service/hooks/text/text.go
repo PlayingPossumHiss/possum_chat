@@ -21,8 +21,17 @@ func New(
 	}
 }
 
+func (s *Service) Text() string {
+	return s.text
+}
+
 func (s *Service) Handle(_ context.Context, message entity.Message) error {
 	if !s.isValidTextRequest(message) {
+		return nil
+	}
+
+	if message.Content[0].Value == "--message" {
+		s.text = ""
 		return nil
 	}
 

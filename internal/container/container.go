@@ -12,6 +12,7 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/kick_chat_api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/app_updater"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/hooks/text"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/hooks/vote"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/language_provider"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
@@ -40,6 +41,7 @@ type Container struct {
 	scrapers            map[entity.Source]Scraper
 	languageProvider    *language_provider.LanguageProvider
 	voter               *vote.Service
+	texter              *text.Service
 
 	// юзкейсы
 	watchSubscribersRunner *run_watch_scrapers.UseCase
@@ -242,15 +244,37 @@ func (c *Container) getSelfApi() (*api.Api, error) {
 		return nil, err
 	}
 
+	texter, err := c.getTexter()
+	if err != nil {
+		return nil, err
+	}
+
 	c.selfApi = api.New(
 		config.Port,
 		styleGetter,
 		messageLister,
 		onlineScrapers,
+		texter,
 		voter,
 	)
 
 	return c.selfApi, nil
+}
+
+func (c *Container) getTexter() (*text.Service, error) {
+	if c.texter != nil {
+		return c.texter, nil
+	}
+
+	config, err := c.getConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	texter := text.New(config)
+	c.texter = texter
+
+	return c.texter, nil
 }
 
 func (c *Container) getOnlineScraper() (*get_online.OnlineGetter, error) {
@@ -358,10 +382,16 @@ func (c *Container) getMessageQueueService() (*message_queue.Service, error) {
 		return nil, err
 	}
 
+	texter, err := c.getTexter()
+	if err != nil {
+		return nil, err
+	}
+
 	c.messageQueueService = message_queue.New(
 		configService,
 		[]entity.Hook{
 			voter,
+			texter,
 		},
 		&utils_time.DefaultClock{},
 	)
