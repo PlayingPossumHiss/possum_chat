@@ -2,6 +2,7 @@ package api
 
 type apiV1WidgetContentResponse struct {
 	Vote []vote `json:"vote"`
+	Text string `json:"text"`
 }
 
 type vote struct {

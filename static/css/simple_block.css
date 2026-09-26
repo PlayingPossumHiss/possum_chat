@@ -8,6 +8,10 @@
     transform: rotate(180deg);
 }
 
+body {
+    overflow: hidden;
+}
+
 .messages {
     transform: rotate(180deg);
     position: absolute;

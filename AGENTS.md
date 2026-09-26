@@ -12,6 +12,7 @@ Module path: `github.com/PlayingPossumHiss/possum_chat` (Go 1.27).
 4. A background job (`ask_watchers_for_messages`) drains every scraper's buffer every 30 ms and pushes the messages into a single in-memory `message_queue`.
 5. The widget page polls `/api/v1/messages` and renders the merged chat plus per-source online counts.
 6. The streamer can run a chat poll (`--vote variant1;variant2`); viewers vote by number and the results render on a separate `/widget.html` page (see [Voting](#voting)).
+7. The streamer can show arbitrary text on the same widget page with `--message` (see [Text](#text)).
 
 ## Commands
 
@@ -33,7 +34,7 @@ Entrypoint is `cmd/main.go`. Run via `go run ./cmd/main.go` or the built binary.
 Manual DI composition root in `internal/container/` (`Container` with lazy singleton getters — `getXxx()` methods). Wire new services/use-cases there.
 
 - `internal/entity` — shared structs & enums (message, config, scraper state, language constants)
-- `internal/service` — business services (settings, message_queue, logger, language_provider, app_updater, scrapers, hooks/vote)
+- `internal/service` — business services (settings, message_queue, logger, language_provider, app_updater, scrapers, hooks/vote, hooks/text)
 - `internal/use_case` — use cases
 - `internal/api` — gin HTTP handlers (self API + widget)
 - `internal/ui` — Fyne desktop UI
@@ -56,7 +57,7 @@ source (YouTube/Twitch/Kick/VK Play Live/Donation Alerts)
                               │
    ┌──────────────────┬───────────────────┬──────────────────┐
    ▼                  ▼                   ▼                  ▼
- list_messages      get_online         send_test_messages  hooks (vote.Service)
+ list_messages      get_online         send_test_messages  hooks (vote.Service, text.Service)
  UseCase            UseCase            UseCase (GUI test)  → /api/v1/widget_content
        │               │
        ▼               ▼
@@ -71,6 +72,7 @@ source (YouTube/Twitch/Kick/VK Play Live/Donation Alerts)
 - Online count: `get_online.UseCase.GetOnline()` returns `map[entity.Source]int64`, but only when `View.ShowUserCount` is true and the scraper `Status() == ScraperStateActive`.
 - `message_queue.PushMessages()` also passes every pushed message to each registered `entity.Hook` (`Handle(ctx, message) error`), asynchronously — one goroutine per message, each hook call wrapped in a 1 s timeout context. Hooks are wired in `container.getMessageQueueService()`.
 - The vote hook (`internal/service/hooks/vote.Service`) implements `entity.Hook` and intercepts `--vote` commands plus counts viewer votes (see [Voting](#voting)).
+- The text hook (`internal/service/hooks/text.Service`) implements `entity.Hook` and intercepts `--message` commands (see [Text](#text)).
 
 ### Message model
 
@@ -92,7 +94,7 @@ All served by gin in `internal/api/api.go` (release mode). Routes:
 | `GET /css/custom_style.css` | `cssCustomStyleCss` | custom CSS from `View.CssStyle` |
 | `GET /api/v1/messages` | `apiV1Messages` | messages + online counts |
 | `GET /api/v1/logging_status` | `apiV1LoggingStatus` | `{error_count, warn_count}` |
-| `GET /api/v1/widget_content` | `apiV1WidgetContent` | current poll results (see [Voting](#voting)) |
+| `GET /api/v1/widget_content` | `apiV1WidgetContent` | current poll results + streamer text (see [Voting](#voting) and [Text](#text)) |
 
 `GET /api/v1/messages` query param: `for_last` — a Go duration string (`time.ParseDuration`); overrides the hide window so the panel can show older messages.
 
@@ -118,14 +120,15 @@ Response shape:
 }
 ```
 
-`GET /api/v1/widget_content` response — `vote` is `[]` while no poll is active:
+`GET /api/v1/widget_content` response — `vote` is `[]` while no poll is active, `text` is `""` while no `--message` text is set:
 
 ```json
 {
   "vote": [
     {"text": "variant1", "count": 3},
     {"text": "variant2", "count": 1}
-  ]
+  ],
+  "text": "some text"
 }
 ```
 
@@ -134,7 +137,7 @@ Response shape:
 - `http://127.0.0.1:8081/messages.html` — OBS overlay (default). Newest message at the bottom; when space runs out only recent ones remain. Online count block at the bottom.
 - `http://127.0.0.1:8081/messages.html?for_last=1h` — show all messages from the last hour.
 - `http://127.0.0.1:8081/messages.html?for_last=1h&use_scroll=true` — scrollable list for the streamer's second monitor; also shows error/warn badges from `/api/v1/logging_status`.
-- `http://127.0.0.1:8081/widget.html` — poll widget: renders the current `--vote` results (hidden while no poll is active). Polls `/api/v1/widget_content` every 250 ms.
+- `http://127.0.0.1:8081/widget.html` — poll widget: renders the current `--vote` results (hidden while no poll is active) and the current `--message` text (bottom-right). Polls `/api/v1/widget_content` every 250 ms.
 
 `static/js/messages.js` polls `/api/v1/messages` every **50 ms**, reverses the array in JS, and updates a Vue 2 app. `use_scroll=true` additionally polls `/api/v1/logging_status` every 1 s. The "newest at bottom" behavior comes from the CSS `transform: rotate(180deg)` trick plus the JS `.reverse()`.
 
@@ -151,6 +154,16 @@ Chat-driven polls. The streamer starts/ends them from their own chat, viewers vo
 - Each user votes once per poll: `vote.Service` dedupes by `(User, Source)` in the `voted` map.
 - State lives in `internal/service/hooks/vote.Service` (`candidates []entity.VoteResult`), mutex-protected; `ElectionResult()` returns a copy under the lock.
 - The service is wired as an `entity.Hook` in `container.getMessageQueueService()` and also injected into `api.New` as the `Voter` interface for `/api/v1/widget_content`.
+
+## Text (`--message`)
+
+Chat-driven text overlay. The streamer shows a line of text on `/widget.html` from their own chat; it renders in the bottom-right corner.
+
+- **Set**: the streamer posts `--message some text` — everything after `--message ` is displayed.
+- **Clear**: the streamer posts `--message` (no arguments) — the text is removed.
+- Only the streamer's own messages can set/clear it: `text.Service.isValidTextRequest` matches `message.User` case-insensitively (`EqualFold`) against the configured `channel_name` per source; supported for Kick, Twitch, YouTube and VK Play Live (Donation Alerts returns `false`).
+- State lives in `internal/service/hooks/text.Service` (`text string`); `Text()` returns it.
+- The service is wired as an `entity.Hook` in `container.getMessageQueueService()` and also injected into `api.New` as the `Texter` interface for `/api/v1/widget_content`.
 
 ## Sources
 

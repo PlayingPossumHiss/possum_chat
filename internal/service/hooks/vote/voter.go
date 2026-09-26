@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/hooks/common"
 )
 
 type Service struct {
@@ -112,29 +113,9 @@ func (s *Service) handleAsElection(message entity.Message) bool {
 }
 
 func (s *Service) isValidElectionRequest(message entity.Message) bool {
-	if len(message.Content) == 0 {
+	if !common.IsACommand(message, "vote") {
 		return false
 	}
 
-	if message.Content[0].Type != entity.MessageContentItemTypeText {
-		return false
-	}
-
-	value := strings.TrimSpace(message.Content[0].Value)
-	if value != "--vote" && !strings.HasPrefix(value, "--vote ") {
-		return false
-	}
-
-	switch message.Source {
-	case entity.SourceKick:
-		return strings.EqualFold(message.User, s.configStorage.Config().Connections.Kick.ChannelName)
-	case entity.SourceTwitch:
-		return strings.EqualFold(message.User, s.configStorage.Config().Connections.Twitch.ChannelName)
-	case entity.SourceYoutube:
-		return strings.EqualFold(message.User, s.configStorage.Config().Connections.Youtube.ChannelName)
-	case entity.SourceVkPlayLive:
-		return strings.EqualFold(message.User, s.configStorage.Config().Connections.VkPlayLive.ChannelName)
-	default:
-		return false
-	}
+	return common.IsMessageFromAdmin(message, s.configStorage.Config())
 }

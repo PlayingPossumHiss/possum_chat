@@ -22,3 +22,7 @@ type OnlineGetter interface {
 type Voter interface {
 	ElectionResult() []entity.VoteResult
 }
+
+type Texter interface {
+	Text() string
+}

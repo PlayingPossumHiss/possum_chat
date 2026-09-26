@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", function() {
     createApp();
 })
 
-function refreshMessages(url, callback) {
+function refreshWidget(url, callback) {
     let xhr = new XMLHttpRequest();
     xhr.open('GET', url);
     xhr.responseType = 'json';
@@ -23,13 +23,15 @@ function createApp() {
         el: '#app',
         data: {
            vote: vote,
+           text: "",
         },
     });
     setInterval(function() {
         let url = '/api/v1/widget_content';
-        refreshMessages(url, function(xhr){
+        refreshWidget(url, function(xhr){
             vote = xhr.response.vote;
             app.vote = vote;
+            app.text = xhr.response.text;
         });
     }, 250);
 }
