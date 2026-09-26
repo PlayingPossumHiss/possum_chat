@@ -36,6 +36,9 @@ function createApp() {
            online: online,
         },
     });
+    if (app.useScroll) {
+        document.body.style.overflow = "scroll";
+    }
     setInterval(function() {
         let url = '/api/v1/messages';
         if (urlParams.forLast != null) {
