@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -56,7 +57,9 @@ func (ui *UI) getSettingsTabContent() *fyne.Container {
 	if err != nil {
 		logger.Error(fmt.Errorf("error on get latest app version: %w", err))
 	}
-	if latestVersion != nil && latestVersion.Version != version {
+	canBeUpgreated := latestVersion != nil && latestVersion.Version != version
+	useLinux := runtime.GOOS == "linux"
+	if canBeUpgreated && useLinux {
 		var updateElements []fyne.CanvasObject
 		updateElements = []fyne.CanvasObject{
 			widget.NewLabel(
