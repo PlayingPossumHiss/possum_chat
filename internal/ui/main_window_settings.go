@@ -58,8 +58,8 @@ func (ui *UI) getSettingsTabContent() *fyne.Container {
 		logger.Error(fmt.Errorf("error on get latest app version: %w", err))
 	}
 	canBeUpgreated := latestVersion != nil && latestVersion.Version != version
-	useRealOS := runtime.GOOS == "linux"
-	if canBeUpgreated && useRealOS {
+	useLinux := runtime.GOOS == "linux"
+	if canBeUpgreated && useLinux {
 		var updateElements []fyne.CanvasObject
 		updateElements = []fyne.CanvasObject{
 			widget.NewLabel(
