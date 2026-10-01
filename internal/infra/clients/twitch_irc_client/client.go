@@ -36,8 +36,9 @@ func (c *Client) Close() error {
 
 func (c *Client) Listen(channelName string) chan entity.Message {
 	result := make(chan entity.Message)
+	// Сообщения от пользователя
 	c.wsConnect.OnPrivateMessage(func(message twitch.PrivateMessage) {
-		logger.Debug(fmt.Sprintf("message from youtube: %s", message.Raw))
+		logger.Debug(fmt.Sprintf("message from twitch: %s", message.Raw))
 
 		result <- entity.Message{
 			ID:        fmt.Sprintf("twitch_%s", message.ID),
@@ -47,6 +48,20 @@ func (c *Client) Listen(channelName string) chan entity.Message {
 			CreatedAt: time.Now(),
 		}
 	})
+	// Глобавльные сообщения чата (рейды, подписки и т.д.)
+	c.wsConnect.OnUserNoticeMessage(func(message twitch.UserNoticeMessage) {
+		logger.Debug(fmt.Sprintf("UserNotice event from twitch: %s", message.Raw))
+
+		result <- entity.Message{
+			ID:        fmt.Sprintf("twitch_user_notice_%s", message.ID),
+			Source:    entity.SourceTwitch,
+			User:      message.User.DisplayName,
+			Content:   buildMessageContent(message.Message, message.Emotes),
+			CreatedAt: time.Now(),
+		}
+	})
+
+	c.watchAndLogOthersMessages()
 
 	c.wsConnect.Join(channelName)
 
@@ -61,6 +76,42 @@ func (c *Client) Listen(channelName string) chan entity.Message {
 	}()
 
 	return result
+}
+
+func (c *Client) watchAndLogOthersMessages() {
+	c.wsConnect.OnWhisperMessage(func(message twitch.WhisperMessage) {
+		logger.Debug(fmt.Sprintf("%s unhandeled event from twitch: %s", "WhisperMessage", message.Raw))
+	})
+	c.wsConnect.OnClearChatMessage(func(message twitch.ClearChatMessage) {
+		logger.Debug(fmt.Sprintf("%s unhandeled event from twitch: %s", "ClearChatMessage", message.Raw))
+	})
+	c.wsConnect.OnClearMessage(func(message twitch.ClearMessage) {
+		logger.Debug(fmt.Sprintf("%s unhandeled event from twitch: %s", "ClearMessage", message.Raw))
+	})
+	c.wsConnect.OnRoomStateMessage(func(message twitch.RoomStateMessage) {
+		logger.Debug(fmt.Sprintf("%s unhandeled event from twitch: %s", "RoomStateMessage", message.Raw))
+	})
+	c.wsConnect.OnUserStateMessage(func(message twitch.UserStateMessage) {
+		logger.Debug(fmt.Sprintf("%s unhandeled event from twitch: %s", "UserStateMessage", message.Raw))
+	})
+	c.wsConnect.OnGlobalUserStateMessage(func(message twitch.GlobalUserStateMessage) {
+		logger.Debug(fmt.Sprintf("%s unhandeled event from twitch: %s", "GlobalUserStateMessage", message.Raw))
+	})
+	c.wsConnect.OnNoticeMessage(func(message twitch.NoticeMessage) {
+		logger.Debug(fmt.Sprintf("%s unhandeled event from twitch: %s", "NoticeMessage", message.Raw))
+	})
+	c.wsConnect.OnUserJoinMessage(func(message twitch.UserJoinMessage) {
+		logger.Debug(fmt.Sprintf("%s unhandeled event from twitch: %s", "UserJoinMessage", message.Raw))
+	})
+	c.wsConnect.OnUserPartMessage(func(message twitch.UserPartMessage) {
+		logger.Debug(fmt.Sprintf("%s unhandeled event from twitch: %s", "UserPartMessage", message.Raw))
+	})
+	c.wsConnect.OnSelfJoinMessage(func(message twitch.UserJoinMessage) {
+		logger.Debug(fmt.Sprintf("%s unhandeled event from twitch: %s", "SelfJoinMessage", message.Raw))
+	})
+	c.wsConnect.OnSelfPartMessage(func(message twitch.UserPartMessage) {
+		logger.Debug(fmt.Sprintf("%s unhandeled event from twitch: %s", "SelfPartMessage", message.Raw))
+	})
 }
 
 func collectEmotePositions(emotes []*twitch.Emote) []emotePosition {

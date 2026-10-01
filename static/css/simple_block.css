@@ -16,9 +16,9 @@ body {
     transform: rotate(180deg);
     position: absolute;
     height: 100%;
-    bottom: 0;
+    bottom: 0.5rem;
     right: 0;
-    left: 0;
+    left: 0.25rem;
 }
 
 .online {
