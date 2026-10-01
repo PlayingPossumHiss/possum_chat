@@ -193,6 +193,8 @@ func getMessageFromBytes(result entity.VkStreamData, rawMsg []byte) error {
 	}
 
 	switch msg.Push.Pub.Data.Type {
+	case "", "stream_like_counter", "stream_online_status", "stream_slot_like_counter", "stream_slot_info", "channel_stream":
+		logger.Debug(fmt.Sprintf("ignored vk message %s", string(rawMsg)))
 	case "message":
 		chatMessage := entity.Message{
 			ID:        fmt.Sprintf("vk_play_live_%d", msg.Push.Pub.Data.Data.ID),
@@ -212,7 +214,8 @@ func getMessageFromBytes(result entity.VkStreamData, rawMsg []byte) error {
 	case "stream_slot_online_status":
 		result.Online <- msg.Push.Pub.Data.Data.Stream.Viewers
 	default:
-		logger.Warn(fmt.Sprintf("unknown vk message %s", string(rawMsg)))
+		// Пока что сюда будет попадать message_v8, но надо будет проверить
+		logger.Info(fmt.Sprintf("unknown vk message %s", string(rawMsg)))
 	}
 
 	return nil
