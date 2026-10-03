@@ -30,15 +30,11 @@ function createApp() {
         el: '#app',
         data: {
            messages: messages,
-           useScroll: urlParams.useScroll,
            errorCount: 0,
            warnCount: 0,
            online: online,
         },
     });
-    if (app.useScroll) {
-        document.body.style.overflow = "scroll";
-    }
     setInterval(function() {
         let url = '/api/v1/messages';
         if (urlParams.forLast != null) {
@@ -74,14 +70,12 @@ function createApp() {
             app.online = newOnline;
         });
     }, 50);
-    if (urlParams.useScroll) {
-        setInterval(function() {
-            refreshMessages('/api/v1/logging_status', function(xhr){
-                app.errorCount = xhr.response.error_count;
-                app.warnCount = xhr.response.warn_count;
-            });
-        }, 1000);
-    }
+    setInterval(function() {
+        refreshMessages('/api/v1/logging_status', function(xhr){
+            app.errorCount = xhr.response.error_count;
+            app.warnCount = xhr.response.warn_count;
+        });
+    }, 1000);
 }
 
 function extractParams() {
@@ -89,6 +83,5 @@ function extractParams() {
     let urlParams = new URLSearchParams(queryString);
     return {
         forLast: urlParams.get('for_last'),
-        useScroll: urlParams.get('use_scroll') == "true",
     }
 }

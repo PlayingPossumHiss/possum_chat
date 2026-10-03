@@ -40,15 +40,6 @@ body {
     padding-right: 0.1rem;
 }
 
-.scroll-messages {
-    position: none;
-    transform: none;
-}
-
-.scrollable {
-    transform: none;
-}
-
 .message-icon {
     height: 1em;
 }

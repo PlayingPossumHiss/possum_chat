@@ -28,14 +28,6 @@
     padding-right: 0.1rem;
 }
 
-.scrollable {
-    transform: none;
-}
-
-.scroll-message {
-    transform: none;
-}
-
 .message-icon {
     height: 1em;
 }

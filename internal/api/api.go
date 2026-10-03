@@ -49,8 +49,10 @@ func New(
 
 	service.StaticFile("js/messages.js", "./static/js/messages.js")
 	service.StaticFile("messages.html", "./static/messages.html")
+	service.StaticFile("messages_app.html", "./static/messages_app.html")
 	service.StaticFile("js/widget.js", "./static/js/widget.js")
 	service.StaticFile("css/widget.css", "./static/css/widget.css")
+	service.StaticFile("css/mobile_app.css", "./static/css/mobile_app.css")
 	service.StaticFile("widget.html", "./static/widget.html")
 	service.Static("/img", "./static/img")
 
