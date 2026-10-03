@@ -12,6 +12,7 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/kick_chat_api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/app_updater"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/hooks"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/hooks/text"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/hooks/vote"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/language_provider"
@@ -24,6 +25,7 @@ import (
 	youtube_scraper "github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/youtube"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/settings"
 	"github.com/PlayingPossumHiss/possum_chat/internal/ui"
+	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/do_command"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/get_online"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/get_style"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/list_messages"
@@ -42,6 +44,7 @@ type Container struct {
 	languageProvider    *language_provider.LanguageProvider
 	voter               *vote.Service
 	texter              *text.Service
+	hooks               *hooks.Service
 
 	// юзкейсы
 	watchSubscribersRunner *run_watch_scrapers.UseCase
@@ -249,10 +252,16 @@ func (c *Container) getSelfApi() (*api.Api, error) {
 		return nil, err
 	}
 
+	hookService, err := c.getHookService()
+	if err != nil {
+		return nil, err
+	}
+
 	c.selfApi = api.New(
 		config.Port,
 		styleGetter,
 		messageLister,
+		do_command.New(hookService),
 		onlineScrapers,
 		texter,
 		voter,
@@ -377,22 +386,14 @@ func (c *Container) getMessageQueueService() (*message_queue.Service, error) {
 		return nil, err
 	}
 
-	voter, err := c.getVoter()
-	if err != nil {
-		return nil, err
-	}
-
-	texter, err := c.getTexter()
+	hooksService, err := c.getHookService()
 	if err != nil {
 		return nil, err
 	}
 
 	c.messageQueueService = message_queue.New(
 		configService,
-		[]entity.Hook{
-			voter,
-			texter,
-		},
+		hooksService,
 		&utils_time.DefaultClock{},
 	)
 
@@ -406,6 +407,32 @@ func (c *Container) getMessageQueueService() (*message_queue.Service, error) {
 	}
 
 	return c.messageQueueService, nil
+}
+
+func (c *Container) getHookService() (*hooks.Service, error) {
+	if c.hooks != nil {
+		return c.hooks, nil
+	}
+
+	voter, err := c.getVoter()
+	if err != nil {
+		return nil, err
+	}
+
+	texter, err := c.getTexter()
+	if err != nil {
+		return nil, err
+	}
+
+	hooksService := hooks.New(
+		[]entity.Hook{
+			voter,
+			texter,
+		},
+	)
+	c.hooks = hooksService
+
+	return c.hooks, nil
 }
 
 func (c *Container) getVoter() (*vote.Service, error) {

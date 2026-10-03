@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Мультичат</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel="icon" href="/img/favicon.ico">
+    <link rel='stylesheet' type='text/css' media='screen' href='/css/custom_style.css'>
+    <link rel='stylesheet' type='text/css' media='screen' href='/css/mobile_app.css'>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
+    <script src='/js/commands_app.js'></script>
+</head>
+<body>
+    <nav class="menu">
+        <ul>
+            <li><a href="/messages_app.html?for_last=1h">Сообщения</a></li>
+            <li><a href="/commands_app.html">Команды</a></li>
+        </ul>
+    </nav>
+    <div id="app">
+        <input type="text" id="command">
+        <button id="command_button">Отправить команду</button>
+    </div>
+</body>
+</html>

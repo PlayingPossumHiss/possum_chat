@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
@@ -13,6 +14,10 @@ type GetStyleUC interface {
 
 type ListMessagesUC interface {
 	ListMessages(forLast *time.Duration) []entity.Message
+}
+
+type DoCommandUC interface {
+	DoCommand(ctx context.Context, command string) error
 }
 
 type OnlineGetter interface {

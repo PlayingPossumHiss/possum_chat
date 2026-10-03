@@ -9,13 +9,13 @@ body {
 }
 
 .menu ul {
-    padding: 1em 0;
+    padding: 0.5rem 0;
     list-style: none; 
     margin: 0 auto;
 }
 
 .menu a {
-    padding: 1em;
+    padding: 0.5rem;
     background: darkgrey;
     border-right: 1px solid #aeaeae;
     color: black;
