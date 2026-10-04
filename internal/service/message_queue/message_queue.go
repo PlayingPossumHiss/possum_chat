@@ -2,11 +2,13 @@ package message_queue
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"sync"
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	utils_time "github.com/PlayingPossumHiss/possum_chat/internal/utils/time"
 )
 
@@ -49,7 +51,10 @@ func (s *Service) PushMessages(messages []entity.Message) {
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			s.hooks.Handle(ctx, message)
+			err := s.hooks.Handle(ctx, message)
+			if err != nil {
+				logger.Error(fmt.Errorf("error on handle hook for message: %w", err))
+			}
 		}()
 	}
 }

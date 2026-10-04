@@ -3,6 +3,7 @@ package do_command
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 )
@@ -25,7 +26,7 @@ func (uc *UseCase) DoCommand(ctx context.Context, command string) error {
 		Content: []entity.MessageContentItem{
 			{
 				Type:  entity.MessageContentItemTypeText,
-				Value: fmt.Sprintf("--%s", command),
+				Value: normalizeCommand(command),
 			},
 		},
 	}
@@ -36,4 +37,12 @@ func (uc *UseCase) DoCommand(ctx context.Context, command string) error {
 	}
 
 	return nil
+}
+
+// normalizeCommand приводит команду к виду, как будто её написали в чате:
+// убирает лишние пробелы и добавляет префикс "--", если его ещё нет.
+func normalizeCommand(command string) string {
+	command = strings.TrimLeft(command, "-")
+
+	return "--" + command
 }

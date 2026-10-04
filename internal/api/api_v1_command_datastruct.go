@@ -5,3 +5,7 @@ type apiV1CommandRequest struct {
 }
 
 type apiV1CommandResponse struct{}
+
+type apiV1CommandError struct {
+	Message string `json:"message"`
+}
