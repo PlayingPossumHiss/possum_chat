@@ -30,10 +30,6 @@ body {
     transform: none;
 }
 
-.scroll-message {
-    transform: none;
-}
-
 .messages {
     transform: none;
     position: unset;
