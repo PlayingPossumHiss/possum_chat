@@ -34,6 +34,8 @@ func IsMessageFromAdmin(message entity.Message, config entity.Config) bool {
 		return strings.EqualFold(message.User, config.Connections.Youtube.ChannelName)
 	case entity.SourceVkPlayLive:
 		return strings.EqualFold(message.User, config.Connections.VkPlayLive.ChannelName)
+	case entity.SourceInternal:
+		return true
 	}
 
 	return false

@@ -12,6 +12,7 @@ type Api struct {
 	port           int
 	getStyleUC     GetStyleUC
 	listMessagesUC ListMessagesUC
+	doCommandUC    DoCommandUC
 	onlineGetter   OnlineGetter
 	texter         Texter
 	voter          Voter
@@ -21,6 +22,7 @@ func New(
 	port int,
 	getStyleUC GetStyleUC,
 	listMessagesUC ListMessagesUC,
+	doCommandUC DoCommandUC,
 	onlineGetter OnlineGetter,
 	texter Texter,
 	voter Voter,
@@ -35,6 +37,7 @@ func New(
 		service:        service,
 		getStyleUC:     getStyleUC,
 		listMessagesUC: listMessagesUC,
+		doCommandUC:    doCommandUC,
 		onlineGetter:   onlineGetter,
 		texter:         texter,
 		voter:          voter,
@@ -45,12 +48,17 @@ func New(
 	service.GET("/api/v1/messages", api.apiV1Messages)
 	service.GET("/api/v1/logging_status", api.apiV1LoggingStatus)
 	service.GET("/api/v1/widget_content", api.apiV1WidgetContent)
+	service.POST("/api/v1/command", api.apiV1Command)
 	service.GET("css/messages.css", api.cssMainStyleCss)
 
 	service.StaticFile("js/messages.js", "./static/js/messages.js")
 	service.StaticFile("messages.html", "./static/messages.html")
+	service.StaticFile("commands_app.html", "./static/commands_app.html")
+	service.StaticFile("js/commands_app.js", "./static/js/commands_app.js")
+	service.StaticFile("messages_app.html", "./static/messages_app.html")
 	service.StaticFile("js/widget.js", "./static/js/widget.js")
 	service.StaticFile("css/widget.css", "./static/css/widget.css")
+	service.StaticFile("css/mobile_app.css", "./static/css/mobile_app.css")
 	service.StaticFile("widget.html", "./static/widget.html")
 	service.Static("/img", "./static/img")
 

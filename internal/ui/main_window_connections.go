@@ -63,7 +63,7 @@ func (ui *UI) getLinkButtons() []fyne.CanvasObject {
 		widget.NewHyperlink(
 			ui.languageProvider.Local(entity.LanguageTextConstantMessagePanel),
 			mustParseUrl(fmt.Sprintf(
-				"http://127.0.0.1:%d/messages.html?for_last=1h&use_scroll=true",
+				"http://127.0.0.1:%d/messages_app.html?for_last=1h",
 				ui.configStorage.Config().Port),
 			),
 		),

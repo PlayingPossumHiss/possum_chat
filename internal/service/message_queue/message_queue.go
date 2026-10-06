@@ -18,13 +18,13 @@ type Service struct {
 	configStorage ConfigStorage
 	clock         utils_time.Clock
 	messages      []entity.Message
-	hooks         []entity.Hook
+	hooks         entity.Hook
 }
 
 // New конструктор
 func New(
 	configStorage ConfigStorage,
-	hooks []entity.Hook,
+	hooks entity.Hook,
 	clock utils_time.Clock,
 ) *Service {
 	service := &Service{
@@ -49,13 +49,11 @@ func (s *Service) PushMessages(messages []entity.Message) {
 		s.messages = append(s.messages, message)
 
 		go func() {
-			for _, hook := range s.hooks {
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-				defer cancel()
-				err := hook.Handle(ctx, message)
-				if err != nil {
-					logger.Error(fmt.Errorf("error on handle hook for message: %w", err))
-				}
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			err := s.hooks.Handle(ctx, message)
+			if err != nil {
+				logger.Error(fmt.Errorf("error on handle hook for message: %w", err))
 			}
 		}()
 	}

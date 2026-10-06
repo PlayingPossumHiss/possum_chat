@@ -12,12 +12,8 @@
     <script src='/js/messages.js'></script>
 </head>
 <body>
-    <div class="messages" v-bind:class="{'scroll-messages': useScroll}" id="app">
-        <div>
-            <span v-if="errorCount!=0">🔴{{errorCount}}</span>
-            <span v-if="warnCount!=0">🟠{{warnCount}}</span>
-        </div>
-        <div class="online" v-bind:class="{'scrollable': useScroll}">
+    <div class="messages" id="app">
+        <div class="online">
             <span class="online-content" v-if="online.twitch">
                 <img class="online-icon" src="/img/twitch.png">
                 {{online.twitch}}
@@ -35,7 +31,7 @@
                 {{online.vk_play_live}}
             </span>
         </div>
-        <div class="message" v-bind:class="{'scrollable': useScroll}" v-for="message in messages">
+        <div class="message" v-for="message in messages">
             <img class="message-icon" v-if="message.source=='twitch'" src="/img/twitch.png">
             <img class="message-icon" v-if="message.source=='kick'" src="/img/kick.png">
             <img class="message-icon" v-if="message.source=='youtube'" src="/img/youtube.png">
