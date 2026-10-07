@@ -133,7 +133,25 @@ func parseMessage(src string) []entity.MessageContentItem {
 	return result
 }
 
-func (c *Client) GetOnline(ctx context.Context, liveID string) (int64, error) {
+func (c *Client) GetOnline(ctx context.Context, liveID string) (online int64, err error) {
+	const (
+		retyLimit       = 3
+		secondsForRetry = 15
+	)
+
+	for i := 0; i < retyLimit; i++ {
+		online, err = c.getOnline(ctx, liveID)
+		if err == nil {
+			return online, nil
+		}
+
+		time.Sleep(time.Second * secondsForRetry)
+	}
+
+	return 0, fmt.Errorf("error on get youtube online event with retry: %w", err)
+}
+
+func (c *Client) getOnline(ctx context.Context, liveID string) (int64, error) {
 	initialDataRaw, err := c.getInitDataFrom(
 		ctx,
 		fmt.Sprintf("https://www.youtube.com/watch?v=%s", liveID),
