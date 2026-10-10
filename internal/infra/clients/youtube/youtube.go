@@ -215,23 +215,10 @@ func (c *Client) GetLastTranslationID(ctx context.Context, userName string) (str
 
 func getStreamIDFormParsedData(initialData *liveListInitialData) string {
 	// Получим первое же отрисовываемое видео и попробуем получить из него айдишник
-	// так же проверим не завершенна ли она
 	for _, tab := range initialData.Contents.TwoColumnBrowseResultsRenderer.Tabs {
 		for _, liveData := range tab.TabRenderer.Content.RichGridRenderer.Contents {
 			viewModel := liveData.RichItemRenderer.Content.LockupViewModel
-			for _, mdRow := range viewModel.Metadata.LockupMetadataViewModel.Metadata.ContentMetadataViewModel.MetadataRows {
-				for _, rowMetadataText := range mdRow.MetadataParts {
-					if strings.HasPrefix(
-						rowMetadataText.Text.Content,
-						"Зрителей",
-					) || strings.HasPrefix(
-						rowMetadataText.Text.Content,
-						"Планируемая дата публикации",
-					) {
-						return viewModel.ContentId
-					}
-				}
-			}
+			return viewModel.ContentId
 		}
 	}
 
