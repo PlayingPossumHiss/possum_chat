@@ -4,25 +4,23 @@ import (
 	"context"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/hooks/common"
 )
 
 type Service struct {
-	configStorage ConfigStorage
-	candidates    []entity.VoteResult
-	voted         map[voterKey]struct{}
-	mx            *sync.Mutex
+	configStorage   ConfigStorage
+	electionStorage ElectionStorage
 }
 
 func New(
 	configStorage ConfigStorage,
+	electionStorage ElectionStorage,
 ) *Service {
 	return &Service{
-		configStorage: configStorage,
-		mx:            &sync.Mutex{},
+		configStorage:   configStorage,
+		electionStorage: electionStorage,
 	}
 }
 
@@ -32,23 +30,10 @@ type voterKey struct {
 }
 
 func (s *Service) ElectionResult() []entity.VoteResult {
-	s.mx.Lock()
-	defer s.mx.Unlock()
-
-	if s.candidates == nil {
-		return nil
-	}
-
-	result := make([]entity.VoteResult, len(s.candidates))
-	copy(result, s.candidates)
-
-	return result
+	return s.electionStorage.ElectionResult()
 }
 
 func (s *Service) Handle(_ context.Context, message entity.Message) error {
-	s.mx.Lock()
-	defer s.mx.Unlock()
-
 	if s.handleAsElection(message) {
 		return nil
 	}
@@ -69,23 +54,7 @@ func (s *Service) tryHandleAsVote(message entity.Message) {
 		return
 	}
 
-	if vote <= 0 || vote > len(s.candidates) {
-		return
-	}
-
-	key := voterKey{
-		user:   message.User,
-		source: message.Source,
-	}
-	if s.voted == nil {
-		s.voted = map[voterKey]struct{}{}
-	}
-	if _, voted := s.voted[key]; voted {
-		return
-	}
-
-	s.voted[key] = struct{}{}
-	s.candidates[vote-1].Counter++
+	s.electionStorage.Vote(vote, message.User, message.Source)
 }
 
 func (s *Service) handleAsElection(message entity.Message) bool {
@@ -94,20 +63,13 @@ func (s *Service) handleAsElection(message entity.Message) bool {
 	}
 
 	if message.Content[0].Value == "--vote" {
-		s.voted = nil
-		s.candidates = nil
+		s.electionStorage.StopElection()
 
 		return true
 	}
 
 	variants := strings.Split(strings.TrimPrefix(message.Content[0].Value, "--vote "), ";")
-	s.voted = map[voterKey]struct{}{}
-	s.candidates = make([]entity.VoteResult, 0, len(variants))
-	for _, variant := range variants {
-		s.candidates = append(s.candidates, entity.VoteResult{
-			Text: variant,
-		})
-	}
+	s.electionStorage.StartElection(variants)
 
 	return true
 }
