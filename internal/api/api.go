@@ -48,7 +48,12 @@ func New(
 	service.GET("/api/v1/messages", api.apiV1Messages)
 	service.GET("/api/v1/logging_status", api.apiV1LoggingStatus)
 	service.GET("/api/v1/widget_content", api.apiV1WidgetContent)
-	service.POST("/api/v1/command", api.apiV1Command)
+	// Тут мы имитируем команды как они были бы введены
+	// стоит ли это сделать более абстрактным, выделив отдельно
+	// проверку команды и выполнение команды? Ну да
+	// сделаю ли я это? Нет, это проблема завтрашнего опоссума
+	service.POST("/api/v1/command/message", api.apiV1CommandMessage)
+	service.POST("/api/v1/command/vote", api.apiV1CommandVote)
 	service.GET("css/messages.css", api.cssMainStyleCss)
 
 	service.StaticFile("js/messages.js", "./static/js/messages.js")
