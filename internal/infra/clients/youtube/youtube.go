@@ -133,7 +133,25 @@ func parseMessage(src string) []entity.MessageContentItem {
 	return result
 }
 
-func (c *Client) GetOnline(ctx context.Context, liveID string) (int64, error) {
+func (c *Client) GetOnline(ctx context.Context, liveID string) (online int64, err error) {
+	const (
+		retyLimit       = 3
+		secondsForRetry = 15
+	)
+
+	for i := 0; i < retyLimit; i++ {
+		online, err = c.getOnline(ctx, liveID)
+		if err == nil {
+			return online, nil
+		}
+
+		time.Sleep(time.Second * secondsForRetry)
+	}
+
+	return 0, fmt.Errorf("error on get youtube online event with retry: %w", err)
+}
+
+func (c *Client) getOnline(ctx context.Context, liveID string) (int64, error) {
 	initialDataRaw, err := c.getInitDataFrom(
 		ctx,
 		fmt.Sprintf("https://www.youtube.com/watch?v=%s", liveID),
@@ -197,23 +215,10 @@ func (c *Client) GetLastTranslationID(ctx context.Context, userName string) (str
 
 func getStreamIDFormParsedData(initialData *liveListInitialData) string {
 	// Получим первое же отрисовываемое видео и попробуем получить из него айдишник
-	// так же проверим не завершенна ли она
 	for _, tab := range initialData.Contents.TwoColumnBrowseResultsRenderer.Tabs {
 		for _, liveData := range tab.TabRenderer.Content.RichGridRenderer.Contents {
 			viewModel := liveData.RichItemRenderer.Content.LockupViewModel
-			for _, mdRow := range viewModel.Metadata.LockupMetadataViewModel.Metadata.ContentMetadataViewModel.MetadataRows {
-				for _, rowMetadataText := range mdRow.MetadataParts {
-					if strings.HasPrefix(
-						rowMetadataText.Text.Content,
-						"Зрителей",
-					) || strings.HasPrefix(
-						rowMetadataText.Text.Content,
-						"Планируемая дата публикации",
-					) {
-						return viewModel.ContentId
-					}
-				}
-			}
+			return viewModel.ContentId
 		}
 	}
 
