@@ -14,7 +14,7 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/app_updater"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/hooks"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/hooks/text"
-	"github.com/PlayingPossumHiss/possum_chat/internal/service/hooks/vote"
+	vote_hook "github.com/PlayingPossumHiss/possum_chat/internal/service/hooks/vote"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/language_provider"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue"
@@ -24,6 +24,7 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/vk_play_live"
 	youtube_scraper "github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/youtube"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/settings"
+	vote "github.com/PlayingPossumHiss/possum_chat/internal/service/voter"
 	"github.com/PlayingPossumHiss/possum_chat/internal/ui"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/do_command"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/get_online"
@@ -242,10 +243,7 @@ func (c *Container) getSelfApi() (*api.Api, error) {
 		return nil, err
 	}
 
-	voter, err := c.getVoter()
-	if err != nil {
-		return nil, err
-	}
+	voter := c.getElectionStorage()
 
 	texter, err := c.getTexter()
 	if err != nil {
@@ -268,6 +266,15 @@ func (c *Container) getSelfApi() (*api.Api, error) {
 	)
 
 	return c.selfApi, nil
+}
+
+func (c *Container) getElectionStorage() *vote.Service {
+	if c.voter != nil {
+		return c.voter
+	}
+
+	c.voter = vote.New()
+	return c.voter
 }
 
 func (c *Container) getTexter() (*text.Service, error) {
@@ -435,20 +442,15 @@ func (c *Container) getHookService() (*hooks.Service, error) {
 	return c.hooks, nil
 }
 
-func (c *Container) getVoter() (*vote.Service, error) {
-	if c.voter != nil {
-		return c.voter, nil
-	}
-
+func (c *Container) getVoter() (*vote_hook.Service, error) {
 	config, err := c.getConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	voter := vote.New(config)
-	c.voter = voter
+	voteStorage := c.getElectionStorage()
 
-	return c.voter, nil
+	return vote_hook.New(config, voteStorage), nil
 }
 
 func (c *Container) getConfig() (*settings.Service, error) {

@@ -29,10 +29,6 @@ type voterKey struct {
 	source entity.Source
 }
 
-func (s *Service) ElectionResult() []entity.VoteResult {
-	return s.electionStorage.ElectionResult()
-}
-
 func (s *Service) Handle(_ context.Context, message entity.Message) error {
 	if s.handleAsElection(message) {
 		return nil

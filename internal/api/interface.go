@@ -12,6 +12,13 @@ type GetStyleUC interface {
 	GetMainStyle() (string, error)
 }
 
+type Voter interface {
+	ElectionResult() []entity.VoteResult
+	Vote(vote int, user string, source entity.Source)
+	StartElection(variants []string)
+	StopElection()
+}
+
 type ListMessagesUC interface {
 	ListMessages(forLast *time.Duration) []entity.Message
 }
@@ -22,10 +29,6 @@ type DoCommandUC interface {
 
 type OnlineGetter interface {
 	GetOnline() map[entity.Source]int64
-}
-
-type Voter interface {
-	ElectionResult() []entity.VoteResult
 }
 
 type Texter interface {

@@ -7,7 +7,6 @@ type ConfigStorage interface {
 }
 
 type ElectionStorage interface {
-	ElectionResult() []entity.VoteResult
 	Vote(vote int, user string, source entity.Source)
 	StartElection(variants []string)
 	StopElection()

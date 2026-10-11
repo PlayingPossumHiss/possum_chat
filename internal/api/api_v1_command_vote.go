@@ -1,9 +1,7 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,18 +14,10 @@ func (a *Api) apiV1CommandVote(ctx *gin.Context) {
 		return
 	}
 
-	var command string
 	if len(request.Candidates) == 0 {
-		command = "--vote"
+		a.voter.StopElection()
 	} else {
-		command = fmt.Sprintf("--vote %s", strings.Join(request.Candidates, ";"))
-	}
-
-	err := a.doCommandUC.DoCommand(ctx, command)
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, responseError{Message: err.Error()})
-
-		return
+		a.voter.StartElection(request.Candidates)
 	}
 
 	ctx.JSON(http.StatusOK, nil)
