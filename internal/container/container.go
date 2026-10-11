@@ -12,6 +12,7 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/kick_chat_api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/vk_play_live_api"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/app_updater"
+	vote "github.com/PlayingPossumHiss/possum_chat/internal/service/election"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/hooks"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/hooks/text"
 	vote_hook "github.com/PlayingPossumHiss/possum_chat/internal/service/hooks/vote"
@@ -23,10 +24,9 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/twitch"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/vk_play_live"
 	youtube_scraper "github.com/PlayingPossumHiss/possum_chat/internal/service/scrapers/youtube"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/screen_title"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/settings"
-	vote "github.com/PlayingPossumHiss/possum_chat/internal/service/voter"
 	"github.com/PlayingPossumHiss/possum_chat/internal/ui"
-	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/do_command"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/get_online"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/get_style"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/list_messages"
@@ -44,7 +44,7 @@ type Container struct {
 	scrapers            map[entity.Source]Scraper
 	languageProvider    *language_provider.LanguageProvider
 	voter               *vote.Service
-	texter              *text.Service
+	screenTitle         *screen_title.Service
 	hooks               *hooks.Service
 
 	// юзкейсы
@@ -245,21 +245,12 @@ func (c *Container) getSelfApi() (*api.Api, error) {
 
 	voter := c.getElectionStorage()
 
-	texter, err := c.getTexter()
-	if err != nil {
-		return nil, err
-	}
-
-	hookService, err := c.getHookService()
-	if err != nil {
-		return nil, err
-	}
+	texter := c.getScreenMessage()
 
 	c.selfApi = api.New(
 		config.Port,
 		styleGetter,
 		messageLister,
-		do_command.New(hookService),
 		onlineScrapers,
 		texter,
 		voter,
@@ -278,19 +269,23 @@ func (c *Container) getElectionStorage() *vote.Service {
 }
 
 func (c *Container) getTexter() (*text.Service, error) {
-	if c.texter != nil {
-		return c.texter, nil
-	}
+	messageStorage := c.getScreenMessage()
 
 	config, err := c.getConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	texter := text.New(config)
-	c.texter = texter
+	return text.New(config, messageStorage), nil
+}
 
-	return c.texter, nil
+func (c *Container) getScreenMessage() *screen_title.Service {
+	if c.screenTitle != nil {
+		return c.screenTitle
+	}
+
+	c.screenTitle = screen_title.New()
+	return c.screenTitle
 }
 
 func (c *Container) getOnlineScraper() (*get_online.OnlineGetter, error) {

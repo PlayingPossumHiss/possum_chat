@@ -12,9 +12,8 @@ type Api struct {
 	port           int
 	getStyleUC     GetStyleUC
 	listMessagesUC ListMessagesUC
-	doCommandUC    DoCommandUC
 	onlineGetter   OnlineGetter
-	texter         Texter
+	srceenTitle    SrceenTitle
 	voter          Voter
 }
 
@@ -22,9 +21,8 @@ func New(
 	port int,
 	getStyleUC GetStyleUC,
 	listMessagesUC ListMessagesUC,
-	doCommandUC DoCommandUC,
 	onlineGetter OnlineGetter,
-	texter Texter,
+	srceenTitle SrceenTitle,
 	voter Voter,
 ) *Api {
 	gin.SetMode(gin.ReleaseMode)
@@ -37,9 +35,8 @@ func New(
 		service:        service,
 		getStyleUC:     getStyleUC,
 		listMessagesUC: listMessagesUC,
-		doCommandUC:    doCommandUC,
 		onlineGetter:   onlineGetter,
-		texter:         texter,
+		srceenTitle:    srceenTitle,
 		voter:          voter,
 		port:           port,
 	}
@@ -48,10 +45,6 @@ func New(
 	service.GET("/api/v1/messages", api.apiV1Messages)
 	service.GET("/api/v1/logging_status", api.apiV1LoggingStatus)
 	service.GET("/api/v1/widget_content", api.apiV1WidgetContent)
-	// Тут мы имитируем команды как они были бы введены
-	// стоит ли это сделать более абстрактным, выделив отдельно
-	// проверку команды и выполнение команды? Ну да
-	// сделаю ли я это? Нет, это проблема завтрашнего опоссума
 	service.POST("/api/v1/command/message", api.apiV1CommandMessage)
 	service.POST("/api/v1/command/vote", api.apiV1CommandVote)
 	service.GET("css/messages.css", api.cssMainStyleCss)

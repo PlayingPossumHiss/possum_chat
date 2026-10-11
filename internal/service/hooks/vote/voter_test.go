@@ -7,7 +7,7 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/hooks/vote"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue/mocks"
-	election_storage "github.com/PlayingPossumHiss/possum_chat/internal/service/voter"
+	election_storage "github.com/PlayingPossumHiss/possum_chat/internal/service/election"
 	"github.com/stretchr/testify/assert"
 )
 
