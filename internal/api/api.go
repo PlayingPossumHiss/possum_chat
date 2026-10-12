@@ -42,12 +42,14 @@ func New(
 	}
 
 	service.GET("/css/custom_style.css", api.cssCustomStyleCss)
+	service.GET("/css/messages.css", api.cssMainStyleCss)
+
 	service.GET("/api/v1/messages", api.apiV1Messages)
 	service.GET("/api/v1/logging_status", api.apiV1LoggingStatus)
 	service.GET("/api/v1/widget_content", api.apiV1WidgetContent)
 	service.POST("/api/v1/command/message", api.apiV1CommandMessage)
-	service.POST("/api/v1/command/vote", api.apiV1CommandVote)
-	service.GET("css/messages.css", api.cssMainStyleCss)
+	service.POST("/api/v1/command/start_election", api.apiV1CommandStartElection)
+	service.POST("/api/v1/command/stop_election", api.apiV1CommandStopElection)
 
 	service.StaticFile("js/messages.js", "./static/js/messages.js")
 	service.StaticFile("messages.html", "./static/messages.html")

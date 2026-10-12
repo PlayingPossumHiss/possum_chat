@@ -1,5 +1,5 @@
 package api
 
-type apiV1CommandVoteRequest struct {
+type apiV1CommandStartElectionRequest struct {
 	Candidates []string `json:"candidates"`
 }

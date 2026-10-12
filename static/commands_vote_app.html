@@ -29,7 +29,7 @@
         </div>
         <div v-if="is_started">
             <div v-for="variant in variants">
-                {{variant.candidate}}: {{variant.vote}}
+                {{variant.candidate}}: {{variant.votes}}
             </div>
             <button id="command_button" v-on:click="stop_election()">Остановить</button>
         </div>
