@@ -51,11 +51,12 @@ func New(
 	service.POST("/api/v1/command/start_election", api.apiV1CommandStartElection)
 	service.POST("/api/v1/command/stop_election", api.apiV1CommandStopElection)
 
+	service.StaticFile("js/common.js", "./static/js/common.js")
 	service.StaticFile("js/messages.js", "./static/js/messages.js")
 	service.StaticFile("messages.html", "./static/messages.html")
 	service.StaticFile("commands_vote_app.html", "./static/commands_vote_app.html")
 	service.StaticFile("js/commands_vote_app.js", "./static/js/commands_vote_app.js")
-	service.StaticFile("commands_vote_message.html", "./static/commands_message_app.html")
+	service.StaticFile("commands_message_app.html", "./static/commands_message_app.html")
 	service.StaticFile("js/commands_message_app.js", "./static/js/commands_message_app.js")
 	service.StaticFile("messages_app.html", "./static/messages_app.html")
 	service.StaticFile("js/widget.js", "./static/js/widget.js")
