@@ -51,8 +51,10 @@ func New(
 
 	service.StaticFile("js/messages.js", "./static/js/messages.js")
 	service.StaticFile("messages.html", "./static/messages.html")
-	service.StaticFile("commands_app.html", "./static/commands_app.html")
-	service.StaticFile("js/commands_app.js", "./static/js/commands_app.js")
+	service.StaticFile("commands_vote_app.html", "./static/commands_vote_app.html")
+	service.StaticFile("js/commands_vote_app.js", "./static/js/commands_vote_app.js")
+	service.StaticFile("commands_vote_message.html", "./static/commands_message_app.html")
+	service.StaticFile("js/commands_message_app.js", "./static/js/commands_message_app.js")
 	service.StaticFile("messages_app.html", "./static/messages_app.html")
 	service.StaticFile("js/widget.js", "./static/js/widget.js")
 	service.StaticFile("css/widget.css", "./static/css/widget.css")

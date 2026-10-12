@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Выборы, выборы, кандидаты - ...</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel="icon" href="/img/favicon.ico">
+    <link rel='stylesheet' type='text/css' media='screen' href='/css/custom_style.css'>
+    <link rel='stylesheet' type='text/css' media='screen' href='/css/mobile_app.css'>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
+    <script src='/js/commands_vote_app.js'></script>
+</head>
+<body>
+    <nav class="menu">
+        <ul>
+            <li><a href="/messages_app.html?for_last=1h">Сообщения</a></li>
+            <li><a href="/commands_app.html">Команды</a></li>
+        </ul>
+    </nav>
+    <div id="app">
+        <div v-if="!is_started">
+            <div v-for="(variant, index) in variants">
+                <input type="text" v-model="variants[index].candidate">
+                <button id="command_button" v-on:click="delete_variant(index)">-</button>
+            </div>
+            <button id="command_button" v-on:click="add_variant()">+</button>
+            <button id="command_button" v-on:click="start_election()">Начать</button>
+        </div>
+        <div v-if="is_started">
+            <div v-for="variant in variants">
+                {{variant.candidate}}: {{variant.vote}}
+            </div>
+            <button id="command_button" v-on:click="stop_election()">Остановить</button>
+        </div>
+    </div>
+</body>
+</html>
