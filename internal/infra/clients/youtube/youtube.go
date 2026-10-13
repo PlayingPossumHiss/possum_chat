@@ -133,22 +133,33 @@ func parseMessage(src string) []entity.MessageContentItem {
 	return result
 }
 
-func (c *Client) GetOnline(ctx context.Context, liveID string) (online int64, err error) {
+func (c *Client) GetOnline(ctx context.Context, liveID string) (int64, error) {
 	const (
-		retyLimit       = 3
+		retryLimit      = 3
 		secondsForRetry = 15
 	)
 
-	for i := 0; i < retyLimit; i++ {
-		online, err = c.getOnline(ctx, liveID)
+	var lastErr error
+
+	for i := 0; i < retryLimit; i++ {
+		online, err := c.getOnline(ctx, liveID)
 		if err == nil {
 			return online, nil
 		}
+		lastErr = err
 
-		time.Sleep(time.Second * secondsForRetry)
+		if i == retryLimit-1 {
+			break
+		}
+
+		select {
+		case <-ctx.Done():
+			return 0, ctx.Err()
+		case <-time.After(time.Second * secondsForRetry):
+		}
 	}
 
-	return 0, fmt.Errorf("error on get youtube online event with retry: %w", err)
+	return 0, fmt.Errorf("error on get youtube online event with retry: %w", lastErr)
 }
 
 func (c *Client) getOnline(ctx context.Context, liveID string) (int64, error) {
@@ -170,7 +181,7 @@ func (c *Client) getOnline(ctx context.Context, liveID string) (int64, error) {
 
 	twoColumnWatchNextResultsResults := initialData.Contents.TwoColumnWatchNextResults.Results.Results.Contents
 	if len(twoColumnWatchNextResultsResults) == 0 {
-		return 0, nil
+		return 0, fmt.Errorf("no view count renderer on youtube watch page: %w", app_errors.ErrNoData)
 	}
 
 	online, err := strconv.ParseInt(
@@ -213,16 +224,32 @@ func (c *Client) GetLastTranslationID(ctx context.Context, userName string) (str
 	return "", fmt.Errorf("failed to get live id from json for youtube: %w", app_errors.ErrNoData)
 }
 
+const liveBadgeStyle = "THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE"
+
 func getStreamIDFormParsedData(initialData *liveListInitialData) string {
-	// Получим первое же отрисовываемое видео и попробуем получить из него айдишник
 	for _, tab := range initialData.Contents.TwoColumnBrowseResultsRenderer.Tabs {
 		for _, liveData := range tab.TabRenderer.Content.RichGridRenderer.Contents {
-			viewModel := liveData.RichItemRenderer.Content.LockupViewModel
-			return viewModel.ContentId
+			if liveData.isLiveStream() {
+				return liveData.RichItemRenderer.Content.LockupViewModel.ContentId
+			}
 		}
 	}
 
 	return ""
+}
+
+func (c liveListInitialDataTabContent) isLiveStream() bool {
+	overlays := c.RichItemRenderer.Content.LockupViewModel.ContentImage.ThumbnailViewModel.Overlays
+
+	for _, overlay := range overlays {
+		for _, badge := range overlay.ThumbnailBottomOverlayViewModel.Badges {
+			if badge.ThumbnailBadgeViewModel.BadgeStyle == liveBadgeStyle {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func regexSearch(regex string, str []byte) [][]byte {

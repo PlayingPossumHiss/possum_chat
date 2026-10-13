@@ -59,14 +59,10 @@ type liveListInitialDataTabContent struct {
 	RichItemRenderer struct {
 		Content struct {
 			LockupViewModel struct {
-				ContentId string
-				Metadata  struct {
-					LockupMetadataViewModel struct {
-						Metadata struct {
-							ContentMetadataViewModel struct {
-								MetadataRows []liveListInitialDataMetadataRow
-							}
-						}
+				ContentId    string
+				ContentImage struct {
+					ThumbnailViewModel struct {
+						Overlays []liveListInitialDataOverlay
 					}
 				}
 			}
@@ -74,12 +70,14 @@ type liveListInitialDataTabContent struct {
 	}
 }
 
-type liveListInitialDataMetadataRow struct {
-	MetadataParts []liveListInitialDataMetadataPart
+type liveListInitialDataOverlay struct {
+	ThumbnailBottomOverlayViewModel struct {
+		Badges []liveListInitialDataBadge
+	}
 }
 
-type liveListInitialDataMetadataPart struct {
-	Text struct {
-		Content string
+type liveListInitialDataBadge struct {
+	ThumbnailBadgeViewModel struct {
+		BadgeStyle string
 	}
 }
