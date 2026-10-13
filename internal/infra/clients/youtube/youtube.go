@@ -152,10 +152,13 @@ func (c *Client) GetOnline(ctx context.Context, liveID string) (int64, error) {
 			break
 		}
 
+		timer := time.NewTimer(time.Second * secondsForRetry)
+		defer timer.Stop()
+
 		select {
 		case <-ctx.Done():
 			return 0, ctx.Err()
-		case <-time.After(time.Second * secondsForRetry):
+		case <-timer.C:
 		}
 	}
 

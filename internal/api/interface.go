@@ -11,7 +11,7 @@ type GetStyleUC interface {
 	GetMainStyle() (string, error)
 }
 
-type SrceenTitle interface {
+type ScreenTitle interface {
 	SetMessage(src string)
 	GetMessage() string
 }

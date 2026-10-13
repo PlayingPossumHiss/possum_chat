@@ -24,11 +24,6 @@ func New(
 	}
 }
 
-type voterKey struct {
-	user   string
-	source entity.Source
-}
-
 func (s *Service) Handle(_ context.Context, message entity.Message) error {
 	if s.handleAsElection(message) {
 		return nil

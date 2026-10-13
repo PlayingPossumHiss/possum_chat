@@ -6,6 +6,6 @@ type ConfigStorage interface {
 	Config() entity.Config
 }
 
-type SrceenTitle interface {
+type ScreenTitle interface {
 	SetMessage(src string)
 }

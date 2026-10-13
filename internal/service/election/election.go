@@ -74,6 +74,9 @@ func (s *Service) StartElection(variants []string) {
 }
 
 func (s *Service) StopElection() {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+
 	s.voted = nil
 	s.candidates = nil
 }

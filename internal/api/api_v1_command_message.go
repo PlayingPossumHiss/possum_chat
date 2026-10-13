@@ -14,7 +14,7 @@ func (a *Api) apiV1CommandMessage(ctx *gin.Context) {
 		return
 	}
 
-	a.srceenTitle.SetMessage(request.Text)
+	a.screenTitle.SetMessage(request.Text)
 
 	ctx.JSON(http.StatusOK, nil)
 }

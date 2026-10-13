@@ -21,10 +21,10 @@ func TestService_Text(t *testing.T) {
 			Youtube: entity.ConfigYoutube{ChannelName: "possum"},
 		},
 	})
-	messageStorege := screen_title.New()
+	messageStorage := screen_title.New()
 
-	textService := text.New(storageMock, messageStorege)
-	assert.Equal(t, "", messageStorege.GetMessage(), "изначально текст пустой")
+	textService := text.New(storageMock, messageStorage)
+	assert.Equal(t, "", messageStorage.GetMessage(), "изначально текст пустой")
 
 	err := textService.Handle(ctx, entity.Message{
 		User:   "possum",
@@ -34,7 +34,7 @@ func TestService_Text(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err, "ошибка при установке текста")
-	assert.Equal(t, "hello", messageStorege.GetMessage(), "текст после команды --message")
+	assert.Equal(t, "hello", messageStorage.GetMessage(), "текст после команды --message")
 
 	err = textService.Handle(ctx, entity.Message{
 		User:   "possum",
@@ -44,7 +44,7 @@ func TestService_Text(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err, "ошибка при очистке текста")
-	assert.Equal(t, "", messageStorege.GetMessage(), "текст очищается командой --message без аргументов")
+	assert.Equal(t, "", messageStorage.GetMessage(), "текст очищается командой --message без аргументов")
 }
 
 func TestService_Handle_IgnoresNonAdmin(t *testing.T) {
@@ -57,9 +57,9 @@ func TestService_Handle_IgnoresNonAdmin(t *testing.T) {
 			Youtube: entity.ConfigYoutube{ChannelName: "possum"},
 		},
 	})
-	messageStorege := screen_title.New()
+	messageStorage := screen_title.New()
 
-	textService := text.New(storageMock, messageStorege)
+	textService := text.New(storageMock, messageStorage)
 
 	err := textService.Handle(ctx, entity.Message{
 		User:   "viewer",
@@ -69,5 +69,5 @@ func TestService_Handle_IgnoresNonAdmin(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err, "ошибка при обработке команды от зрителя")
-	assert.Equal(t, "", messageStorege.GetMessage(), "команда от зрителя игнорируется")
+	assert.Equal(t, "", messageStorage.GetMessage(), "команда от зрителя игнорируется")
 }

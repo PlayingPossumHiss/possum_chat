@@ -5,15 +5,8 @@ document.addEventListener("DOMContentLoaded", function() {
 function createApp() {
     let variants = []
     let is_started = false
-    callApi("/api/v1/widget_content", "GET", null, function(xhr) {
-        let vote = xhr.response.vote;
-        is_started = vote.length != 0;
-        variants.forEach(element => {
-            variants.push({candidate:element.text, votes: element.count});
-        })
-    })
 
-    app = new Vue({
+    const app = new Vue({
         el: '#app',
         data: {
            variants: variants,
@@ -41,7 +34,7 @@ function createApp() {
         },
     });
 
-    let refresh = function() {
+    function refresh() {
         callApi("/api/v1/widget_content", "GET", null, function(xhr) {
             let vote = xhr.response.vote;
             app.is_started = vote.length != 0;
@@ -54,7 +47,8 @@ function createApp() {
             });
             app.variants = new_variants
         })
-    }; 
+    }
 
+    refresh();
     setInterval(refresh, 250);
 }

@@ -8,6 +8,7 @@ mock-generate:
 	${CURDIR}/bin/minimock -g -i ./internal/service/scrapers/vk_play_live.VkPlayLiveApi -o ./internal/service/scrapers/vk_play_live/mocks -s _mock.go
 	${CURDIR}/bin/minimock -g -i ./internal/service/scrapers/vk_play_live.VkPlayLiveWs -o ./internal/service/scrapers/vk_play_live/mocks -s _mock.go
 	${CURDIR}/bin/minimock -g -i ./internal/service/scrapers/youtube.YoutubeClient -o ./internal/service/scrapers/youtube/mocks -s _mock.go
+	${CURDIR}/bin/minimock -g -i ./internal/entity.Hook -o ./internal/entity/mocks -s _mock.go
 
 cover:
 	go test -timeout 240s -short -count=1 -coverpkg=./... -coverprofile=coverage.out ./...

@@ -13,7 +13,7 @@ type Api struct {
 	getStyleUC     GetStyleUC
 	listMessagesUC ListMessagesUC
 	onlineGetter   OnlineGetter
-	srceenTitle    SrceenTitle
+	screenTitle    ScreenTitle
 	voter          Voter
 }
 
@@ -22,7 +22,7 @@ func New(
 	getStyleUC GetStyleUC,
 	listMessagesUC ListMessagesUC,
 	onlineGetter OnlineGetter,
-	srceenTitle SrceenTitle,
+	screenTitle ScreenTitle,
 	voter Voter,
 ) *Api {
 	gin.SetMode(gin.ReleaseMode)
@@ -36,7 +36,7 @@ func New(
 		getStyleUC:     getStyleUC,
 		listMessagesUC: listMessagesUC,
 		onlineGetter:   onlineGetter,
-		srceenTitle:    srceenTitle,
+		screenTitle:    screenTitle,
 		voter:          voter,
 		port:           port,
 	}

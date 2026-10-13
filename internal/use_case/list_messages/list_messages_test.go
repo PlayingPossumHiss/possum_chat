@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	m_entity "github.com/PlayingPossumHiss/possum_chat/internal/entity/mocks"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue"
 	m_message_queue "github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue/mocks"
 	"github.com/PlayingPossumHiss/possum_chat/internal/use_case/list_messages"
@@ -32,9 +33,13 @@ func TestUseCase_ListMessages(t *testing.T) {
 				},
 			})
 			clock := m_clock.NewClockMock(mc)
+			hook := m_entity.NewHookMock(mc)
+			hook.HandleMock.Optional().Set(func(_ context.Context, _ entity.Message) error {
+				return nil
+			})
 			queueService := message_queue.New(
 				configStorage,
-				nil,
+				hook,
 				clock,
 			)
 			useCase := list_messages.New(queueService)
