@@ -10,7 +10,7 @@ func (a *Api) apiV1WidgetContent(ctx *gin.Context) {
 	electionResult := a.voter.ElectionResult()
 	resp := apiV1WidgetContentResponse{
 		Vote: make([]vote, 0, len(electionResult)),
-		Text: a.texter.Text(),
+		Text: a.screenTitle.GetMessage(),
 	}
 	for _, candidate := range electionResult {
 		resp.Vote = append(resp.Vote, vote{

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	election_storage "github.com/PlayingPossumHiss/possum_chat/internal/service/election"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/hooks/vote"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue/mocks"
 	"github.com/stretchr/testify/assert"
@@ -19,9 +20,10 @@ func TestService_ElectionResult(t *testing.T) {
 			Youtube: entity.ConfigYoutube{ChannelName: "possum"},
 		},
 	})
+	election := election_storage.New()
 
 	ctx := context.Background()
-	voteService := vote.New(storageMock)
+	voteService := vote.New(storageMock, election)
 
 	err := voteService.Handle(ctx, entity.Message{
 		User:   "some user",
@@ -47,7 +49,7 @@ func TestService_ElectionResult(t *testing.T) {
 	})
 	assert.NoError(t, err, "error on second message")
 
-	result := voteService.ElectionResult()
+	result := election.ElectionResult()
 	assert.Equal(
 		t,
 		[]entity.VoteResult(nil),
@@ -67,7 +69,7 @@ func TestService_ElectionResult(t *testing.T) {
 	})
 	assert.NoError(t, err, "error on 3th message")
 
-	result = voteService.ElectionResult()
+	result = election.ElectionResult()
 	assert.Equal(
 		t,
 		[]entity.VoteResult{
@@ -127,7 +129,7 @@ func TestService_ElectionResult(t *testing.T) {
 	})
 	assert.NoError(t, err, "error on 7th message")
 
-	result = voteService.ElectionResult()
+	result = election.ElectionResult()
 	assert.Equal(
 		t,
 		[]entity.VoteResult{
@@ -151,7 +153,7 @@ func TestService_ElectionResult(t *testing.T) {
 	})
 	assert.NoError(t, err, "error on 8th message")
 
-	result = voteService.ElectionResult()
+	result = election.ElectionResult()
 	assert.Equal(
 		t,
 		[]entity.VoteResult(nil),
@@ -169,9 +171,10 @@ func TestService_TryHandleAsVote_OutOfRange(t *testing.T) {
 			Youtube: entity.ConfigYoutube{ChannelName: "possum"},
 		},
 	})
+	election := election_storage.New()
 
 	ctx := context.Background()
-	voteService := vote.New(storageMock)
+	voteService := vote.New(storageMock, election)
 
 	err := voteService.Handle(ctx, entity.Message{
 		User:   "possum",
@@ -211,7 +214,7 @@ func TestService_TryHandleAsVote_OutOfRange(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	result := voteService.ElectionResult()
+	result := election.ElectionResult()
 	assert.Equal(t, []entity.VoteResult{
 		{Text: "one", Counter: 1},
 		{Text: "two"},

@@ -31,7 +31,6 @@ const (
 	SourceKick
 	SourceVkPlayLive
 	SourceDonationAlerts
-	SourceInternal
 )
 
 func (s Source) KeyIsSecret() bool {

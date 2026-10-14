@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
+	m_entity "github.com/PlayingPossumHiss/possum_chat/internal/entity/mocks"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/logger"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue"
 	m_message_queue "github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue/mocks"
@@ -45,9 +46,13 @@ func TestUseCase_Run(t *testing.T) {
 
 			clock := m_clock.NewClockMock(mc)
 			clock.NowMock.Expect().Return(time.Date(2026, 03, 28, 15, 33, 0, 0, time.UTC))
+			hook := m_entity.NewHookMock(mc)
+			hook.HandleMock.Optional().Set(func(_ context.Context, _ entity.Message) error {
+				return nil
+			})
 			queueService := message_queue.New(
 				configStorage,
-				nil,
+				hook,
 				clock,
 			)
 
@@ -84,12 +89,14 @@ func TestUseCase_Run(t *testing.T) {
 					},
 				}, nil
 			})
+			youtubeClient.GetOnlineMock.Expect(minimock.AnyContext, "qqqwwwwee").Optional().Return(0, nil)
 
 			youtubeScraper := youtube_scraper.New(
 				configStorage,
 				youtubeClient,
 			)
 			youtubeScraper.Run(context.Background())
+			defer youtubeScraper.Stop()
 			scrapers = append(scrapers, youtubeScraper)
 			uc := run_watch_scrapers.New(scrapers, queueService)
 

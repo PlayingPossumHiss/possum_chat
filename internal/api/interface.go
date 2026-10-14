@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
@@ -12,22 +11,22 @@ type GetStyleUC interface {
 	GetMainStyle() (string, error)
 }
 
-type ListMessagesUC interface {
-	ListMessages(forLast *time.Duration) []entity.Message
-}
-
-type DoCommandUC interface {
-	DoCommand(ctx context.Context, command string) error
-}
-
-type OnlineGetter interface {
-	GetOnline() map[entity.Source]int64
+type ScreenTitle interface {
+	SetMessage(src string)
+	GetMessage() string
 }
 
 type Voter interface {
 	ElectionResult() []entity.VoteResult
+	Vote(vote int, user string, source entity.Source)
+	StartElection(variants []string)
+	StopElection()
 }
 
-type Texter interface {
-	Text() string
+type ListMessagesUC interface {
+	ListMessages(forLast *time.Duration) []entity.Message
+}
+
+type OnlineGetter interface {
+	GetOnline() map[entity.Source]int64
 }

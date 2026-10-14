@@ -34,8 +34,8 @@ Entrypoint is `cmd/main.go`. Run via `go run ./cmd/main.go` or the built binary.
 Manual DI composition root in `internal/container/` (`Container` with lazy singleton getters — `getXxx()` methods). Wire new services/use-cases there.
 
 - `internal/entity` — shared structs & enums (message, config, scraper state, language constants)
-- `internal/service` — business services (settings, message_queue, logger, language_provider, app_updater, scrapers, hooks, hooks/vote, hooks/text)
-- `internal/use_case` — use cases (list_messages, get_online, get_style, run_watch_scrapers, send_test_messages, do_command)
+- `internal/service` — business services (settings, message_queue, logger, language_provider, app_updater, scrapers, hooks, hooks/vote, hooks/text, election, screen_title)
+- `internal/use_case` — use cases (list_messages, get_online, get_style, run_watch_scrapers, send_test_messages)
 - `internal/api` — gin HTTP handlers (self API + widget)
 - `internal/ui` — Fyne desktop UI
 - `internal/infra/clients/<source>` — external API/WS clients (one per source: youtube, twitch, kick, vk_play_live, donation_alerts, github)
@@ -61,12 +61,17 @@ source (YouTube/Twitch/Kick/VK Play Live/Donation Alerts)
  UseCase            UseCase            UseCase (GUI test)      │
        │               │                              ┌───────┴────────┐
        ▼               ▼                              ▼                ▼
-     GET /api/v1/messages (gin)  ──►  static/messages.html   vote.Service  text.Service
-                                       + messages.js (widget)      │
-                                                                   ▼
-                                                          GET /api/v1/widget_content
+      GET /api/v1/messages (gin)  ──►  static/messages.html   vote hook    text hook
+                                        + messages.js (widget)      │            │
+                                                                    ▼            ▼
+                                                        election.Service  screen_title.Service
+                                                                    │            │
+                                                                    └─────┬──────┘
+                                                                          ▼
+                                                           GET /api/v1/widget_content
 
-(commands page) POST /api/v1/command  ──►  do_command.UseCase  ──►  hooks.Service
+(commands pages) POST /api/v1/command/{message,start_election,stop_election}
+      └─►  screen_title.Service / election.Service (напрямую, минуя hooks)
 ```
 
 - Scrapers keep an internal `messages []entity.Message` buffer. `GetMessages()` returns a clone and resets the buffer to nil (drain semantics).
@@ -76,14 +81,13 @@ source (YouTube/Twitch/Kick/VK Play Live/Donation Alerts)
 - `message_queue.CleanOldMessages()` deletes messages older than `View.TimeToDeleteMessage` (no-op when it is `0`).
 - Online count: `get_online.UseCase.GetOnline()` returns `map[entity.Source]int64`, but only when `View.ShowUserCount` is true and the scraper `Status() == ScraperStateActive`.
 - `message_queue.PushMessages()` also passes every pushed message to the registered `entity.Hook` (the `hooks.Service`), asynchronously — one goroutine per message, the call wrapped in a 1 s timeout context; errors are logged. Hooks are wired in `container.getMessageQueueService()`.
-- `internal/service/hooks.Service` (`hooks/hooks.go`) is the aggregate hook: it holds a list of `entity.Hook`s and its `Handle(ctx, message)` runs **all** of them, joining errors with `errors.Join`. It is built once in `container.getHookService()` from `[]entity.Hook{voter, texter}` and shared by both the queue and the command use case.
-- `internal/use_case/do_command.UseCase` builds an `entity.Message` with `Source: SourceInternal` from a raw command (prepends `--`) and runs it through the same `hooks.Service`, bypassing the queue (see [Commands (`/api/v1/command`)](#commands-apiv1command)).
-- The vote hook (`internal/service/hooks/vote.Service`) implements `entity.Hook` and intercepts `--vote` commands plus counts viewer votes (see [Voting](#voting)).
-- The text hook (`internal/service/hooks/text.Service`) implements `entity.Hook` and intercepts `--message` commands (see [Text](#text)).
+- `internal/service/hooks.Service` (`hooks/hooks.go`) is the aggregate hook: it holds a list of `entity.Hook`s and its `Handle(ctx, message)` runs **all** of them, joining errors with `errors.Join`. It is built once in `container.getHookService()` from `[]entity.Hook{voter, texter}` and is wired into `message_queue`.
+- The vote hook (`internal/service/hooks/vote.Service`) implements `entity.Hook` and intercepts `--vote` commands, delegating vote state to `internal/service/election.Service` (see [Voting](#voting)).
+- The text hook (`internal/service/hooks/text.Service`) implements `entity.Hook` and intercepts `--message` commands, delegating the text to `internal/service/screen_title.Service` (see [Text](#text)).
 
 ### Message model
 
-`entity.Message` has `ID`, `Source`, `User`, `Content []MessageContentItem`, `CreatedAt`. `MessageContentItem` is `{Type (text|image), Value}` — each source normalizes its native message (emotes/smiles become `image` items with absolute URLs) into this unified shape. `entity.Source` order: `Youtube=1, Twitch, Kick, VkPlayLive, DonationAlerts, Internal`. `SourceInternal` is not a real chat source — it is used by `do_command.UseCase` so commands sent from the web page always pass the admin check.
+`entity.Message` has `ID`, `Source`, `User`, `Content []MessageContentItem`, `CreatedAt`. `MessageContentItem` is `{Type (text|image), Value}` — each source normalizes its native message (emotes/smiles become `image` items with absolute URLs) into this unified shape. `entity.Source` order: `Youtube=1, Twitch, Kick, VkPlayLive, DonationAlerts, Internal`. `SourceInternal` is not a real chat source — it is no longer produced by any code path (the `do_command` use case that built it was removed); `common.IsMessageFromAdmin` still returns `true` for it.
 
 ## HTTP API
 
@@ -93,9 +97,12 @@ All served by gin in `internal/api/api.go` (release mode). Routes:
 |---|---|---|
 | `GET /messages.html` | static | OBS widget page |
 | `GET /messages_app.html` | static | mobile viewing page (scroll + error/warn badges) |
-| `GET /commands_app.html` | static | mobile commands page |
+| `GET /commands_message_app.html` | static | mobile page to set the `--message` overlay text |
+| `GET /commands_vote_app.html` | static | mobile page to start/stop a poll |
 | `GET /js/messages.js` | static | messages JS (shared by `messages.html` and `messages_app.html`) |
-| `GET /js/commands_app.js` | static | commands page JS |
+| `GET /js/common.js` | static | shared XHR helper (`callApi`) for the commands pages |
+| `GET /js/commands_message_app.js` | static | message-overlay page JS |
+| `GET /js/commands_vote_app.js` | static | poll page JS |
 | `GET /css/mobile_app.css` | static | mobile pages style (menu, disables the rotate trick) |
 | `GET /widget.html` | static | poll widget page |
 | `GET /js/widget.js` | static | poll widget JS |
@@ -106,7 +113,9 @@ All served by gin in `internal/api/api.go` (release mode). Routes:
 | `GET /api/v1/messages` | `apiV1Messages` | messages + online counts |
 | `GET /api/v1/logging_status` | `apiV1LoggingStatus` | `{error_count, warn_count}` |
 | `GET /api/v1/widget_content` | `apiV1WidgetContent` | current poll results + streamer text (see [Voting](#voting) and [Text](#text)) |
-| `POST /api/v1/command` | `apiV1Command` | execute a command without `--` (see [Commands (`/api/v1/command`)](#commands-apiv1command)) |
+| `POST /api/v1/command/message` | `apiV1CommandMessage` | set the `--message` overlay text from `{"text": "..."}` (see [Commands](#commands)) |
+| `POST /api/v1/command/start_election` | `apiV1CommandStartElection` | start a poll from `{"candidates": ["a","b"]}` |
+| `POST /api/v1/command/stop_election` | `apiV1CommandStopElection` | clear/stop the poll |
 
 `GET /api/v1/messages` query param: `for_last` — a Go duration string (`time.ParseDuration`); overrides the hide window so the panel can show older messages.
 
@@ -149,7 +158,8 @@ Response shape:
 - `http://127.0.0.1:8081/messages.html` — OBS overlay (default). Newest message at the bottom; when space runs out only recent ones remain. Online count block at the bottom. No error/warn badges.
 - `http://127.0.0.1:8081/messages.html?for_last=1h` — show all messages from the last hour.
 - `http://127.0.0.1:8081/messages_app.html?for_last=1h` — mobile viewing page. Scrollable list (the `rotate(180deg)` trick is disabled via `/css/mobile_app.css`), shows error/warn badges from `/api/v1/logging_status`, and has a nav menu (`Сообщения` / `Команды`).
-- `http://127.0.0.1:8081/commands_app.html` — mobile commands page: a text field + button that `POST`s to `/api/v1/command` (command entered without `--`, see [Commands (`/api/v1/command`)](#commands-apiv1command)).
+- `http://127.0.0.1:8081/commands_message_app.html` — mobile page to set the `--message` overlay text (a text field + button that `POST`s `{"text": ...}` to `/api/v1/command/message`).
+- `http://127.0.0.1:8081/commands_vote_app.html` — mobile page to start/stop a poll (add variants, `POST`s to `/api/v1/command/start_election` / `stop_election`).
 - `http://127.0.0.1:8081/widget.html` — poll widget: renders the current `--vote` results (hidden while no poll is active) and the current `--message` text (bottom-right). Polls `/api/v1/widget_content` every 250 ms.
 
 `static/js/messages.js` is shared by `messages.html` and `messages_app.html`. It polls `/api/v1/messages` every **50 ms** (reverses the array in JS, updates a Vue 2 app) and `/api/v1/logging_status` every **1 s**. The "newest at bottom" behavior comes from the CSS `transform: rotate(180deg)` trick plus the JS `.reverse()`.
@@ -163,10 +173,10 @@ Chat-driven polls. The streamer starts/ends them from their own chat, viewers vo
 - **Start**: the streamer posts `--vote variant1;variant2` — variants are split on `;`.
 - **Vote**: a viewer posts a message that is a single number (`1`, `2`, …); an optional leading `#` or `№` and surrounding spaces are trimmed.
 - **End**: the streamer posts `--vote` (no arguments) — clears the poll.
-- Only the streamer's own messages can start/end a poll. `vote.Service.isValidElectionRequest` matches `message.User` case-insensitively (`EqualFold`) against the configured `channel_name` per source; supported for Kick, Twitch, YouTube and VK Play Live (Donation Alerts returns `false`). `SourceInternal` messages (from `/api/v1/command`) always pass the admin check via `common.IsMessageFromAdmin`.
-- Each user votes once per poll: `vote.Service` dedupes by `(User, Source)` in the `voted` map.
-- State lives in `internal/service/hooks/vote.Service` (`candidates []entity.VoteResult`), mutex-protected; `ElectionResult()` returns a copy under the lock.
-- The service is wired as an `entity.Hook` in `container.getMessageQueueService()` and also injected into `api.New` as the `Voter` interface for `/api/v1/widget_content`.
+- Only the streamer's own messages can start/end a poll. `vote.Service.isValidElectionRequest` matches `message.User` case-insensitively (`EqualFold`) against the configured `channel_name` per source; supported for Kick, Twitch, YouTube and VK Play Live (Donation Alerts returns `false`).
+- Each user votes once per poll: `election.Service` dedupes by `(User, Source)` in the `voted` map.
+- State lives in `internal/service/election.Service` (`candidates []entity.VoteResult`, `voted` map), mutex-protected (`sync.RWMutex`); `ElectionResult()` returns a copy under the lock, `StartElection`/`StopElection`/`Vote` mutate under the lock.
+- The vote hook (`hooks/vote.Service`) is wired as an `entity.Hook` in `container.getHookService()`; the `election.Service` is the shared storage, injected into `api.New` as the `Voter` interface for `/api/v1/widget_content`.
 
 ## Text (`--message`)
 
@@ -174,20 +184,19 @@ Chat-driven text overlay. The streamer shows a line of text on `/widget.html` fr
 
 - **Set**: the streamer posts `--message some text` — everything after `--message ` is displayed.
 - **Clear**: the streamer posts `--message` (no arguments) — the text is removed.
-- Only the streamer's own messages can set/clear it: `text.Service.isValidTextRequest` matches `message.User` case-insensitively (`EqualFold`) against the configured `channel_name` per source; supported for Kick, Twitch, YouTube and VK Play Live (Donation Alerts returns `false`). `SourceInternal` messages (from `/api/v1/command`) always pass the admin check via `common.IsMessageFromAdmin`.
-- State lives in `internal/service/hooks/text.Service` (`text string`); `Text()` returns it.
-- The service is wired as an `entity.Hook` in `container.getMessageQueueService()` and also injected into `api.New` as the `Texter` interface for `/api/v1/widget_content`.
+- Only the streamer's own messages can set/clear it: `text.Service.isValidTextRequest` matches `message.User` case-insensitively (`EqualFold`) against the configured `channel_name` per source; supported for Kick, Twitch, YouTube and VK Play Live (Donation Alerts returns `false`).
+- State lives in `internal/service/screen_title.Service` (`message string`), mutex-protected (`sync.RWMutex`); `hooks/text.Service` delegates via `SetMessage` and `GetMessage` returns it.
+- The text hook (`hooks/text.Service`) is wired as an `entity.Hook` in `container.getHookService()`; the `screen_title.Service` is the shared storage, injected into `api.New` as the `ScreenTitle` interface for `/api/v1/widget_content`.
 
-## Commands (`/api/v1/command`)
+## Commands
 
-The mobile page `commands_app.html` lets the streamer run a command without typing `--` in chat. It `POST`s `{"command": "..."}` to `/api/v1/command`.
+The mobile pages let the streamer control the overlay from a phone instead of typing `--` in chat. Two pages and three endpoints replace the old single `/api/v1/command` + `do_command` pipeline.
 
-- The command is entered **without** `--` (e.g. `vote a;b`, `message hi`, `vote` to clear the poll).
-- Handler `apiV1Command` binds the JSON, rejects an empty command with `400`, and delegates to `do_command.UseCase.DoCommand(ctx, command)`.
-- `do_command.UseCase.DoCommand` normalizes the command (`normalizeCommand`: strips leading dashes and prepends `--`), builds `entity.Message{Source: SourceInternal, Content: [{Type: text, Value: "--<command>"}]}`, and runs it through the shared `hooks.Service` — bypassing the queue.
-- Because `common.IsMessageFromAdmin` returns `true` for `SourceInternal`, the command always passes the author check regardless of the configured channel names.
-- Errors from hooks return `500` with `{"message": "..."}` (`apiV1CommandError`); success returns `200` with `{}`.
-- Wired in `container.getSelfApi()`: `do_command.New(hookService)` where `hookService` is the same singleton used by `message_queue`.
+- `commands_message_app.html` → `POST /api/v1/command/message` with `{"text": "..."}` — sets the `--message` overlay text (`""` clears it). Handler `apiV1CommandMessage` binds the JSON and calls `screen_title.Service.SetMessage` directly.
+- `commands_vote_app.html` → `POST /api/v1/command/start_election` with `{"candidates": ["a","b"]}` and `POST /api/v1/command/stop_election` — start/clear the poll. Handlers call `election.Service.StartElection` / `StopElection` directly.
+- These endpoints write to `screen_title.Service` / `election.Service` **directly**, bypassing the chat hooks (`hooks.Service`); there is no per-user admin check on this path — the server is localhost-only.
+- Errors return `400` with `{"message": "..."}` (`responseError`); success returns `200` with `null`.
+- Wired in `container.getSelfApi()`: `api.New(..., c.getScreenMessage(), c.getElectionStorage(), ...)` — the same singletons the chat hooks use, so chat-driven and page-driven updates share state.
 
 ## Sources
 
@@ -270,7 +279,7 @@ The version display and the check-for-updates / update flow are described in [Ap
 
 ## App update (self-update)
 
-- Current version is the hardcoded const `appVerssion` in `internal/service/settings/datastruct.go` (currently a commit hash, e.g. `de8f880`). `configFromJson` in `conversion.go` copies it into `entity.Config.AppVersion`, so it is **not** persisted in `config.json` and not written back by `configToJson`.
+- Current version is the hardcoded const `appVerssion` in `internal/service/settings/datastruct.go`. For release builds (the only path that uses the GitHub self-update) it is a semantic version like `1.3.1`; a commit hash is used only as a placeholder for intermediate/unreleased builds. `configFromJson` in `conversion.go` copies it into `entity.Config.AppVersion`, so it is **not** persisted in `config.json` and not written back by `configToJson`.
 - `internal/infra/clients/github.Client.LatestVersion(ctx)` does `GET https://api.github.com/repos/PlayingPossumHiss/possum_chat/releases` (1 s timeout) and returns the newest release as `entity.SourceVersion{Version: tag_name, DownloadURL: browser_download_url}`, where `DownloadURL` is the `possum_chat.tar.gz` asset. Returns `(nil, nil)` when there are no releases or no `possum_chat.tar.gz` asset.
 - `internal/service/app_updater.Service` wraps a `GithubClient` interface (`interfaces.go`):
   - `LatestVersion(ctx)` → delegates to the client.
@@ -294,6 +303,7 @@ The version display and the check-for-updates / update flow are described in [Ap
 ## Tests
 
 - Use `minimock/v3` + `testify/assert`. Mocks live in `*/mocks/` and are generated from interfaces by `make mock-generate`. When you change an interface, regenerate the mock.
+- Do not hand-write stub structs implementing interfaces in tests — add the interface to the `mock-generate` target in the `Makefile` and run `make mock-generate` instead. Example: `entity.Hook` → `internal/entity/mocks/hook_mock.go`, used as `m_entity.NewHookMock(mc)`. For a hook that is called asynchronously and zero-or-more times, set it up with `.Optional().Set(...)`.
 - Test files must use external package (`package foo_test`), tests should call `t.Parallel()`.
 - Inject `utils_time.Clock` instead of `time.Now()` for deterministic time assertions (see `list_messages_test.go`).
 - The `logger` is a package-level singleton — tests that trigger logging must call `logger.Init(configStorage)` first (see `run_watch_scrapers_test.go`).

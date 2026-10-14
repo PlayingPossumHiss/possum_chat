@@ -7,29 +7,24 @@ import (
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/hooks/text"
 	"github.com/PlayingPossumHiss/possum_chat/internal/service/message_queue/mocks"
+	"github.com/PlayingPossumHiss/possum_chat/internal/service/screen_title"
 	"github.com/stretchr/testify/assert"
 )
 
-func newTestService(t *testing.T) *text.Service {
-	t.Helper()
+func TestService_Text(t *testing.T) {
+	t.Parallel()
 
+	ctx := context.Background()
 	storageMock := mocks.NewConfigStorageMock(t)
 	storageMock.ConfigMock.Return(entity.Config{
 		Connections: entity.ConfigConnections{
 			Youtube: entity.ConfigYoutube{ChannelName: "possum"},
 		},
 	})
+	messageStorage := screen_title.New()
 
-	return text.New(storageMock)
-}
-
-func TestService_Text(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-	textService := newTestService(t)
-
-	assert.Equal(t, "", textService.Text(), "изначально текст пустой")
+	textService := text.New(storageMock, messageStorage)
+	assert.Equal(t, "", messageStorage.GetMessage(), "изначально текст пустой")
 
 	err := textService.Handle(ctx, entity.Message{
 		User:   "possum",
@@ -39,7 +34,7 @@ func TestService_Text(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err, "ошибка при установке текста")
-	assert.Equal(t, "hello", textService.Text(), "текст после команды --message")
+	assert.Equal(t, "hello", messageStorage.GetMessage(), "текст после команды --message")
 
 	err = textService.Handle(ctx, entity.Message{
 		User:   "possum",
@@ -49,14 +44,22 @@ func TestService_Text(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err, "ошибка при очистке текста")
-	assert.Equal(t, "", textService.Text(), "текст очищается командой --message без аргументов")
+	assert.Equal(t, "", messageStorage.GetMessage(), "текст очищается командой --message без аргументов")
 }
 
 func TestService_Handle_IgnoresNonAdmin(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	textService := newTestService(t)
+	storageMock := mocks.NewConfigStorageMock(t)
+	storageMock.ConfigMock.Return(entity.Config{
+		Connections: entity.ConfigConnections{
+			Youtube: entity.ConfigYoutube{ChannelName: "possum"},
+		},
+	})
+	messageStorage := screen_title.New()
+
+	textService := text.New(storageMock, messageStorage)
 
 	err := textService.Handle(ctx, entity.Message{
 		User:   "viewer",
@@ -66,5 +69,5 @@ func TestService_Handle_IgnoresNonAdmin(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err, "ошибка при обработке команды от зрителя")
-	assert.Equal(t, "", textService.Text(), "команда от зрителя игнорируется")
+	assert.Equal(t, "", messageStorage.GetMessage(), "команда от зрителя игнорируется")
 }

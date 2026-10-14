@@ -9,18 +9,20 @@
     <link rel='stylesheet' type='text/css' media='screen' href='/css/custom_style.css'>
     <link rel='stylesheet' type='text/css' media='screen' href='/css/mobile_app.css'>
     <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
-    <script src='/js/commands_app.js'></script>
+    <script src='/js/common.js'></script>
+    <script src='/js/commands_message_app.js'></script>
 </head>
 <body>
     <nav class="menu">
         <ul>
             <li><a href="/messages_app.html?for_last=1h">Сообщения</a></li>
-            <li><a href="/commands_app.html">Команды</a></li>
+            <li><a href="/commands_message_app.html">Команды</a></li>
         </ul>
     </nav>
+    <a href="/commands_vote_app.html">Голосование</a>
     <div id="app">
-        <input type="text" id="command">
-        <button id="command_button">Отправить команду</button>
+        <input type="text" id="message">
+        <button id="command_button">Установить</button>
     </div>
 </body>
 </html>

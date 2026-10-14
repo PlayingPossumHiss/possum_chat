@@ -10,19 +10,17 @@ import (
 
 type Service struct {
 	configStorage ConfigStorage
-	text          string
+	screenTitle   ScreenTitle
 }
 
 func New(
 	configStorage ConfigStorage,
+	screenTitle ScreenTitle,
 ) *Service {
 	return &Service{
 		configStorage: configStorage,
+		screenTitle:   screenTitle,
 	}
-}
-
-func (s *Service) Text() string {
-	return s.text
 }
 
 func (s *Service) Handle(_ context.Context, message entity.Message) error {
@@ -31,11 +29,11 @@ func (s *Service) Handle(_ context.Context, message entity.Message) error {
 	}
 
 	if message.Content[0].Value == "--message" {
-		s.text = ""
+		s.screenTitle.SetMessage("")
 		return nil
 	}
 
-	s.text = strings.TrimPrefix(message.Content[0].Value, "--message ")
+	s.screenTitle.SetMessage(strings.TrimPrefix(message.Content[0].Value, "--message "))
 
 	return nil
 }
