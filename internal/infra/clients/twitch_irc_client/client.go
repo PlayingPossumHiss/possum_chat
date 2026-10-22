@@ -44,7 +44,7 @@ func (c *Client) Listen(channelName string) chan entity.Message {
 			ID:        fmt.Sprintf("twitch_%s", message.ID),
 			Source:    entity.SourceTwitch,
 			User:      message.User.DisplayName,
-			Content:   buildMessageContent(message.Message, message.Emotes),
+			Content:   buildMessageContent(message.Message, message.Emotes, nil),
 			CreatedAt: time.Now(),
 		}
 	})
@@ -56,7 +56,7 @@ func (c *Client) Listen(channelName string) chan entity.Message {
 			ID:        fmt.Sprintf("twitch_user_notice_%s", message.ID),
 			Source:    entity.SourceTwitch,
 			User:      message.User.DisplayName,
-			Content:   buildMessageContent(message.Message, message.Emotes),
+			Content:   buildMessageContent(message.Message, message.Emotes, buildBadge(message)),
 			CreatedAt: time.Now(),
 		}
 	})
@@ -76,6 +76,48 @@ func (c *Client) Listen(channelName string) chan entity.Message {
 	}()
 
 	return result
+}
+
+func buildBadge(message twitch.UserNoticeMessage) []entity.MessageContentItem {
+	category, hasCategory := message.MsgParams["msg-param-category"]
+	if !hasCategory {
+		return nil
+	}
+
+	switch category {
+	case "watch-streak":
+		// нужна поддержка языка, только не пробрасывать же локализацию на уровень клиента?
+		return []entity.MessageContentItem{
+			{
+				Type:  entity.MessageContentItemTypeImage,
+				Value: "https://static-cdn.jtvnw.net/emoticons/v2/9/default/light/1.0",
+			},
+			{
+				Type:  entity.MessageContentItemTypeText,
+				Value: fmt.Sprintf("watch streak %s", message.MsgParams["msg-param-value"]),
+			},
+		}
+	default:
+		logger.Warn(fmt.Scanf("got new message category for twitch: %s", category))
+	}
+
+	// Потом надо добавить получение самой награды, но не сейчас
+	_, isReward := message.Tags["custom-reward-id"]
+	if isReward {
+		// нужна поддержка языка, только не пробрасывать же локализацию на уровень клиента?
+		return []entity.MessageContentItem{
+			{
+				Type:  entity.MessageContentItemTypeImage,
+				Value: "https://static-cdn.jtvnw.net/emoticons/v2/9/default/light/1.0",
+			},
+			{
+				Type:  entity.MessageContentItemTypeText,
+				Value: fmt.Sprintf("reward? 0_o"),
+			},
+		}
+	}
+
+	return nil
 }
 
 func (c *Client) watchAndLogOthersMessages() {
@@ -134,16 +176,20 @@ func collectEmotePositions(emotes []*twitch.Emote) []emotePosition {
 	return positions
 }
 
-func buildMessageContent(message string, emotes []*twitch.Emote) []entity.MessageContentItem {
+func buildMessageContent(
+	message string,
+	emotes []*twitch.Emote,
+	badge []entity.MessageContentItem,
+) []entity.MessageContentItem {
 	positions := collectEmotePositions(emotes)
 
 	if len(positions) == 0 {
-		return []entity.MessageContentItem{
+		return append([]entity.MessageContentItem{
 			{
 				Type:  entity.MessageContentItemTypeText,
 				Value: message,
 			},
-		}
+		}, badge...)
 	}
 
 	runes := []rune(message)
@@ -178,5 +224,5 @@ func buildMessageContent(message string, emotes []*twitch.Emote) []entity.Messag
 		})
 	}
 
-	return content
+	return append(content, badge...)
 }
