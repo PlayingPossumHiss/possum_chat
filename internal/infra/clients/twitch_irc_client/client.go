@@ -20,6 +20,11 @@ type emotePosition struct {
 	emoteID string
 }
 
+type msgParams struct {
+	params map[string]string
+	tags   map[string]string
+}
+
 const twitchEmoteURLTemplate = "https://static-cdn.jtvnw.net/emoticons/v2/%s/default/light/1.0#e=0"
 
 func New() *Client {
@@ -41,10 +46,14 @@ func (c *Client) Listen(channelName string) chan entity.Message {
 		logger.Debug(fmt.Sprintf("message from twitch: %s", message.Raw))
 
 		result <- entity.Message{
-			ID:        fmt.Sprintf("twitch_%s", message.ID),
-			Source:    entity.SourceTwitch,
-			User:      message.User.DisplayName,
-			Content:   buildMessageContent(message.Message, message.Emotes, nil),
+			ID:     fmt.Sprintf("twitch_%s", message.ID),
+			Source: entity.SourceTwitch,
+			User:   message.User.DisplayName,
+			Content: buildMessageContent(
+				message.Message,
+				message.Emotes,
+				buildBadge(msgParams{tags: message.Tags}),
+			),
 			CreatedAt: time.Now(),
 		}
 	})
@@ -53,10 +62,14 @@ func (c *Client) Listen(channelName string) chan entity.Message {
 		logger.Debug(fmt.Sprintf("UserNotice event from twitch: %s", message.Raw))
 
 		result <- entity.Message{
-			ID:        fmt.Sprintf("twitch_user_notice_%s", message.ID),
-			Source:    entity.SourceTwitch,
-			User:      message.User.DisplayName,
-			Content:   buildMessageContent(message.Message, message.Emotes, buildBadge(message)),
+			ID:     fmt.Sprintf("twitch_user_notice_%s", message.ID),
+			Source: entity.SourceTwitch,
+			User:   message.User.DisplayName,
+			Content: buildMessageContent(
+				message.Message,
+				message.Emotes,
+				buildBadge(msgParams{params: message.MsgParams, tags: message.Tags}),
+			),
 			CreatedAt: time.Now(),
 		}
 	})
@@ -78,31 +91,30 @@ func (c *Client) Listen(channelName string) chan entity.Message {
 	return result
 }
 
-func buildBadge(message twitch.UserNoticeMessage) []entity.MessageContentItem {
-	category, hasCategory := message.MsgParams["msg-param-category"]
-	if !hasCategory {
-		return nil
-	}
+func buildBadge(message msgParams) []entity.MessageContentItem {
+	category, hasCategory := message.params["msg-param-category"]
 
-	switch category {
-	case "watch-streak":
-		// нужна поддержка языка, только не пробрасывать же локализацию на уровень клиента?
-		return []entity.MessageContentItem{
-			{
-				Type:  entity.MessageContentItemTypeImage,
-				Value: "https://static-cdn.jtvnw.net/emoticons/v2/9/default/light/1.0",
-			},
-			{
-				Type:  entity.MessageContentItemTypeText,
-				Value: fmt.Sprintf("watch streak %s", message.MsgParams["msg-param-value"]),
-			},
+	if hasCategory {
+		switch category {
+		case "watch-streak":
+			// нужна поддержка языка, только не пробрасывать же локализацию на уровень клиента?
+			return []entity.MessageContentItem{
+				{
+					Type:  entity.MessageContentItemTypeImage,
+					Value: "https://static-cdn.jtvnw.net/emoticons/v2/9/default/light/1.0",
+				},
+				{
+					Type:  entity.MessageContentItemTypeText,
+					Value: fmt.Sprintf("watch streak %s", message.params["msg-param-value"]),
+				},
+			}
+		default:
+			logger.Warn(fmt.Scanf("got new message category for twitch: %s", category))
 		}
-	default:
-		logger.Warn(fmt.Scanf("got new message category for twitch: %s", category))
 	}
 
 	// Потом надо добавить получение самой награды, но не сейчас
-	_, isReward := message.Tags["custom-reward-id"]
+	_, isReward := message.tags["custom-reward-id"]
 	if isReward {
 		// нужна поддержка языка, только не пробрасывать же локализацию на уровень клиента?
 		return []entity.MessageContentItem{
@@ -112,7 +124,7 @@ func buildBadge(message twitch.UserNoticeMessage) []entity.MessageContentItem {
 			},
 			{
 				Type:  entity.MessageContentItemTypeText,
-				Value: fmt.Sprintf("reward? 0_o"),
+				Value: "reward? 0_o",
 			},
 		}
 	}
