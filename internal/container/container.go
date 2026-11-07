@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/PlayingPossumHiss/possum_chat/internal/api"
+	"github.com/PlayingPossumHiss/possum_chat/internal/api/ws"
 	"github.com/PlayingPossumHiss/possum_chat/internal/entity"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/github"
 	"github.com/PlayingPossumHiss/possum_chat/internal/infra/clients/kick_chat_api"
@@ -61,6 +62,7 @@ type Container struct {
 
 	// апишка (своя)
 	selfApi *api.Api
+	wsApi   *ws.Service
 
 	// инфра
 	vkPlayLiveApi *vk_play_live_api.Client
@@ -112,7 +114,7 @@ func (c *Container) Run() error {
 		return err
 	}
 
-	api, err := c.getSelfApi()
+	api, err := c.initSelfApi()
 	if err != nil {
 		return err
 	}
@@ -217,7 +219,7 @@ func (c *Container) addJobToScheduler(
 	return err
 }
 
-func (c *Container) getSelfApi() (*api.Api, error) {
+func (c *Container) initSelfApi() (*api.Api, error) {
 	if c.selfApi != nil {
 		return c.selfApi, nil
 	}
@@ -256,7 +258,38 @@ func (c *Container) getSelfApi() (*api.Api, error) {
 		voter,
 	)
 
+	wsApi, err := c.getWsApi()
+	if err != nil {
+		return nil, err
+	}
+	wsApi.Listen()
+
 	return c.selfApi, nil
+}
+
+func (c *Container) getWsApi() (*ws.Service, error) {
+	if c.wsApi != nil {
+		return c.wsApi, nil
+	}
+
+	configService, err := c.getConfig()
+	if err != nil {
+		return nil, err
+	}
+	config := configService.Config()
+
+	onlineGetter, err := c.getOnlineScraper()
+	if err != nil {
+		return nil, err
+	}
+
+	wsApi := ws.New(
+		onlineGetter,
+		config.Port+1,
+	)
+	c.wsApi = wsApi
+
+	return c.wsApi, nil
 }
 
 func (c *Container) getElectionStorage() *vote.Service {
@@ -426,10 +459,16 @@ func (c *Container) getHookService() (*hooks.Service, error) {
 		return nil, err
 	}
 
+	wsListener, err := c.getWsApi()
+	if err != nil {
+		return nil, err
+	}
+
 	hooksService := hooks.New(
 		[]entity.Hook{
 			voter,
 			texter,
+			wsListener,
 		},
 	)
 	c.hooks = hooksService

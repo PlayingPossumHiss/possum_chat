@@ -35,22 +35,33 @@ function createApp() {
            online: online,
         },
     });
-    setInterval(function() {
-        let url = '/api/v1/messages';
-        if (urlParams.forLast != null) {
-            url += '?for_last=' + urlParams.forLast;
+    initData();
+    listenEvents();
+}
+
+function listenEvents() {
+    let socket = new WebSocket("ws://127.0.0.1:8082/chat_events");
+    socket.onopen = function() {
+        setInterval(function() {
+            socket.send("ping")
+        }, 5000);
+    };
+
+    socket.onmessage = function(rawEvent) {
+        if (rawEvent.data == "pong") {
+            return;
         }
-        refreshMessages(url, function(xhr){
-            messages = xhr.response.messages.reverse();
-            app.messages = messages;
-            newOnline = {
-                twitch: undefined,
-                kick: undefined,
-                youtube: undefined,
-                vk_play_live: undefined,
-            };
-            if (xhr.response.online) {
-                xhr.response.online.forEach(element => {
+        let event = JSON.parse(rawEvent.data)
+        switch (event.event_type) {
+            case "logging_status":
+                app.errorCount = event.logging_status.error_count;
+                app.warnCount = event.logging_status.warn_count;
+                break;
+            case "online":
+                if (!event.online) {
+                    return;
+                }
+                event.online.forEach(element => {
                     switch (element.source) {
                     case "twitch":
                         newOnline.twitch = element.count
@@ -66,16 +77,53 @@ function createApp() {
                         break;
                     }
                 });
-            }
-            app.online = newOnline;
-        });
-    }, 50);
-    setInterval(function() {
-        refreshMessages('/api/v1/logging_status', function(xhr){
-            app.errorCount = xhr.response.error_count;
-            app.warnCount = xhr.response.warn_count;
-        });
-    }, 1000);
+                break;
+            case "message":
+                app.messages.push(event.message);
+                break;
+                // TODO: только их теперь чистить надо
+        };
+    };
+
+    socket.onclose = function() {
+        listenEvents();
+    };
+}
+
+function initData() {
+    let url = '/api/v1/messages';
+    if (urlParams.forLast != null) {
+        url += '?for_last=' + urlParams.forLast;
+    }
+    refreshMessages(url, function(xhr){
+        messages = xhr.response.messages.reverse();
+        app.messages = messages;
+        newOnline = {
+            twitch: undefined,
+            kick: undefined,
+            youtube: undefined,
+            vk_play_live: undefined,
+        };
+        if (xhr.response.online) {
+            xhr.response.online.forEach(element => {
+                switch (element.source) {
+                case "twitch":
+                    newOnline.twitch = element.count
+                    break;
+                case "kick":
+                    newOnline.kick = element.count
+                    break;
+                case "youtube":
+                    newOnline.youtube = element.count
+                    break;
+                case "vk_play_live":
+                    newOnline.vk_play_live = element.count
+                    break;
+                }
+            });
+        }
+        app.online = newOnline;
+    });
 }
 
 function extractParams() {
