@@ -40,7 +40,8 @@ function createApp() {
 }
 
 function listenEvents() {
-    let socket = new WebSocket("ws://127.0.0.1:8082/chat_events");
+    let port = Number(window.location.port)+1
+    let socket = new WebSocket("ws://"+location.hostname+":"+port+"/chat_events");
     socket.onopen = function() {
         setInterval(function() {
             socket.send("ping")
@@ -79,7 +80,7 @@ function listenEvents() {
                 });
                 break;
             case "message":
-                app.messages.push(event.message);
+                app.messages.unshift(event.message);
                 break;
                 // TODO: только их теперь чистить надо
         };

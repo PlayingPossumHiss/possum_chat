@@ -63,7 +63,7 @@ func (s *Service) Listen() {
 
 func (s *Service) handleWS(response http.ResponseWriter, request *http.Request) {
 	conn, err := websocket.Accept(response, request, &websocket.AcceptOptions{
-		OriginPatterns: []string{"127.0.0.1:8081"},
+		InsecureSkipVerify: true, // страха нет
 	})
 	if err != nil {
 		log.Printf("Accept failed: %v", err)
