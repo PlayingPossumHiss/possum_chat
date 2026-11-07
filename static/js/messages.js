@@ -1,18 +1,24 @@
+const MESSAGE_KEEP_MS = 20 * 60 * 1000; // удаляем сообщения старше 20 минут
+const RECONNECT_DELAY_MS = 3000;
+const PING_INTERVAL_MS = 5000;
+
 let app
 let urlParams = extractParams()
-let messages = [];
 let online = {
     twitch: undefined,
     kick: undefined,
     youtube: undefined,
     vk_play_live: undefined,
 };
+let seenMessageIds = new Set();
+let loading = false;
+let pendingMessages = [];
 
 document.addEventListener("DOMContentLoaded", function() {
     createApp();
 })
 
-function refreshMessages(url, callback) {
+function refreshMessages(url, callback, onError) {
     let xhr = new XMLHttpRequest();
     xhr.open('GET', url);
     xhr.responseType = 'json';
@@ -21,110 +27,171 @@ function refreshMessages(url, callback) {
     xhr.onload = function() {
         if (xhr.status == 200) {
             callback(xhr);
+        } else if (onError) {
+            onError();
+        }
+    }
+    xhr.onerror = function() {
+        if (onError) {
+            onError();
         }
     }
 }
 
-function createApp() { 
+function createApp() {
     app = new Vue({
         el: '#app',
         data: {
-           messages: messages,
-           errorCount: 0,
-           warnCount: 0,
-           online: online,
+            messages: [],
+            errorCount: 0,
+            warnCount: 0,
+            online: online,
         },
     });
     initData();
     listenEvents();
+    setInterval(pruneOldMessages, 1000);
 }
 
 function listenEvents() {
-    let port = Number(window.location.port)+1
-    let socket = new WebSocket("ws://"+location.hostname+":"+port+"/chat_events");
+    let port = Number(window.location.port) + 1;
+    let socket = new WebSocket("ws://" + location.hostname + ":" + port + "/chat_events");
+    let pingTimer = null;
+
     socket.onopen = function() {
-        setInterval(function() {
-            socket.send("ping")
-        }, 5000);
+        pingTimer = setInterval(function() {
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send("ping");
+            }
+        }, PING_INTERVAL_MS);
     };
 
     socket.onmessage = function(rawEvent) {
-        if (rawEvent.data == "pong") {
+        if (rawEvent.data === "pong") {
             return;
         }
-        let event = JSON.parse(rawEvent.data)
+        let event;
+        try {
+            event = JSON.parse(rawEvent.data);
+        } catch (e) {
+            return;
+        }
         switch (event.event_type) {
-            case "logging_status":
-                app.errorCount = event.logging_status.error_count;
-                app.warnCount = event.logging_status.warn_count;
-                break;
-            case "online":
-                if (!event.online) {
-                    return;
-                }
-                event.online.forEach(element => {
-                    switch (element.source) {
-                    case "twitch":
-                        newOnline.twitch = element.count
-                        break;
-                    case "kick":
-                        newOnline.kick = element.count
-                        break;
-                    case "youtube":
-                        newOnline.youtube = element.count
-                        break;
-                    case "vk_play_live":
-                        newOnline.vk_play_live = element.count
-                        break;
-                    }
-                });
-                break;
-            case "message":
-                app.messages.unshift(event.message);
-                break;
-                // TODO: только их теперь чистить надо
-        };
+        case "logging_status":
+            app.errorCount = event.logging_status.error_count;
+            app.warnCount = event.logging_status.warn_count;
+            break;
+        case "online":
+            if (event.online) {
+                applyOnline(event.online);
+            }
+            break;
+        case "message":
+            onWsMessage(event.message);
+            break;
+        }
     };
 
     socket.onclose = function() {
-        listenEvents();
+        if (pingTimer !== null) {
+            clearInterval(pingTimer);
+            pingTimer = null;
+        }
+        setTimeout(function() {
+            initData();
+            listenEvents();
+        }, RECONNECT_DELAY_MS);
     };
 }
 
 function initData() {
+    loading = true;
     let url = '/api/v1/messages';
     if (urlParams.forLast != null) {
         url += '?for_last=' + urlParams.forLast;
     }
-    refreshMessages(url, function(xhr){
-        messages = xhr.response.messages.reverse();
-        app.messages = messages;
-        newOnline = {
-            twitch: undefined,
-            kick: undefined,
-            youtube: undefined,
-            vk_play_live: undefined,
-        };
+    refreshMessages(url, function(xhr) {
+        app.messages = xhr.response.messages.reverse();
+        rebuildSeenIds();
+        loading = false;
+        flushPending();
         if (xhr.response.online) {
-            xhr.response.online.forEach(element => {
-                switch (element.source) {
-                case "twitch":
-                    newOnline.twitch = element.count
-                    break;
-                case "kick":
-                    newOnline.kick = element.count
-                    break;
-                case "youtube":
-                    newOnline.youtube = element.count
-                    break;
-                case "vk_play_live":
-                    newOnline.vk_play_live = element.count
-                    break;
-                }
-            });
+            applyOnline(xhr.response.online);
         }
-        app.online = newOnline;
+    }, function() {
+        loading = false;
+        flushPending();
     });
+}
+
+function applyOnline(onlineList) {
+    let newOnline = {
+        twitch: undefined,
+        kick: undefined,
+        youtube: undefined,
+        vk_play_live: undefined,
+    };
+    onlineList.forEach(function(element) {
+        switch (element.source) {
+        case "twitch":
+            newOnline.twitch = element.count;
+            break;
+        case "kick":
+            newOnline.kick = element.count;
+            break;
+        case "youtube":
+            newOnline.youtube = element.count;
+            break;
+        case "vk_play_live":
+            newOnline.vk_play_live = element.count;
+            break;
+        }
+    });
+    app.online = newOnline;
+}
+
+// Пока идёт первичная (или повторная после реконнекта) загрузка снапшота,
+// копим WS-сообщения, чтобы не потерять их и не задублировать.
+function onWsMessage(message) {
+    if (loading) {
+        pendingMessages.push(message);
+        return;
+    }
+    addMessage(message);
+}
+
+function flushPending() {
+    for (let i = 0; i < pendingMessages.length; i++) {
+        addMessage(pendingMessages[i]);
+    }
+    pendingMessages = [];
+}
+
+function addMessage(message) {
+    if (seenMessageIds.has(message.id)) {
+        return;
+    }
+    seenMessageIds.add(message.id);
+    app.messages.unshift(message);
+}
+
+function pruneOldMessages() {
+    let now = Date.now();
+    app.messages = app.messages.filter(function(message) {
+        let createdAt = Date.parse(message.created_at);
+        if (isNaN(createdAt)) {
+            return true;
+        }
+        return (now - createdAt) < MESSAGE_KEEP_MS;
+    });
+    rebuildSeenIds();
+}
+
+function rebuildSeenIds() {
+    seenMessageIds = new Set();
+    for (let i = 0; i < app.messages.length; i++) {
+        seenMessageIds.add(app.messages[i].id);
+    }
 }
 
 function extractParams() {

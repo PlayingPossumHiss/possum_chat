@@ -28,7 +28,7 @@ func New(
 	gin.SetMode(gin.ReleaseMode)
 	service := gin.New()
 	service.Use(
-		gin.LoggerWithWriter(gin.DefaultWriter, "/api/v1/messages", "/api/v1/logging_status", "/api/v1/widget_content"),
+		gin.LoggerWithWriter(gin.DefaultWriter, "/api/v1/messages", "/api/v1/widget_content"),
 		gin.Recovery(),
 	)
 	api := &Api{

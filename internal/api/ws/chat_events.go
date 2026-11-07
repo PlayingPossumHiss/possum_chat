@@ -44,7 +44,12 @@ func (s *Service) Handle(ctx context.Context, message entity.Message) error {
 	defer s.mx.Unlock()
 
 	for key := range s.waiters {
-		s.waiters[key] <- message
+		select {
+		case s.waiters[key] <- message:
+		default:
+			// Буфер клиента переполнен — пропускаем сообщение для него,
+			// чтобы не блокировать раздачу остальным и не ловить дедлок.
+		}
 	}
 
 	return nil
@@ -70,7 +75,9 @@ func (s *Service) handleWS(response http.ResponseWriter, request *http.Request) 
 		return
 	}
 	waiterKey := uuid.NewV7().String()
+	s.mx.Lock()
 	s.waiters[waiterKey] = make(chan entity.Message, 1000)
+	s.mx.Unlock()
 	ctx, cancel := context.WithCancel(request.Context())
 	defer cancel()
 	defer conn.CloseNow()
@@ -131,25 +138,24 @@ func (s *Service) handleWS(response http.ResponseWriter, request *http.Request) 
 	}()
 	// играем в пинг-понг
 	for {
-		select {
-		case <-ctx.Done():
+		if ctx.Err() != nil {
 			return
-		default:
-			ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-			defer cancel()
+		}
 
-			_, messageData, err := conn.Read(ctx)
+		readCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		_, messageData, err := conn.Read(readCtx)
+		cancel()
+
+		if err != nil {
+			logger.Error(fmt.Errorf("error on read ws message: %w", err))
+			return
+		}
+
+		if bytes.Equal(messageData, []byte("ping")) {
+			err = conn.Write(ctx, websocket.MessageText, []byte("pong"))
 			if err != nil {
-				logger.Error(fmt.Errorf("error on read ws message: %w", err))
+				logger.Error(fmt.Errorf("error on send ws pong: %w", err))
 				return
-			}
-
-			if bytes.Equal(messageData, []byte("ping")) {
-				err = conn.Write(ctx, websocket.MessageText, []byte("pong"))
-				if err != nil {
-					logger.Error(fmt.Errorf("error on send ws pong: %w", err))
-					return
-				}
 			}
 		}
 	}
