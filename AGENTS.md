@@ -6,11 +6,11 @@ Module path: `github.com/PlayingPossumHiss/possum_chat` (Go 1.27).
 
 ## What the app does (runtime behavior)
 
-1. On start it loads `./config.json` (creates it with defaults if absent), initializes the logger, starts a `gocron` scheduler, runs the gin HTTP server in a goroutine, then opens the Fyne desktop window (`ShowAndRun`, blocking).
+1. On start it loads `./config.json` (creates it with defaults if absent), initializes the logger, starts a `gocron` scheduler, runs the gin HTTP server and the WebSocket events server (on `port+1`) in goroutines, then opens the Fyne desktop window (`ShowAndRun`, blocking).
 2. The operator (streamer) opens the GUI, enters a key per source (channel name / token), and toggles each source on/off. Toggling a source calls `Scraper.Run(ctx)` / `Scraper.Stop()`.
 3. Each scraper connects to its source, buffers incoming chat messages, and (where supported) tracks the current viewer count.
 4. A background job (`ask_watchers_for_messages`) drains every scraper's buffer every 30 ms and pushes the messages into a single in-memory `message_queue`.
-5. The widget page polls `/api/v1/messages` and renders the merged chat plus per-source online counts.
+5. The widget page loads the current state from `/api/v1/messages` once, then receives live updates over a WebSocket (`/chat_events` on `port+1`): new messages, per-source online counts, and logging error/warn counts (see [WebSocket events](#websocket-events-chat_events)).
 6. The streamer can run a chat poll (`--vote variant1;variant2`); viewers vote by number and the results render on a separate `/widget.html` page (see [Voting](#voting)).
 7. The streamer can show arbitrary text on the same widget page with `--message` (see [Text](#text)).
 
@@ -81,9 +81,10 @@ source (YouTube/Twitch/Kick/VK Play Live/Donation Alerts)
 - `message_queue.CleanOldMessages()` deletes messages older than `View.TimeToDeleteMessage` (no-op when it is `0`).
 - Online count: `get_online.UseCase.GetOnline()` returns `map[entity.Source]int64`, but only when `View.ShowUserCount` is true and the scraper `Status() == ScraperStateActive`.
 - `message_queue.PushMessages()` also passes every pushed message to the registered `entity.Hook` (the `hooks.Service`), asynchronously — one goroutine per message, the call wrapped in a 1 s timeout context; errors are logged. Hooks are wired in `container.getMessageQueueService()`.
-- `internal/service/hooks.Service` (`hooks/hooks.go`) is the aggregate hook: it holds a list of `entity.Hook`s and its `Handle(ctx, message)` runs **all** of them, joining errors with `errors.Join`. It is built once in `container.getHookService()` from `[]entity.Hook{voter, texter}` and is wired into `message_queue`.
+- `internal/service/hooks.Service` (`hooks/hooks.go`) is the aggregate hook: it holds a list of `entity.Hook`s and its `Handle(ctx, message)` runs **all** of them, joining errors with `errors.Join`. It is built once in `container.getHookService()` from `[]entity.Hook{voter, texter, wsListener}` and is wired into `message_queue`.
 - The vote hook (`internal/service/hooks/vote.Service`) implements `entity.Hook` and intercepts `--vote` commands, delegating vote state to `internal/service/election.Service` (see [Voting](#voting)).
 - The text hook (`internal/service/hooks/text.Service`) implements `entity.Hook` and intercepts `--message` commands, delegating the text to `internal/service/screen_title.Service` (see [Text](#text)).
+- The WS listener hook (`internal/api/ws.Service`) implements `entity.Hook` and fans each pushed message out to every connected `/chat_events` client (see [WebSocket events](#websocket-events-chat_events)).
 
 ### Message model
 
@@ -111,7 +112,6 @@ All served by gin in `internal/api/api.go` (release mode). Routes:
 | `GET /css/messages.css` | `cssMainStyleCss` | main style, read from `./static/css/simple_block.css` or `simple_no_bg.css` |
 | `GET /css/custom_style.css` | `cssCustomStyleCss` | custom CSS from `View.CssStyle` |
 | `GET /api/v1/messages` | `apiV1Messages` | messages + online counts |
-| `GET /api/v1/logging_status` | `apiV1LoggingStatus` | `{error_count, warn_count}` |
 | `GET /api/v1/widget_content` | `apiV1WidgetContent` | current poll results + streamer text (see [Voting](#voting) and [Text](#text)) |
 | `POST /api/v1/command/message` | `apiV1CommandMessage` | set the `--message` overlay text from `{"text": "..."}` (see [Commands](#commands)) |
 | `POST /api/v1/command/start_election` | `apiV1CommandStartElection` | start a poll from `{"candidates": ["a","b"]}` |
@@ -157,14 +157,36 @@ Response shape:
 
 - `http://127.0.0.1:8081/messages.html` — OBS overlay (default). Newest message at the bottom; when space runs out only recent ones remain. Online count block at the bottom. No error/warn badges.
 - `http://127.0.0.1:8081/messages.html?for_last=1h` — show all messages from the last hour.
-- `http://127.0.0.1:8081/messages_app.html?for_last=1h` — mobile viewing page. Scrollable list (the `rotate(180deg)` trick is disabled via `/css/mobile_app.css`), shows error/warn badges from `/api/v1/logging_status`, and has a nav menu (`Сообщения` / `Команды`).
+- `http://127.0.0.1:8081/messages_app.html?for_last=1h` — mobile viewing page. Scrollable list (the `rotate(180deg)` trick is disabled via `/css/mobile_app.css`), shows error/warn badges (from the WS `logging_status` events), and has a nav menu (`Сообщения` / `Команды`).
 - `http://127.0.0.1:8081/commands_message_app.html` — mobile page to set the `--message` overlay text (a text field + button that `POST`s `{"text": ...}` to `/api/v1/command/message`).
 - `http://127.0.0.1:8081/commands_vote_app.html` — mobile page to start/stop a poll (add variants, `POST`s to `/api/v1/command/start_election` / `stop_election`).
 - `http://127.0.0.1:8081/widget.html` — poll widget: renders the current `--vote` results (hidden while no poll is active) and the current `--message` text (bottom-right). Polls `/api/v1/widget_content` every 250 ms.
 
-`static/js/messages.js` is shared by `messages.html` and `messages_app.html`. It polls `/api/v1/messages` every **50 ms** (reverses the array in JS, updates a Vue 2 app) and `/api/v1/logging_status` every **1 s**. The "newest at bottom" behavior comes from the CSS `transform: rotate(180deg)` trick plus the JS `.reverse()`.
+`static/js/messages.js` is shared by `messages.html` and `messages_app.html`. It loads the initial state from `/api/v1/messages` once, then opens a WebSocket to `/chat_events` (on `port+1`) and updates a Vue 2 app from the pushed events (new messages are prepended to the reversed array). The "newest at bottom" behavior comes from the CSS `transform: rotate(180deg)` trick plus the JS `.reverse()`.
 
 Both pages load Vue 2 from a CDN (`cdn.jsdelivr.net/npm/vue@2.7.16`), so they need internet access (unless cached).
+
+## WebSocket events (`/chat_events`)
+
+Live updates are pushed over a WebSocket instead of polling HTTP. `ws.Service` (`internal/api/ws/`) runs its own HTTP server on `config.Port+1` (default `8082`) and serves one endpoint: `/chat_events`.
+
+- `ws.Service` is registered as an `entity.Hook` in `container.getHookService()` (`[]entity.Hook{voter, texter, wsListener}`), so every message pushed to `message_queue` is fanned out to all connected clients.
+- `ws.Service.Handle(ctx, message)` fans out **non-blocking**: each client has a buffered channel (1000). If a client's buffer is full, the message is dropped for that client (to avoid blocking the rest and deadlocking).
+- Per connection the server runs: a writer goroutine that serializes and sends messages, a 1 s ticker that sends `online` and `logging_status`, and a read loop (30 s timeout) that answers a client `ping` text with `pong`.
+- The gin HTTP API listens on `config.Port`; the WS server listens on `config.Port+1`.
+
+Event envelope (`internal/api/ws/chat_events_datastruct.go`):
+
+- `{"event_type":"message","message":{...}}` — a new chat message; `message` mirrors the `/api/v1/messages` `message` shape (`id`, `source`, `user`, `message_content`, `created_at`).
+- `{"event_type":"online","online":[{"count":123,"source":"twitch"}]}` — online counts, sent every 1 s.
+- `{"event_type":"logging_status","logging_status":{"error_count":0,"warn_count":0}}` — error/warn counters, sent every 1 s.
+
+Client (`static/js/messages.js`):
+
+- Loads the initial state once from `/api/v1/messages` (with `?for_last=…` when present), then opens `ws://<host>:<port+1>/chat_events`.
+- Sends `ping` every 5 s (the server answers `pong`); on `onclose` it reconnects after a 3 s delay and re-fetches `/api/v1/messages` to catch up.
+- Prepends incoming messages (the array stays reversed), dedupes by message `id`, and prunes messages older than **20 minutes** (`MESSAGE_KEEP_MS`).
+- While a snapshot is loading, WS messages are buffered (`pendingMessages`) and applied after the fetch completes, so the async race between the fetch and the WS stream neither drops nor duplicates messages.
 
 ## Voting (`--vote`)
 
@@ -211,6 +233,15 @@ Per-source connection key (stored in `config.json` under `connections`) and tran
 | Donation Alerts | `token` (secret — masked in UI) | Socket.IO to `socket.donationalerts.ru:443`, emit `add-user`, listen on `donation`. No online count. |
 
 Online counts are polled once per minute by each scraper's `watchOnline` loop, except VK Play Live (pushed over WS) and Donation Alerts (none). Several sources add small `time.Sleep` delays between reconnect attempts "чтобы не словить бан" (to avoid being rate-limited/banned).
+
+### Twitch badges
+
+`internal/infra/clients/twitch_irc_client/client.go` `buildBadge` produces an extra `[]entity.MessageContentItem` (a "badge") that `buildMessageContent` appends to a Twitch message. It handles two cases:
+
+- **Серия просмотров (`watch-streak`)** — when `msg-param-category` is `watch-streak` (a `UserNoticeMessage`), renders an emote image (`.../emoticons/v2/9/...`) plus the text `watch streak <N>`, where `<N>` is `msg-param-value`.
+- **Получение награды (channel reward)** — when the `custom-reward-id` tag is present (a channel-points redemption), renders the same emote image plus the placeholder text `reward? 0_o`. The real reward title is not fetched yet (TODO in the code).
+
+Unknown `msg-param-category` values are logged with `logger.Warn`. The user-facing strings are hardcoded placeholders — localization is not wired through to the client level yet.
 
 ## Background jobs (gocron scheduler)
 

@@ -28,7 +28,7 @@ func New(
 	gin.SetMode(gin.ReleaseMode)
 	service := gin.New()
 	service.Use(
-		gin.LoggerWithWriter(gin.DefaultWriter, "/api/v1/messages", "/api/v1/logging_status", "/api/v1/widget_content"),
+		gin.LoggerWithWriter(gin.DefaultWriter, "/api/v1/messages", "/api/v1/widget_content"),
 		gin.Recovery(),
 	)
 	api := &Api{
@@ -45,7 +45,6 @@ func New(
 	service.GET("/css/messages.css", api.cssMainStyleCss)
 
 	service.GET("/api/v1/messages", api.apiV1Messages)
-	service.GET("/api/v1/logging_status", api.apiV1LoggingStatus)
 	service.GET("/api/v1/widget_content", api.apiV1WidgetContent)
 	service.POST("/api/v1/command/message", api.apiV1CommandMessage)
 	service.POST("/api/v1/command/start_election", api.apiV1CommandStartElection)

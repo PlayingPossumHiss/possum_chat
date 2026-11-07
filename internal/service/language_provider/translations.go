@@ -51,8 +51,8 @@ var (
 			entity.ConfigLangRu: "Удалять сообщения через (мин.)",
 		},
 		entity.LanguageTextConstantSettingsPort: {
-			entity.ConfigLangEn: "Port (need restart)",
-			entity.ConfigLangRu: "Порт (нужен перезапуск)",
+			entity.ConfigLangEn: "Port (+1 for ws, need restart)",
+			entity.ConfigLangRu: "Порт (+1 для ws, нужен перезапуск)",
 		},
 		entity.LanguageTextConstantSettingsLang: {
 			entity.ConfigLangEn: "Language (need restart)",
