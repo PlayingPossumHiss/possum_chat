@@ -10,15 +10,12 @@ let online = {
     youtube: undefined,
     vk_play_live: undefined,
 };
-let seenMessageIds = new Set();
-let loading = false;
-let pendingMessages = [];
 
 document.addEventListener("DOMContentLoaded", function() {
     createApp();
 })
 
-function refreshMessages(url, callback, onError) {
+function refreshMessages(url, callback) {
     let xhr = new XMLHttpRequest();
     xhr.open('GET', url);
     xhr.responseType = 'json';
@@ -28,11 +25,6 @@ function refreshMessages(url, callback, onError) {
         if (xhr.status == 200) {
             callback(xhr);
         } else if (onError) {
-            onError();
-        }
-    }
-    xhr.onerror = function() {
-        if (onError) {
             onError();
         }
     }
@@ -98,29 +90,21 @@ function listenEvents() {
             pingTimer = null;
         }
         setTimeout(function() {
-            initData();
             listenEvents();
         }, RECONNECT_DELAY_MS);
     };
 }
 
 function initData() {
-    loading = true;
     let url = '/api/v1/messages';
     if (urlParams.forLast != null) {
         url += '?for_last=' + urlParams.forLast;
     }
     refreshMessages(url, function(xhr) {
         app.messages = xhr.response.messages.reverse();
-        rebuildSeenIds();
-        loading = false;
-        flushPending();
         if (xhr.response.online) {
             applyOnline(xhr.response.online);
         }
-    }, function() {
-        loading = false;
-        flushPending();
     });
 }
 
@@ -153,25 +137,6 @@ function applyOnline(onlineList) {
 // Пока идёт первичная (или повторная после реконнекта) загрузка снапшота,
 // копим WS-сообщения, чтобы не потерять их и не задублировать.
 function onWsMessage(message) {
-    if (loading) {
-        pendingMessages.push(message);
-        return;
-    }
-    addMessage(message);
-}
-
-function flushPending() {
-    for (let i = 0; i < pendingMessages.length; i++) {
-        addMessage(pendingMessages[i]);
-    }
-    pendingMessages = [];
-}
-
-function addMessage(message) {
-    if (seenMessageIds.has(message.id)) {
-        return;
-    }
-    seenMessageIds.add(message.id);
     app.messages.unshift(message);
 }
 
@@ -184,14 +149,6 @@ function pruneOldMessages() {
         }
         return (now - createdAt) < MESSAGE_KEEP_MS;
     });
-    rebuildSeenIds();
-}
-
-function rebuildSeenIds() {
-    seenMessageIds = new Set();
-    for (let i = 0; i < app.messages.length; i++) {
-        seenMessageIds.add(app.messages[i].id);
-    }
 }
 
 function extractParams() {
