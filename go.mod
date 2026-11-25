@@ -4,7 +4,6 @@ go 1.27
 
 require (
 	fyne.io/fyne/v2 v2.8.1
-	github.com/centrifugal/centrifuge-go v0.13.0
 	github.com/epjane/youtube-live-chat-downloader/v2 v2.1.4
 	github.com/gempir/go-twitch-irc/v4 v4.4.1
 	github.com/gin-gonic/gin v1.12.0
@@ -23,8 +22,6 @@ require (
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/bytedance/sonic v1.15.0 // indirect
 	github.com/bytedance/sonic/loader v0.5.0 // indirect
-	github.com/centrifugal/fdelta v0.0.3 // indirect
-	github.com/centrifugal/protocol v0.23.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -49,7 +46,6 @@ require (
 	github.com/hack-pad/safejs v0.1.0 // indirect
 	github.com/jeandeaual/go-locale v0.0.0-20250612000132-0ef82f21eade // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
-	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/jsummers/gobmp v0.0.0-20230614200233-a9de23ed2e25 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
