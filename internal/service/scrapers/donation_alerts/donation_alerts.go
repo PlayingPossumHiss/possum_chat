@@ -56,6 +56,7 @@ func (s *Service) watchLoop() {
 			return
 		}
 		messages, err := s.daClient.Init(
+			context.Background(),
 			token,
 		)
 		if err != nil {

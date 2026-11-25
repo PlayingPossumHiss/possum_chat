@@ -61,3 +61,40 @@ func (target *donation) UnmarshalJSON(data []byte) error {
 
 	return nil
 }
+
+type tokenResponse struct {
+	Data struct {
+		Token string `json:"token"`
+	} `json:"data"`
+}
+
+type userInfoResponse struct {
+	Data struct {
+		ID int64 `json:"id"`
+	} `json:"data"`
+}
+
+type wsMessageGreet struct {
+	ID     int64                `json:"id"`
+	Params wsMessageGreetParams `json:"params"`
+}
+
+type wsMessageGreetParams struct {
+	Token string `json:"token"`
+	Name  string `json:"name"`
+}
+
+type wsMessageSubscribe struct {
+	ID     int64                    `json:"id"`
+	Params wsMessageSubscribeParams `json:"params"`
+}
+
+type wsMessageSubscribeParams struct {
+	Token   string `json:"token"`
+	Channel string `json:"channel"`
+}
+
+type wsMessagePing struct {
+	ID     int64 `json:"id"`
+	Method int64 `json:"method"`
+}
