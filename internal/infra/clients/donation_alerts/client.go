@@ -25,7 +25,7 @@ func New(
 }
 
 const (
-	daHost = "socket.donationalerts.ru"
+	daHost = "socket11.donationalerts.com"
 	daPort = 443
 )
 
