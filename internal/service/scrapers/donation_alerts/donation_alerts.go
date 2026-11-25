@@ -55,10 +55,7 @@ func (s *Service) watchLoop() {
 
 			return
 		}
-		messages, err := s.daClient.Init(
-			context.Background(),
-			token,
-		)
+		messages, err := s.daClient.Init(token)
 		if err != nil {
 			logger.Error(err)
 

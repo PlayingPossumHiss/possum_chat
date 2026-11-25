@@ -11,6 +11,7 @@ require (
 	github.com/gojuno/minimock/v3 v3.4.7
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
+	github.com/graarh/golang-socketio v0.0.0-20170510162725-2c44953b9b5f
 	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.12.1
 )
