@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -99,7 +98,7 @@ func (s *Service) handleWS(response http.ResponseWriter, request *http.Request) 
 				continue
 			}
 			err = conn.Write(ctx, websocket.MessageText, messageData)
-			if err != nil && !ignoredError(err) {
+			if err != nil {
 				logger.Error(fmt.Errorf("error on send ws message: %w", err))
 			}
 		}
@@ -121,10 +120,7 @@ func (s *Service) handleWS(response http.ResponseWriter, request *http.Request) 
 				}
 				err = conn.Write(ctx, websocket.MessageText, onlineData)
 				if err != nil {
-					if !ignoredError(err) {
-						logger.Error(fmt.Errorf("error on send ws online: %w", err))
-					}
-					continue
+					logger.Error(fmt.Errorf("error on send ws online: %w", err))
 				}
 
 				status := logger.GetStatus()
@@ -135,48 +131,32 @@ func (s *Service) handleWS(response http.ResponseWriter, request *http.Request) 
 				}
 				err = conn.Write(ctx, websocket.MessageText, loggingStatusData)
 				if err != nil {
-					if !ignoredError(err) {
-						logger.Error(fmt.Errorf("error on send ws status: %w", err))
-					}
-					continue
+					logger.Error(fmt.Errorf("error on send ws logging status: %w", err))
 				}
 			}
 		}
 	}()
 	// играем в пинг-понг
 	for {
-		select {
-		case <-ctx.Done():
+		if ctx.Err() != nil {
 			return
-		default:
-			readCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-			_, messageData, err := conn.Read(readCtx)
-			cancel()
+		}
 
+		readCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		_, messageData, err := conn.Read(readCtx)
+		cancel()
+
+		if err != nil {
+			logger.Error(fmt.Errorf("error on read ws message: %w", err))
+			return
+		}
+
+		if bytes.Equal(messageData, []byte("ping")) {
+			err = conn.Write(ctx, websocket.MessageText, []byte("pong"))
 			if err != nil {
-				if !ignoredError(err) {
-					logger.Error(fmt.Errorf("error on read ws message: %w", err))
-				}
+				logger.Error(fmt.Errorf("error on send ws pong: %w", err))
 				return
-			}
-
-			if bytes.Equal(messageData, []byte("ping")) {
-				err = conn.Write(ctx, websocket.MessageText, []byte("pong"))
-				if err != nil {
-					if !ignoredError(err) {
-						logger.Error(fmt.Errorf("error on send ws pong: %w", err))
-					}
-					return
-				}
 			}
 		}
 	}
-}
-
-func ignoredError(err error) bool {
-	if errors.Is(err, context.Canceled) {
-		return true
-	}
-	_, isClose := errors.AsType[websocket.CloseError](err)
-	return isClose
 }
